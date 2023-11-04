@@ -1,0 +1,102 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <UserSecretsId>aspnet-BlazorDiffusion-7b2ab71a-0b50-423f-969d-e35a9402b1b5</UserSecretsId>
+        <TypeScriptCompileBlocked>true</TypeScriptCompileBlocked>
+        <PublishProfile>DefaultContainer</PublishProfile>
+    </PropertyGroup>
+    
+    <ItemGroup>
+        <Using Include="ServiceStack" />
+        <Using Include="BlazorDiffusion" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.0-rc.2.23480.2" />
+        <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.0-rc.2.23480.2" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.0-rc.2.23480.1" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.0-rc.2.23480.1" />
+        <!-- https://github.com/dotnet/aspnetcore/issues/51302#issue-1938612540 -->
+        <PackageReference Include="Microsoft.Net.Compilers.Razor.Toolset" Version="7.0.0-preview.23512.5">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Markdig" Version="0.33.0" />
+    </ItemGroup>
+
+    <!--<ItemGroup>
+        <PackageReference Include="ServiceStack" Version="6.*" />
+        <PackageReference Include="ServiceStack.Blazor" Version="6.*" />
+        <PackageReference Include="ServiceStack.Mvc" Version="6.*" />
+        <PackageReference Include="ServiceStack.OrmLite.Sqlite.Data" Version="6.*" />
+        <PackageReference Include="ServiceStack.Extensions" Version="6.*" />
+        <PackageReference Include="ServiceStack.Server" Version="6.*" />
+    </ItemGroup>-->
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\ServiceStack\ServiceStack\ServiceStack.Blazor\src\ServiceStack.Blazor\ServiceStack.Blazor.csproj" />
+        <ProjectReference Include="..\..\..\ServiceStack\ServiceStack\ServiceStack.OrmLite\src\ServiceStack.OrmLite.Sqlite.Data\ServiceStack.OrmLite.Sqlite.Data.csproj" />
+        <ProjectReference Include="..\..\..\ServiceStack\ServiceStack\ServiceStack.OrmLite\src\ServiceStack.OrmLite\ServiceStack.OrmLite.csproj" />
+        <ProjectReference Include="..\..\..\ServiceStack\ServiceStack\ServiceStack.Text\src\ServiceStack.Text\ServiceStack.Text.csproj" />
+        <ProjectReference Include="..\..\..\ServiceStack\ServiceStack\ServiceStack\src\ServiceStack.Client\ServiceStack.Client.csproj" />
+        <ProjectReference Include="..\..\..\ServiceStack\ServiceStack\ServiceStack\src\ServiceStack.Common\ServiceStack.Common.csproj" />
+        <ProjectReference Include="..\..\..\ServiceStack\ServiceStack\ServiceStack\src\ServiceStack.Extensions\ServiceStack.Extensions.csproj" />
+        <ProjectReference Include="..\..\..\ServiceStack\ServiceStack\ServiceStack\src\ServiceStack.GrpcClient\ServiceStack.GrpcClient.csproj" />
+        <ProjectReference Include="..\..\..\ServiceStack\ServiceStack\ServiceStack\src\ServiceStack.Interfaces\ServiceStack.Interfaces.csproj" />
+        <ProjectReference Include="..\..\..\ServiceStack\ServiceStack\ServiceStack\src\ServiceStack.Server\ServiceStack.Server.csproj" />
+        <ProjectReference Include="..\..\..\ServiceStack\ServiceStack\ServiceStack\src\ServiceStack\ServiceStack.csproj" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="Google.Protobuf" Version="3.24.4" />
+        <PackageReference Include="Grpc.Core" Version="2.46.6" />
+        <PackageReference Include="Grpc.Net.Client" Version="2.58.0" />
+        <PackageReference Include="Grpc.Tools" Version="2.59.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="6.0.9" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.Facebook" Version="6.0.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="6.0.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.MicrosoftAccount" Version="6.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\BlazorDiffusion.ServiceInterface\BlazorDiffusion.ServiceInterface.csproj" />
+        <ProjectReference Include="..\BlazorDiffusion.ServiceModel\BlazorDiffusion.ServiceModel.csproj" />
+    </ItemGroup>
+
+    <Target Name="tailwind" BeforeTargets="Publish">
+        <Exec Command="npm run ui:build" WorkingDirectory="./" />
+    </Target>
+
+    
+    <ItemGroup>
+        <Protobuf Include="proto\dashboard.proto" GrpcServices="None" />
+        <Protobuf Include="proto\engines.proto" GrpcServices="None" />
+        <Protobuf Include="proto\generation.proto" GrpcServices="Client" ProtoRoot="proto\" />
+        <Protobuf Include="proto\project.proto" GrpcServices="None" />
+        <Protobuf Include="proto\tensors.proto" GrpcServices="None" />
+    </ItemGroup>
+
+    <Target Name="CreateAppDataFolderBuild" AfterTargets="AfterBuild">
+        <MakeDir Directories="$(BuildDir)App_Data" Condition="!Exists('$(BuildDir)App_Data')" />
+    </Target>
+
+    <Target Name="CreateAppDataFolder" AfterTargets="AfterPublish">
+        <MakeDir Directories="$(PublishDir)App_Data" Condition="!Exists('$(PublishDir)App_Data')" />
+    </Target>
+
+    <ItemGroup>
+        <Content Remove="App_Files\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Update="App_Data\seed\**">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+</Project>

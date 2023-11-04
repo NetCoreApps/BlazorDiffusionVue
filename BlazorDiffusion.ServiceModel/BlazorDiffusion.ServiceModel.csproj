@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.0-rc.2.23480.2" />
+        <!--<PackageReference Include="ServiceStack.Interfaces" Version="6.*" />-->
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\ServiceStack\ServiceStack\ServiceStack\src\ServiceStack.Interfaces\ServiceStack.Interfaces.csproj" />
+    </ItemGroup>
+
+</Project>

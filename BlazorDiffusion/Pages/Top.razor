@@ -1,0 +1,113 @@
+﻿@page "/top"
+@page "/top/{Page:int}"
+
+<PageTitle>Top Images @(Page != null ? $" - page {Page}" : "")</PageTitle>
+
+<div id="albums" class="mx-auto px-6 lg:px-8">
+    <div class="mb-8 mx-auto max-w-2xl text-center">
+        <h1 class="max-w-4xl font-display text-4xl font-semibold tracking-tight text-slate-50 sm:text-5xl lg:text-6xl">Top Images</h1>
+    </div>
+
+    <PagesNav Prefix="/top" Pages="@Pages" SelectedPage="@UsePage" />
+    <StaticGallery Results="@GalleryResults" />
+    <PagesNav Prefix="/top" Pages="@Pages" SelectedPage="@UsePage" />
+
+</div>
+
+@code {
+    [Parameter] 
+    public required string Slug { get; set; }
+    
+    [Parameter]
+    [SupplyParameterFromQuery] 
+    public int? Page { get; set; }
+    
+    [Inject] UserState userState { get; set; } = default!;
+    [Inject] ILogger<Latest> log { get; set; } = default!;
+
+    public string? RefId { get; set; }
+    public int UsePage;
+    public int Total;
+    public int Pages;
+    public const int GridColumns = 4;
+    public GalleryResults GalleryResults = new() { GridColumns = GridColumns };
+    public List<AlbumRef> OtherAlbums = new();
+    public Artifact? CoverImage = null;
+    public string? Title;
+
+    SearchArtifacts request = new();
+    List<Artifact> results = new();
+    HashSet<int> resultIds = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        UsePage = Math.Max(Page ?? 1, 1);
+
+        GalleryResults = new GalleryResults { GridColumns = GridColumns };
+
+        var request = new SearchArtifacts {
+            Skip = (UsePage - 1) * UserState.StaticPagedTake,
+            Take = UserState.StaticTake,
+            Include = "total",
+            Show = "top"
+        };
+
+        var api = await userState.ApiAsync(request);
+        clearResults();
+
+        if (api.Succeeded)
+        {
+            if (api.Response?.Results != null)
+            {
+                addResults(api.Response.Results);
+            }
+        }
+
+        Total = api.Response?.Total ?? 0;
+        Pages = (int)Math.Ceiling(Total / (double)UserState.StaticPagedTake);
+    }
+
+    void setResults(IEnumerable<Artifact> newResults)
+    {
+        results = newResults.ToList();
+        GalleryResults = X.Apply(GalleryResults.Clone(), x => x.Artifacts = results.ShuffleGridArtifacts(GridColumns).ToList());
+    }
+
+    void clearResults()
+    {
+        results.Clear();
+        resultIds.Clear();
+    }
+
+    void addResults(List<ArtifactResult> artifacts, bool reset = false)
+    {
+        if (reset)
+            clearResults();
+
+        var missingPrompts = new List<int>();
+
+        var hasMore = artifacts.Count >= request.Take;
+        foreach (var artifact in artifacts)
+        {
+            if (resultIds.Contains(artifact.Id))
+                continue;
+
+            if (string.IsNullOrEmpty(artifact.Prompt) && string.IsNullOrEmpty(artifact.UserPrompt))
+            {
+                missingPrompts.Add(artifact.Id);
+                continue;
+            }
+
+            resultIds.Add(artifact.Id);
+            results.Add(artifact);
+        }
+
+        if (missingPrompts.Count > 0)
+        {
+            log.LogError("Artifacts with missing prompts: {0}", string.Join(", ", missingPrompts));
+        }
+
+        setResults(results);
+    }
+}
+

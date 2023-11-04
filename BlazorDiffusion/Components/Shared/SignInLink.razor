@@ -1,0 +1,27 @@
+﻿@if (!HttpContext.User.IsAuthenticated())
+{
+    <div>
+        <a href="/Account/Login" class="signin-link cursor-pointer -mx-3 block rounded-lg px-3 py-1.5 text-base font-semibold leading-7 text-white hover:bg-gray-800">Sign in &rarr;</a>
+    </div>
+}
+else
+{
+    <div class="sign-in-link">
+        <div class="h-10 w-10 rounded-full bg-white/90 p-0.5 shadow-lg shadow-zinc-800/5 ring-1 ring-zinc-900/5 backdrop-blur dark:bg-zinc-800/90 dark:ring-white/10 overflow-hidden"
+             onclick="this.nextElementSibling.classList.toggle('hidden')">
+            <Icon Src="@ProfileUrl" class="w-9 h-9 cursor-pointer" />
+        </div>
+        <div class=@CssUtils.ClassNames("hidden auth-menu font-normal absolute z-10 mt-2 w-48 origin-top-right rounded-md bg-white dark:bg-black py-1 shadow-lg ring-1 ring-black dark:ring-gray-600 ring-opacity-5 focus:outline-none", MenuClass) role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1">
+            <span onclick="logout()" class="cursor-pointer block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800" role="menuitem" tabindex="-1">Logout</span>
+        </div>
+    </div>
+}
+
+
+@code {
+    [CascadingParameter] public HttpContext? HttpContext { get; set; }
+
+    string ProfileUrl => HttpContext.User.GetProfileUrl();
+
+    [Parameter] public string MenuClass { get; set; } = "right-2";
+}

@@ -1,0 +1,140 @@
+﻿@page "/albums/{Slug}"
+@page "/albums/{Slug}/{Page:int}"
+@inject AppConfig AppConfig
+
+@if (SelectedAlbum != null)
+{
+    <PageTitle>@SelectedAlbum.Name</PageTitle>
+
+    @if (CoverImage != null)
+    {
+        <HeadContent>
+            <HeadCard Title="@SelectedAlbum.Name" 
+                      Url="@AppConfig.CdnBaseUrl.CombineWith(GetAlbumRoute(SelectedAlbum, UsePage))"
+                      Description="@CoverImage.Prompt"
+                      ImagePath="@CoverImage.FilePath" />
+        </HeadContent>
+    }
+
+    <div id="albums" class="mx-auto px-6 lg:px-8" data-album="@SelectedAlbum.Id">
+        <div class="mb-8 mx-auto max-w-2xl text-center">
+            <h1 class="max-w-4xl font-display text-4xl font-semibold tracking-tight text-slate-50 sm:text-5xl lg:text-6xl">@SelectedAlbum.Name</h1>
+        </div>
+
+        <AlbumNav Album="@SelectedAlbum" Pages="@Pages" SelectedPage="@UsePage" />
+        <Gallery Results="@GalleryResults" />
+        <AlbumNav Album="@SelectedAlbum" Pages="@Pages" SelectedPage="@UsePage" />
+
+    </div>
+}
+
+@code {
+    [Parameter] 
+    public required string Slug { get; set; }
+    
+    [Parameter]
+    [SupplyParameterFromQuery] 
+    public int? Page { get; set; }
+    
+    [Inject] UserState userState { get; set; } = default!;
+
+    public string? RefId { get; set; }
+    public int UsePage;
+    public int Total;
+    public int Pages;
+    public const int GridColumns = 4;
+    public AlbumResult? SelectedAlbum = null;
+    public GalleryResults GalleryResults = new() { GridColumns = GridColumns };
+    public List<AlbumRef> OtherAlbums = new();
+    public Artifact? CoverImage = null;
+    public string? Title;
+
+    SearchArtifacts request = new();
+    List<Artifact> results = new();
+    HashSet<int> resultIds = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        UsePage = Math.Max(Page ?? 1, 1);
+
+        ApiResult<QueryResponse<ArtifactResult>> api = new();
+        GalleryResults = new GalleryResults { GridColumns = GridColumns };
+
+        var albumRef = userState.GetAlbumRefBySlug(Slug!);
+        RefId = albumRef?.RefId;
+
+        if (RefId != null)
+        {
+            request.Album = RefId;
+            request.Skip = (UsePage - 1) * UserState.StaticPagedTake;
+            request.Take = UserState.StaticPagedTake;
+            request.Include = "Total";
+            api = await userState.ApiAsync(request);
+            clearResults();
+
+            if (api.Succeeded)
+            {
+                if (api.Response?.Results != null)
+                {
+                    addResults(api.Response.Results);
+                }
+            }
+
+            var apiAlbum = await userState.ApiAsync(new GetAlbumResults { RefIds = new() { RefId } });
+            if (apiAlbum.Succeeded)
+            {
+                SelectedAlbum = apiAlbum.Response?.Results.FirstOrDefault();
+                if (SelectedAlbum != null)
+                {
+                    Title = SelectedAlbum.Name + (UsePage > 1 ? $" Page {UsePage}" : "");
+                }
+            }
+
+            var apiAlbums = await userState.ApiAsync(new GetAlbumRefs());
+            if (apiAlbums.Succeeded)
+            {
+                OtherAlbums = apiAlbums.Response!.Results;
+            }
+        }
+
+        Total = api.Response?.Total ?? 0;
+        Pages = (int)Math.Ceiling(Total / (double)UserState.StaticPagedTake);
+        CoverImage = SelectedAlbum != null ? results.FirstOrDefault(x => x.Id == SelectedAlbum.PrimaryArtifactId) : null;
+    }
+
+    public string GetAlbumRoute(AlbumResult album, int? pageNo = 1) => GetAlbumRoute(album.Slug, pageNo);
+    public string GetAlbumRoute(string slug, int? pageNo = 1)
+    {
+        var suffix = pageNo == 1 ? "" : "_" + pageNo;
+        return $"/albums/{slug}{suffix}";
+    }
+
+    void setResults(IEnumerable<Artifact> newResults)
+    {
+        results = newResults.ToList();
+        GalleryResults = X.Apply(GalleryResults.Clone(), x => x.Artifacts = results.ShuffleGridArtifacts(GridColumns).ToList());
+    }
+
+    void clearResults()
+    {
+        results.Clear();
+        resultIds.Clear();
+    }
+
+    void addResults(List<ArtifactResult> artifacts, bool reset = false)
+    {
+        if (reset)
+            clearResults();
+
+        //var hasMore = artifacts.Count >= request.Take;
+        foreach (var artifact in artifacts)
+        {
+            if (resultIds.Contains(artifact.Id))
+                continue;
+
+            resultIds.Add(artifact.Id);
+            results.Add(artifact);
+        }
+        setResults(results);
+    }
+}

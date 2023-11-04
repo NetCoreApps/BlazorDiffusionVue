@@ -1,0 +1,11 @@
+﻿
+<div class="@CssUtils.ClassNames("grid gap-2", AppCss.GetGridClass(Results.GridColumns ?? 5))">
+    @foreach (var artifact in Results.Artifacts.OrEmpty())
+    {
+        <StaticArtifactImage Artifact="@artifact" />
+    }
+</div>
+
+@code {
+    [Parameter] public required GalleryResults Results { get; set; }
+}

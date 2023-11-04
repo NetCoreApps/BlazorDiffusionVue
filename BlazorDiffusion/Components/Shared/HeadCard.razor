@@ -1,0 +1,33 @@
+﻿@inject AppConfig AppConfig
+
+<link rel="canonical" href="@Url" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:site" content="blazordiffusion.com" />
+<meta name="twitter:creator" content="@@blazordiffusion" />
+<meta property="og:url" content="@Url" />
+@if (Title != null)
+{
+    <meta property="og:title" content="@Title" />
+}
+@if (Description != null)
+{
+    <meta property="og:description" content="@Description" />
+}
+@if (ImageUrl != null)
+{
+    <meta property="og:image" content="@ImageUrl" />
+}
+
+@code {
+    [Parameter] public string Url { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Description { get; set; }
+    [Parameter] public string? ImagePath { get; set; }
+
+    public string? ImageUrl => ImagePath == null
+        ? ""
+        : ImagePath.IndexOf("://") >= 0
+            ? ImagePath
+            : AppConfig.AssetsBasePath.CombineWith(ImagePath);
+
+}

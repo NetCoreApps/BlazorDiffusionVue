@@ -1,0 +1,34 @@
+﻿
+<div id="gallery" class="@CssUtils.ClassNames("grid sm:gap-2", AppCss.GetGridClass(Results.GridColumns ?? 5))"
+    data-component="pages/Components/Shared/Gallery.mjs">
+    @foreach (var artifact in Results.Artifacts.OrEmpty())
+    {
+        <div v-on:click.prevent.stop="loadArtifact(@artifact.Id)">
+            <StaticArtifactImage Artifact="@artifact" />
+        </div>
+    }
+    <artifact-modal v-if="artifact" :artifact="artifact" v-on:selected="showArtifact" v-on:done="showArtifact(null)" v-on:open="openDialog">
+        <template #icons="artifact">
+            <div class="p-2 relative w-full h-full overflow-hidden flex flex-col justify-between overflow-hidden">
+                <div class="flex flex-col h-full justify-between">
+                    <div class="flex justify-between flex-none">
+                        <artifact-like-icon :artifact="artifact" v-on:changed="update"></artifact-like-icon>
+                        <artifact-menu-icon :artifact="artifact" v-on:show-artifact-menu="artifactMenu=artifact"></artifact-menu-icon>
+                    </div>
+                    <artifact-explore-icon :artifact="artifact" v-on:changed="update"></artifact-explore-icon>
+                </div>
+            </div>
+        </template>
+        <template #contextmenu="artifact">
+            <artifact-menu v-if="artifactMenu?.id === artifact.id" :artifact="artifactMenu" menu-class="justify-end"
+                           v-on:changed="notifyChanged" v-on:done="artifactMenu=null" v-on:open="openDialog">
+            </artifact-menu>
+        </template>
+    </artifact-modal>
+    <artifact-dialogs :show="open" :artifact="artifact" v-on:done="closeDialog"></artifact-dialogs>
+</div>
+
+
+@code {
+    [Parameter] public required GalleryResults Results { get; set; }
+}
