@@ -8,7 +8,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <None Remove="appsettings.json" />
       <None Update="App_Data\seed\*">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </None>
@@ -22,9 +21,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="appsettings.json">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
       <None Remove="db.sqlite" />
     </ItemGroup>
 
