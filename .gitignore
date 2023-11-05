@@ -16,6 +16,7 @@ App_Data/
 *.userosscache
 *.sln.docstates
 *.secrets.cs
+*.patch
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

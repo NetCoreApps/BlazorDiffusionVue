@@ -23,7 +23,7 @@ public class EmailServices : Service
             ? new MailAddress(Config.DevToEmail)
             : new MailAddress(request.To, request.ToName);
 
-        var emailFrom = new MailAddress(Config.DefaultFromEmail, Config.DefaultFromName);
+        var emailFrom = new MailAddress(Config.FromEmail, Config.FromName);
 
         var msg = new MailMessage(emailFrom, emailTo)
         {
@@ -32,9 +32,9 @@ public class EmailServices : Service
             IsBodyHtml = request.BodyHtml != null,
         };
 
-        if (Config.EchoToEmail != null)
+        if (Config.Bcc != null)
         {
-            msg.Bcc.Add(new MailAddress(Config.EchoToEmail));
+            msg.Bcc.Add(new MailAddress(Config.Bcc));
         }
 
         client.Send(msg);
