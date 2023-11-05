@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using BlazorDiffusion.ServiceModel;
+using Microsoft.Extensions.Hosting;
 using ServiceStack;
 using ServiceStack.OrmLite;
 
@@ -36,5 +37,18 @@ public static class DbExtensions
             Likes = likes,
             Albums = albumResults,
         };
+    }
+
+    public static string GetUserRef(this IDbConnection db, int userId)
+    {
+        if (AppData.Instance.UserRefMap.TryGetValue(userId, out var userRef))
+            return userRef;
+
+        userRef = db.Single<string>(db.From<AppUser>().Where(x => x.Id == userId).Select(x => x.RefIdStr));
+        if (userRef == null)
+            throw HttpError.NotFound($"User {userId} does not exist");
+
+        AppData.Instance.UserRefMap[userId] = userRef;
+        return userRef;
     }
 }

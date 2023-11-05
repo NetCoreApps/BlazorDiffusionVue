@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using BlazorDiffusion.ServiceModel;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using ServiceStack;
@@ -16,8 +14,6 @@ using ServiceStack.Logging;
 using ServiceStack.OrmLite;
 using ServiceStack.Text;
 using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Webp;
-using SixLabors.ImageSharp.Processing;
 
 namespace BlazorDiffusion.ServiceInterface;
 
@@ -211,16 +207,15 @@ public class CreativeService : Service
     {
         request.UserPrompt = request.UserPrompt.Trim();
         var session = await SessionAsAsync<CustomUserSession>();
-        string userAuthId = session.UserAuthId;
-        var userId = userAuthId?.ToInt();
+        var userId = session.GetUserId();
         var now = DateTime.UtcNow;
         var creative = request.ConvertTo<Creative>()
-            .WithAudit(userAuthId, now);
+            .WithAudit(session.UserAuthId, now);
         creative.Width = request.Width ?? DefaultWidth;
         creative.Height = request.Height ?? DefaultHeight;
         creative.Steps = request.Steps ?? DefaultSteps;
         creative.OwnerId = userId;
-        creative.OwnerRef = session.RefIdStr;
+        creative.OwnerRef = Db.GetUserRef(userId);
         creative.Key = imageGenerationResponse.Key;
         creative.ArtistNames = artists.Select(x => x.GetArtistName()).ToList();
         creative.ModifierNames = modifiers.Select(x => x.Name).ToList();
@@ -257,7 +252,7 @@ public class CreativeService : Service
             ContentType = MimeTypes.ImagePng,
             ContentLength = x.ContentLength,
             RefId = Guid.NewGuid().ToString("D"),
-        }.WithImageDetails(x.ImageDetails).WithAudit(userAuthId, now));
+        }.WithImageDetails(x.ImageDetails).WithAudit(session.UserAuthId, now));
         await db.InsertAllAsync(artifacts);
         transaction.Commit();
 

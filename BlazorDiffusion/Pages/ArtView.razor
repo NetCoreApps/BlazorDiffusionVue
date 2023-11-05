@@ -1,4 +1,5 @@
 ﻿@page "/artifacts/{Id:int}/{Slug}"
+@inject AppConfig AppConfig
 
 @if (Creative != null)
 {
@@ -6,6 +7,14 @@
 
     @if (Creative != null)
     {
+        <HeadContent>
+            <HeadCard Title="@Creative.UserPrompt"
+                      Summary="summary_large_image"
+                      Url="@AppConfig.WwwBaseUrl.CombineWith($"/artifacts/{Id}/{Slug}")"
+                      ImagePath="@(Artifact!.FilePathLarge ?? Artifact.FilePath)"
+                      Description="@MetaDescription" />
+        </HeadContent>
+
         <div data-creative="@Creative.Id" data-artifact="@Id"></div>
         <div>
             <h1 class="my-4 text-2xl text-center max-w-screen-lg mx-auto">@Creative.UserPrompt</h1>
@@ -36,8 +45,8 @@
         <div class="p-2 mt-4 flex flex-col items-center">
             <div id="artifact-info" data-component="pages/components/ArtifactInfo.mjs" data-props="{ artifactId: @Id }"></div>
             <div class="relative p-2">
-                <NavLink href="@($"/?Id={Id}")">
-                    <ArtifactImage Artifact="@Artifact" Class="rounded-lg" />
+                <NavLink href="@($"/?view={Id}")">
+                    <ArtifactImage Artifact="@Artifact" MinSize="@Artifact.Width" Class="rounded-lg" />
                 </NavLink>
             </div>
 
@@ -133,6 +142,9 @@
     public Artifact? Artifact = null;
     public AlbumResult[] CreativeAlbums = Array.Empty<AlbumResult>();
     public List<Artifact> CreativeAlbumArtifacts = new();
+    public string MetaDescription => Creative == null ? "" :
+        $"{Creative.UserPrompt}, {string.Join(", ", Creative.ModifierNames.Select(x => x))}"
+        + (Creative.ArtistNames.Count == 0 ? "" : " by " + string.Join(", ", Creative.ArtistNames.Select(x => x)));
 
     public IEnumerable<AlbumResult> GetArtifactAlbums() => CreativeAlbums.Where(x => x.ArtifactIds.Contains(Id));
     public Artifact? GetAlbumCoverArtifact(AlbumResult album) => CreativeAlbumArtifacts.FirstOrDefault(x => x.Id == album.GetAlbumCoverArtifactId());

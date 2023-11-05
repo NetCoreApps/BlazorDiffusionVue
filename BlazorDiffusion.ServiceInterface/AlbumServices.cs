@@ -12,6 +12,7 @@ public class AlbumServices : Service
 {
     public IAutoQueryDb AutoQuery { get; set; }
     public ICrudEvents CrudEvents { get; set; }
+    public AppData AppData { get; set; }
 
     public async Task<object> Any(CreateAlbum request)
     {
@@ -27,7 +28,7 @@ public class AlbumServices : Service
 
         var album = request.ConvertTo<Album>();
         album.OwnerId = session.GetUserId();
-        album.OwnerRef = session.RefIdStr;
+        album.OwnerRef = Db.GetUserRef(album.OwnerId);
         album.RefId = Guid.NewGuid().ToString("D");
         album.Slug = slug;
         album.WithAudit(session.UserAuthId);

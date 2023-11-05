@@ -50,7 +50,7 @@
     int StartPage => SelectedPage > 1
         ? Math.Max(0, SelectedPage - 5)
         : 0;
-    int EndPage => StartPage + 10;
+    int EndPage => Math.Min(StartPage + 10, Pages);
 
     public string GetAlbumRoute(AlbumResult album, int? pageNo = 1) => GetAlbumRoute(album.Slug, pageNo);
     public string GetAlbumRoute(string slug, int? pageNo = 1)

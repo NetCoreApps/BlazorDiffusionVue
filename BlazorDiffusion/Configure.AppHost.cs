@@ -140,16 +140,9 @@ public class AppHost : AppHostBase, IHostingStartup
 
     public void LoadAppData(IDbConnection db, AppData appData)
     {
-        var gateway = GetServiceGateway();
-        if (appData.AlbumRefs.Count == 0)
-        {
-            appData.AlbumRefs.Clear();
-            appData.AlbumRefs.AddRange(db.GetAlbumRefsAsync().Result);
-        }
-        if (appData.TotalArtifacts == 0)
-        {
-            appData.TotalArtifacts = db.Count<ServiceModel.Artifact>();
-        }
+        appData.AlbumRefs = db.GetAlbumRefsAsync().Result;
+        appData.UserRefMap = db.Dictionary<int,string>(db.From<AppUser>().Select(x => new { x.Id, x.RefIdStr }));
+        appData.TotalArtifacts = db.Count<ServiceModel.Artifact>();
     }
 
     public override void OnStartupException(Exception ex)

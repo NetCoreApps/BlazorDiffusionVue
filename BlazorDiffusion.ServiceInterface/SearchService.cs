@@ -185,7 +185,8 @@ public class SearchService : Service
 
         // Don't record analytics when prerendering
         var session = await SessionAsAsync<CustomUserSession>();
-        if (session.RefIdStr != Users.Admin.RefIdStr && session.RefIdStr != Users.System.RefIdStr)
+        var userId = session.GetUserId();
+        if (userId != Users.Admin.Id && userId != Users.System.Id)
         {
             var recordSearch = query.Query != null
                 || query.Similar != null

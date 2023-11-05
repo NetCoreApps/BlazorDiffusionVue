@@ -85,8 +85,8 @@ public class DreamStudioClient : IStableDiffusionClient
         };
         var sw = Stopwatch.StartNew();
         var response = client.Generate(generateRequest);
-        Log?.LogInformation("client.Generate({prompt},{width},{height}): {ms}ms", 
-            request.Prompt.SafeSubstring(50), request.Width, request.Height, sw.ElapsedMilliseconds);
+        Log?.LogInformation("client.Generate(images:{images}, {width}x{height}, {prompt}): {ms}ms", 
+            request.Images, request.Width, request.Height, request.Prompt.SafeSubstring(50), sw.ElapsedMilliseconds);
 
         var now = DateTime.UtcNow;
         var key = $"{now:yyyy/MM/dd}/{(long)now.TimeOfDay.TotalMilliseconds}";
@@ -112,17 +112,17 @@ public class DreamStudioClient : IStableDiffusionClient
                 {
                     var sw = Stopwatch.StartNew();
                     await VirtualFiles.WriteFileAsync(output, imageBytes);
-                    Log?.LogInformation("VirtualFiles.WriteFileAsync(bytes:{bytes}): {ms}ms",
+                    Log?.LogInformation("Artifact VirtualFiles.WriteFileAsync(bytes:{bytes}): {ms}ms",
                         imageBytes.Length, sw.ElapsedMilliseconds);
                 }
 
-                sw.Restart();
+                var swArtifact = Stopwatch.StartNew();
                 await Task.WhenAll(
                     WriteFileAsync(output, imageBytes),
                     VirtualFiles.ResizeArtifactsAsync(artifacts, image, Log)
                 );
-                Log?.LogInformation("Total VirtualFiles Write and Resize {bytes} bytes: {ms}ms", 
-                    imageBytes.Length, sw.ElapsedMilliseconds);
+                Log?.LogInformation("Artifact VirtualFiles Write and Resize {bytes} bytes: {ms}ms", 
+                    imageBytes.Length, swArtifact.ElapsedMilliseconds);
 
                 results.Add(new()
                 {
@@ -141,6 +141,9 @@ public class DreamStudioClient : IStableDiffusionClient
                 });
             }
         }
+
+        Log?.LogInformation("Creative processed {Artifacts} Artifacts in {ms}ms",
+            results.Count, sw.ElapsedMilliseconds);
 
         return new ImageGenerationResponse
         {

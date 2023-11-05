@@ -33,7 +33,8 @@ public class AppData
 
     public string[] FlagReasons => Enum.GetNames(typeof(PostReport));
     public long TotalArtifacts { get; set; }
-    public List<AlbumRef> AlbumRefs { get; } = new();
+    public List<AlbumRef> AlbumRefs { get; set; } = new();
+    public Dictionary<int, string> UserRefMap { get; set; } = new();
 }
 
 public class Group

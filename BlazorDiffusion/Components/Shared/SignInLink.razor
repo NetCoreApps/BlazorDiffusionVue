@@ -11,8 +11,10 @@ else
              onclick="this.nextElementSibling.classList.toggle('hidden')">
             <Icon Src="@ProfileUrl" class="w-9 h-9 cursor-pointer" />
         </div>
-        <div class=@CssUtils.ClassNames("hidden auth-menu font-normal absolute z-10 mt-2 w-48 origin-top-right rounded-md bg-white dark:bg-black py-1 shadow-lg ring-1 ring-black dark:ring-gray-600 ring-opacity-5 focus:outline-none", MenuClass) role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1">
-            <span onclick="logout()" class="cursor-pointer block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800" role="menuitem" tabindex="-1">Logout</span>
+        <div class=@CssUtils.ClassNames("hidden auth-menu font-normal absolute z-10 mt-2 w-48 origin-top-right rounded-md bg-white dark:bg-black pb-1 shadow-lg ring-1 ring-black dark:ring-gray-600 ring-opacity-5 focus:outline-none", MenuClass) role="menu" aria-orientation="vertical" aria-labelledby="user-menu-button" tabindex="-1">
+            <span class="block text-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800" role="menuitem" tabindex="-1">@HttpContext.User.GetEmail()</span>
+            <NavLink href="/Account/Manage" class="block text-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800" role="menuitem" tabindex="-1">Account</NavLink>
+            <span onclick="logout()" class="cursor-pointer block text-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800" role="menuitem" tabindex="-1">Sign out</span>
         </div>
     </div>
 }
@@ -21,7 +23,7 @@ else
 @code {
     [CascadingParameter] public HttpContext? HttpContext { get; set; }
 
-    string ProfileUrl => HttpContext.User.GetProfileUrl();
+    string ProfileUrl => HttpContext.User.GetProfileUrl()!;
 
     [Parameter] public string MenuClass { get; set; } = "right-2";
 }

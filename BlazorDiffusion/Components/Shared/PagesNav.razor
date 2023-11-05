@@ -50,7 +50,7 @@
     int StartPage => SelectedPage > 1
         ? Math.Max(0, SelectedPage - 5)
         : 0;
-    int EndPage => StartPage + 10;
+    int EndPage => Math.Min(StartPage + 10, Pages);
 
     public string GetRoute(int? page = 1) => page.GetValueOrDefault() <= 1
         ? $"{Prefix}"

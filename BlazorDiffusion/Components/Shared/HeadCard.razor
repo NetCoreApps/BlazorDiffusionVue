@@ -1,8 +1,8 @@
 ﻿@inject AppConfig AppConfig
 
 <link rel="canonical" href="@Url" />
-<meta name="twitter:card" content="summary" />
-<meta name="twitter:site" content="blazordiffusion.com" />
+<meta name="twitter:card" content="@Summary" />
+<meta name="twitter:site" content="@@ServiceStack" />
 <meta name="twitter:creator" content="@@blazordiffusion" />
 <meta property="og:url" content="@Url" />
 @if (Title != null)
@@ -20,6 +20,7 @@
 
 @code {
     [Parameter] public string Url { get; set; }
+    [Parameter] public string? Summary { get; set; } = "summary";
     [Parameter] public string? Title { get; set; }
     [Parameter] public string? Description { get; set; }
     [Parameter] public string? ImagePath { get; set; }
