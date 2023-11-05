@@ -41,8 +41,8 @@ builder.Services.AddAuthentication(options =>
         options.SaveTokens = true;
     })
     .AddMicrosoftAccount(options => { /* Create App https://apps.dev.microsoft.com */
-        options.ClientId = config["oauth.microsof.AppId"]!;
-        options.ClientSecret = config["oauth.microsof.AppSecret"]!;
+        options.ClientId = config["oauth.microsoft.AppId"]!;
+        options.ClientSecret = config["oauth.microsoft.AppSecret"]!;
         options.SaveTokens = true;
     })   
     .AddIdentityCookies();
