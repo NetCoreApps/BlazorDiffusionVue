@@ -10,6 +10,7 @@ using BlazorDiffusion.Identity;
 using ServiceStack.Blazor;
 using BlazorDiffusion.ServiceModel;
 
+AppHost.RegisterKey();
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
