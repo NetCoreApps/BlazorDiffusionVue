@@ -39,12 +39,12 @@ public class ConfigureDbMigrations : IHostingStartup
                         log.LogInformation("Adding Seed Users...");
                         AddSeedUsers(scope.ServiceProvider).Wait();
 
-                        using var db = scope.ServiceProvider.GetRequiredService<IDbConnectionFactory>().Open();
-                        var existingEmails = db.ColumnDistinct<string>(db.From<AppUser>().Select(x => x.Email));
-                        var migrateUsers = db.Select(db.From<OldAppUser>().Where(x => !existingEmails.Contains(x.Email!)).OrderBy(x => x.Id));
+                        //using var db = scope.ServiceProvider.GetRequiredService<IDbConnectionFactory>().Open();
+                        //var existingEmails = db.ColumnDistinct<string>(db.From<AppUser>().Select(x => x.Email));
+                        //var migrateUsers = db.Select(db.From<OldAppUser>().Where(x => !existingEmails.Contains(x.Email!)).OrderBy(x => x.Id));
 
-                        log.LogInformation("Migrating {Count} Existing Users...", migrateUsers.Count);
-                        MigrateExistingUsers(scope.ServiceProvider, migrateUsers).Wait();
+                        //log.LogInformation("Migrating {Count} Existing Users...", migrateUsers.Count);
+                        //MigrateExistingUsers(scope.ServiceProvider, migrateUsers).Wait();
                     }
                 }
 
