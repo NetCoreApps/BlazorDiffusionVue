@@ -52,7 +52,7 @@ public class AppHost : AppHostBase, IHostingStartup
             {
                 BaseUrl = baseUrl,
                 ApiBaseUrl = apiUrl ?? baseUrl,
-                WwwBaseUrl = cdnUrl != null ? $"https://api.blazordiffusion.com" : baseUrl,
+                WwwBaseUrl = cdnUrl != null ? $"https://blazordiffusion.com" : baseUrl,
                 CdnBaseUrl = cdnUrl ?? "https://blazordiffusion.com",
                 R2Account = "b95f38ca3a6ac31ea582cd624e6eb385",
                 R2AccessId = r2AccessId,
@@ -101,8 +101,9 @@ public class AppHost : AppHostBase, IHostingStartup
 
         var s3Client = container.Resolve<AmazonS3Client>();
 
-        var localFs = new FileSystemVirtualFiles(ContentRootDirectory.RealPath.CombineWith("App_Data").AssertDir());
-        var appFs = VirtualFiles = hasR2 ? new R2VirtualFiles(s3Client, appConfig.ArtifactBucket) : localFs;
+        var appFs = VirtualFiles = hasR2 
+            ? new R2VirtualFiles(s3Client, appConfig.ArtifactBucket) 
+            : new FileSystemVirtualFiles(ContentRootDirectory.RealPath.CombineWith("App_Data").AssertDir());
         Plugins.Add(new FilesUploadFeature(
             new UploadLocation("artifacts", appFs,
                 readAccessRole: RoleNames.AllowAnon,
