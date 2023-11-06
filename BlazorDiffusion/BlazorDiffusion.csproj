@@ -81,7 +81,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Update="App_Data\seed\**">
+        <None Update="Migrations\seed\**">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>

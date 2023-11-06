@@ -302,7 +302,7 @@ public class Migration1001 : MigrationBase
         Db.CreateTable<AlbumArtifact>();
         Db.CreateTable<AlbumLike>();
 
-        var seedDir = Path.GetFullPath(Path.Combine("./App_Data/seed"));
+        var seedDir = Path.GetFullPath(Path.Combine("./Migrations/seed"));
 
         var errors = new List<string>();
 
