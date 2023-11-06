@@ -348,17 +348,15 @@ public class Migration1001 : MigrationBase
         // Import Creatives + Artifacts
         var allArtifactLikeRefs = File.ReadAllText(seedDir.CombineWith("artifact-likes.csv"))
             .FromCsv<List<ArtifactLikeRef>>();
-        var appFiles = new DirectoryInfo("./App_Files");
-        if (!appFiles.Exists)
-            appFiles.Create();
+        var appData = new DirectoryInfo("./App_Data");
+        if (!appData.Exists)
+            appData.Create();
 
-
-        var seedFromDirectory = new DirectoryInfo("./App_Files/artifacts");
+        var seedFromDirectory = new DirectoryInfo("./App_Data/artifacts");
         if (!seedFromDirectory.Exists)
         {
-            return;
-            //seedFromDirectory.Create();
-            //FetchDemoAssets();
+            seedFromDirectory.Create();
+            FetchDemoAssets();
         }
         var filesToLoad = seedFromDirectory.GetMatchingFiles("*metadata.json").OrderBy(x => x);
         var creativeEntries = new List<Creative>();
@@ -424,7 +422,7 @@ public class Migration1001 : MigrationBase
             {
                 artifact.Id = 0;
                 artifact.CreativeId = id;
-                var filePath = $"./App_Files/{artifact.FilePath}";
+                var filePath = $"./App_Data/{artifact.FilePath}";
                 artifact.Id = (int)Db.Insert(artifact, selectIdentity: true);
                 artifactRefIdsMap[artifact.RefId] = artifact.Id;
 
@@ -520,7 +518,7 @@ public class Migration1001 : MigrationBase
         using var zipStream = "https://github.com/NetCoreApps/BlazorDiffusionAssets/archive/refs/heads/master.zip"
             .GetStreamFromUrl();
         var zipArchive = new ZipArchive(zipStream);
-        var appFiles = new DirectoryInfo("./App_Files");
+        var appFiles = new DirectoryInfo("./App_Data");
         foreach (var entry in zipArchive.Entries)
         {
             using var stream = entry.Open();

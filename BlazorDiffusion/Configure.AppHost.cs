@@ -101,7 +101,7 @@ public class AppHost : AppHostBase, IHostingStartup
 
         var s3Client = container.Resolve<AmazonS3Client>();
 
-        var localFs = new FileSystemVirtualFiles(ContentRootDirectory.RealPath.CombineWith("App_Files").AssertDir());
+        var localFs = new FileSystemVirtualFiles(ContentRootDirectory.RealPath.CombineWith("App_Data").AssertDir());
         var appFs = VirtualFiles = hasR2 ? new R2VirtualFiles(s3Client, appConfig.ArtifactBucket) : localFs;
         Plugins.Add(new FilesUploadFeature(
             new UploadLocation("artifacts", appFs,
