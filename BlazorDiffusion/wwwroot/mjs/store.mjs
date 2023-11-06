@@ -466,7 +466,6 @@ export class Store {
                 : minSize > 504
                     ? 'Large'
                     : 'Medium'
-        console.log('getSize', minSize, size)
         return size
     }
 
