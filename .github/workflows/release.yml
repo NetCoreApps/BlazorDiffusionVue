@@ -149,7 +149,7 @@ jobs:
           strip_components: 1
           key: ${{ secrets.DEPLOY_KEY }}
           source: ".deploy/litestream.yml"
-          target: ".deploy/${{ github.event.repository.name }}/config/litestream.yml"
+          target: ".deploy/${{ github.event.repository.name }}/config"
 
       - name: Run remote db migrations
         uses: appleboy/ssh-action@v0.1.5
