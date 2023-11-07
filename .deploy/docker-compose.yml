@@ -2,7 +2,9 @@ version: "3.9"
 services:
     app:
         image: ghcr.io/${IMAGE_REPO}:${RELEASE_VERSION} 
-        restart: always                               
+        restart: always
+        depends_on:
+            - app-litestream
         ports:                                         
             - "8080"                                     
         container_name: ${APP_NAME}_app                
