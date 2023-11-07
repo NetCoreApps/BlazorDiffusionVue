@@ -268,7 +268,7 @@ export default {
     <div v-else-if="loading" class="mt-20 mb-32 flex justify-center">
         <Loading class="text-gray-300 font-normal" imageClass="w-7 h-7 mt-1.5">generating images...</Loading>
     </div>
-    <div v-for="c in creatives">
+    <div :key="renderKey + c.id" v-for="c in creatives">
         <div class="flex justify-between items-center">
             <div></div>
             <div class="flex justify-center items-center">
@@ -373,6 +373,7 @@ export default {
         const showAuth = ref(false)
         const showSignUp = ref(false)
         const active = ref()
+        const renderKey = ref(1)
 
         /** @type {import('vue').ComputedRef<ArtistInfo[]>} */
         const artistOptions = computed(() => dataCache.value?.artists || [])
@@ -405,7 +406,10 @@ export default {
             forceUpdate()
             update()
         }
-        function forceUpdate() { instance?.proxy?.$forceUpdate() }
+        function forceUpdate() { 
+            instance?.proxy?.$forceUpdate() 
+            //renderKey.value++
+        }
         async function update() {
             forceUpdate()
             await fetchHistory({ skip: 0}, x => null) //update swr cache
@@ -574,7 +578,16 @@ export default {
                 await fetchHistory({ skip: clear ? 0 : creativeHistory.value.length }, api => {
                     if (api.response) {
                         if (clear) creativeHistory.value = []
-                        creativeHistory.value.push(...api.response.results)
+
+                        const ids = creativeHistory.value.map(x => x.id)
+                        api.response.results.filter(x => !ids.includes(x.id)).forEach(c => {
+                            creativeHistory.value.push(c)
+                            ids.push(c.id)
+                        })
+
+                        // ids.sort((a,b) => a - b)
+                        // console.log('creativeHistory', ids)
+
                         store.loadCreatives(creativeHistory.value)
                         forceUpdate()
                     }
@@ -637,7 +650,7 @@ export default {
         })
         
         return { 
-            store, api, loading, request, artists, modifiers, dataCache, artistOptions, modifierOptions, isDirty, groupCategories,
+            renderKey, store, api, loading, request, artists, modifiers, dataCache, artistOptions, modifierOptions, isDirty, groupCategories,
             creative, creatives, loadingMore, bottom, categoryModifiers, imageSize, selected, showAuth, showSignUp, active, activeCreative,
             resolveBorderColor, noop, navTo, populateForm, closeDialogs, submit, reset, map, showArtifact,
             selectedGroup, selectGroup, selectedCategory, selectCategory, removeArtist, addModifier, removeModifier, discard,
