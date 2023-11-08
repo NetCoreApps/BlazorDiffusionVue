@@ -1,5 +1,6 @@
-using BlazorDiffusion.ServiceModel;
 using ServiceStack.Messaging;
+using BlazorDiffusion.ServiceInterface;
+using BlazorDiffusion.ServiceModel;
 
 [assembly: HostingStartup(typeof(BlazorDiffusion.ConfigureSmtp))]
 
