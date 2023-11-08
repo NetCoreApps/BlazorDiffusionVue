@@ -3,11 +3,12 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using ServiceStack.Blazor;
 using BlazorDiffusion.Components;
 using BlazorDiffusion.Data;
 using BlazorDiffusion.Identity;
-using ServiceStack.Blazor;
 using BlazorDiffusion.ServiceModel;
 
 AppHost.RegisterKey();
@@ -47,6 +48,9 @@ builder.Services.AddAuthentication(options =>
         options.SaveTokens = true;
     })   
     .AddIdentityCookies();
+
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(@"App_Data"));
 
 // $ dotnet ef migrations add CreateIdentitySchema
 // $ dotnet ef database update
