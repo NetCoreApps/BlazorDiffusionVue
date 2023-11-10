@@ -28,11 +28,9 @@ public class AppUserQuotas
 
     /// <summary>
     /// Future:
-    /// Square    = 1 credit    (512 x 512)  0.4
-    /// Portrait  = 3 credits   (512 x 896)  1.1
-    /// Landscale = 3 credits   (896 x 512)  1.1
-    /// Large     = 7 credits   (896 x 896)  2.3
-    /// 2x Large  = 10 credits (1024 x 1024) 3.2
+    /// Square    = 1 credit    (1024 x 1024)  0.4
+    /// Portrait  = 3 credits   (768  x 1344)  1.1
+    /// Landscale = 3 credits   (1344 x 768)   1.1
     /// 
     /// Steps: 
     ///   50   = * 1
@@ -40,17 +38,17 @@ public class AppUserQuotas
     ///   150  = * 3
     /// </summary>
     public int CalculateCredits(ImageGeneration request) => request.Images *
-        (request.Width > 512
+        (request.Width > 1024
             ? 3
-            : request.Height > 512
+            : request.Height > 1024
                 ? 3
                 : 1);
 
     // 12 credits = 4x Images x 3 credits (Portrait)
     public string ToRequestDetails(ImageGeneration request) => $"{CalculateCredits(request)} credits = {request.Images}x Images x " +
-        (request.Width > 512
+        (request.Width > 1024
             ? "3 credits (Landscape)"
-            : request.Height > 512
+            : request.Height > 1024
                 ? "3 credits (Portrait)"
                 : "1 credit (Square)");
 
