@@ -1,13 +1,11 @@
-﻿using BlazorDiffusion.ServiceModel;
-using Microsoft.Extensions.Logging;
-using ServiceStack;
-using ServiceStack.OrmLite;
-using ServiceStack.Web;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Data;
 using System.Linq;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using ServiceStack;
+using ServiceStack.OrmLite;
+using BlazorDiffusion.ServiceModel;
 
 namespace BlazorDiffusion.ServiceInterface;
 
@@ -30,7 +28,7 @@ public class AppUserQuotas
     /// Future:
     /// Square    = 1 credit    (1024 x 1024)  0.4
     /// Portrait  = 3 credits   (768  x 1344)  1.1
-    /// Landscale = 3 credits   (1344 x 768)   1.1
+    /// Landscape = 3 credits   (1344 x 768)   1.1
     /// 
     /// Steps: 
     ///   50   = * 1
