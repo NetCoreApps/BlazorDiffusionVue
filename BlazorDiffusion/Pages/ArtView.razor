@@ -44,7 +44,7 @@
         </div>
 
         <div class="p-2 mt-4 flex flex-col items-center">
-            <div id="artifact-info" data-component="pages/components/ArtifactInfo.mjs" data-props="{ artifactId: @Id }"></div>
+            <div id="artifact-info" data-component="pages/Components/ArtifactInfo.mjs" data-props="{ artifactId: @Id }"></div>
             <div class="relative p-2">
                 <NavLink href="@($"/?view={Id}")">
                     <ArtifactImage Artifact="@Artifact" MinSize="@Artifact.Width" Class="rounded-lg" />
@@ -123,7 +123,7 @@
         }
     }
 
-    <div id="comments" data-component="pages/components/ArtifactComments.mjs" data-props="{ artifactId: @Id }"></div>
+    <div id="comments" data-component="pages/Components/ArtifactComments.mjs" data-props="{ artifactId: @Id }"></div>
 }
 
 
