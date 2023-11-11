@@ -1,20 +1,12 @@
-using Amazon.Runtime;
-using Amazon.S3;
+using System.Data;
 using Funq;
-using ServiceStack;
+using ServiceStack.IO;
+using ServiceStack.Data;
+using ServiceStack.OrmLite;
+using ServiceStack.Configuration;
+using Amazon.S3;
 using BlazorDiffusion.ServiceInterface;
 using BlazorDiffusion.ServiceModel;
-using Gooseai;
-using Grpc.Core;
-using Grpc.Net.Client;
-using ServiceStack.Configuration;
-using ServiceStack.IO;
-using ServiceStack.Web;
-using ServiceStack.Data;
-using ServiceStack.Auth;
-using ServiceStack.Text;
-using ServiceStack.OrmLite;
-using System.Data;
 
 [assembly: HostingStartup(typeof(BlazorDiffusion.AppHost))]
 
@@ -33,12 +25,11 @@ public class AppHost : AppHostBase, IHostingStartup
             services.AddSingleton<AppUserQuotas>();
 
             //Plugins.Add(new ProfilingFeature());
-            var cdnUrl = Environment.GetEnvironmentVariable("DEPLOY_CDN");
-            cdnUrl = !string.IsNullOrEmpty(cdnUrl)
-                ? $"https://{cdnUrl}"
-                : null;
+            var baseUrl = Environment.GetEnvironmentVariable("VIRTUAL_HOST");
+            baseUrl = !string.IsNullOrEmpty(baseUrl)
+                ? $"https://{baseUrl}"
+                : LocalBaseUrl;
 
-            var baseUrl = cdnUrl ?? LocalBaseUrl;
             var apiUrl = Environment.GetEnvironmentVariable("DEPLOY_API");
             apiUrl = !string.IsNullOrEmpty(apiUrl)
                 ? $"https://{apiUrl}"
@@ -52,8 +43,8 @@ public class AppHost : AppHostBase, IHostingStartup
             {
                 BaseUrl = baseUrl,
                 ApiBaseUrl = apiUrl ?? baseUrl,
-                WwwBaseUrl = cdnUrl != null ? $"https://blazordiffusion.com" : baseUrl,
-                CdnBaseUrl = cdnUrl ?? "https://blazordiffusion.com",
+                WwwBaseUrl = baseUrl,
+                CdnBaseUrl = baseUrl,
                 R2Account = "b95f38ca3a6ac31ea582cd624e6eb385",
                 R2AccessId = r2AccessId,
                 R2AccessKey = r2AccessKey,
