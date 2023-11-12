@@ -80,11 +80,9 @@
         import ServiceStackVue, { useClient, useAuth, useMetadata } from "@servicestack/vue"
         import { Authenticate, AdminData } from "dtos.mjs"
 
-        const baseUrl = location.origin === 'https://diffusion.works'
-            ? 'https://api.blazordiffusion.com'
-            : 'https://localhost:5001'
+        const baseUrl = ''
         const urls = {
-            logout: appendQueryString(`${baseUrl}/auth/logout`, { 'continue': leftPart(location.href, '#') })
+            logout: appendQueryString(`${baseUrl}/auth/logout`, { 'ReturnUrl': leftPart(location.href, '#') })
         }
         const client = JsonApiClient.create(baseUrl)
 

@@ -5,9 +5,7 @@ import {
 import { ApiResult, combinePaths, EventBus, leftPart, queryString, rightPart, setQueryString } from "@servicestack/client"
 import { useAuth, useUtils } from "@servicestack/vue"
 
-export const BaseUrl = globalThis.BaseUrl = location.origin === 'https://localhost:5001'
-    ? 'https://localhost:5001'
-    : 'https://blazordiffusion.com/'
+export const BaseUrl = globalThis.BaseUrl = '/'
 export const AssetsBasePath = globalThis.AssetsBasePath = "https://cdn.diffusion.works"
 export const FallbackAssetsBasePath = globalThis.FallbackAssetsBasePath = "https://pub-97bba6b94a944260b10a6e7d4bf98053.r2.dev"
 
