@@ -331,9 +331,7 @@ export class Store {
     }
     /** @param {AlbumResult} album */
     getAlbumCoverArtifactId(album) {
-        return album.primaryArtifactId != null && album.artifactIds.includes(album.primaryArtifactId)
-            ? album.primaryArtifactId
-            : album.artifactIds[0]
+        return album.primaryArtifactId
     }
     /** @param {Album|AlbumResult} album */
     albumCover(album) {

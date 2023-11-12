@@ -47,7 +47,7 @@ public class DataService : Service
 
     public async Task<object> Any(AnonData request)
     {
-        var topAlbumResults = (await Db.LoadSelectAsync(Db.From<Album>().Where(x => x.DeletedDate == null)
+        var topAlbumResults = (await Db.SelectAsync(Db.From<Album>().Where(x => x.DeletedDate == null)
                 .OrderByDescending(x => new { x.Score, x.Id }).Take(10)))
             .Map(x => x.ToAlbumResult());
 

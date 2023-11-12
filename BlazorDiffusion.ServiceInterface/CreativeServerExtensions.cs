@@ -35,17 +35,20 @@ public static class CreativeServerExtensions
             Id = album.Id,
             AlbumRef = album.RefId,
             Name = album.Name,
-            Slug= album.Slug,
+            Slug = album.Slug,
             OwnerRef = album.OwnerRef,
             PrimaryArtifactId = album.PrimaryArtifactId,
             Score = album.Score,
+        };
+        if (!album.Artifacts.IsEmpty())
+        {
             // Show latest artifacts added first
-            ArtifactIds = album.PrimaryArtifactId == null
+            to.ArtifactIds = album.PrimaryArtifactId == null
                 ? album.Artifacts.OrderByDescending(x => x.Id).Map(x => x.ArtifactId)
                 : X.Apply(new List<int> { album.PrimaryArtifactId.Value },
                     ids => ids.AddRange(album.Artifacts.Where(x => x.ArtifactId != album.PrimaryArtifactId.Value)
-                        .OrderByDescending(x => x.Id).Select(x => x.ArtifactId))),
-        };
+                        .OrderByDescending(x => x.Id).Select(x => x.ArtifactId)));
+        }
         return to;
     }
 
