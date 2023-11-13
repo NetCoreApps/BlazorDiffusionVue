@@ -1461,10 +1461,6 @@ select{
   max-height: 15rem;
 }
 
-.max-h-\[1024px\] {
-  max-height: 1024px;
-}
-
 .min-h-0 {
   min-height: 0px;
 }
@@ -1616,10 +1612,6 @@ select{
 
 .max-w-\[108px\] {
   max-width: 108px;
-}
-
-.max-w-\[1150px\] {
-  max-width: 1150px;
 }
 
 .max-w-\[118px\] {
