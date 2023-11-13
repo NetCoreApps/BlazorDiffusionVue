@@ -106,7 +106,9 @@ export function mount(sel, component, props) {
         app.provide('client', client)
     }
     app.provide('store', store)
-    app.config.errorHandler = error => { console.log(error) }
+    app.config.errorHandler = error => { 
+        console.trace(error)
+    }
     app.config.compilerOptions.isCustomElement = tag => CustomElements.includes(tag)
     app.mount(el)
     Apps.push(app)
