@@ -15,7 +15,7 @@ export const AlbumTitle = {
 }
 
 export const ArtifactImage = {
-    template:`<div v-if="artifact" class="overflow-hidden" :style="store.getBackgroundStyle(artifact)">
+    template:`<div v-if="artifact" class="overflow-hidden" :style="store.getBackgroundStyle(artifact) + ';' + imageStyle">
       <img :alt="artifact.prompt" :width="width" :height="height" :class="imageClass"
            :src="store.getPublicUrl(artifact,minSize)" :loading="loading || 'lazy'" @error="store.getArtifactImageErrorUrl(artifact,null,minSize)">
   </div>`,
@@ -23,6 +23,7 @@ export const ArtifactImage = {
         /** @type {import('vue').PropType<Artifact>} */
         artifact:Object,
         imageClass:String,
+        imageStyle: String,
         minSize:Number,
         /** @type {import('vue').PropType<'eager'|'lazy'>} */
         loading:String,
@@ -323,7 +324,7 @@ export const ArtifactModal = {
                 </div>
                 <div>
                     <div class="relative p-2 w-max flex flex-col mx-auto cursor-context-menu" @contextmenu.prevent="$emit('contextmenu',artifact)">
-                        <ArtifactImage :artifact="artifact" :minSize="artifact.width" class="rounded sm:rounded-lg" loading="eager" imageClass="max-w-[1150px] max-h-[1024px] object-cover" />
+                        <ArtifactImage :artifact="artifact" :minSize="artifact.width" class="rounded sm:rounded-lg" loading="eager" imageClass="object-cover" imageStyle="max-width:min(70vw,1150px);max-height:min(70vh,1024px);" />
             
                         <div class="absolute top-0 left-0 w-full h-full group select-none overflow-hidden sm:m-1 rounded sm:rounded-xl">
                             <div class="w-full h-full absolute inset-0 z-10 block text-zinc-100 drop-shadow pointer-events-none line-clamp px-2 pb-2 text-sm opacity-0 group-hover:opacity-40 transition duration-300 ease-in-out bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-700 via-gray-900 to-black"></div>

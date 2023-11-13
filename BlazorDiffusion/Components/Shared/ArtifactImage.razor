@@ -1,4 +1,4 @@
-﻿<div class="@CssUtils.ClassNames("overflow-hidden", Class)" style="@Artifact.GetBackgroundStyle()">
+﻿<div class="@CssUtils.ClassNames("overflow-hidden", Class)" style="@Artifact.GetBackgroundStyle();@ImageStyle">
     <img alt="@Artifact.Prompt" width="@width" height="@height" class="@ImageClass"
          src="@Artifact.GetPublicUrl(MinSize)" loading="lazy">
 </div>
@@ -7,6 +7,7 @@
     [Parameter] public required Artifact Artifact { get; set; }
     [Parameter] public string? Class { get; set; }
     [Parameter] public string? ImageClass { get; set; }
+    [Parameter] public string? ImageStyle { get; set; }
     [Parameter] public int? MinSize { get; set; }
 
     int width => MinSize == null
