@@ -20,7 +20,7 @@
             </button>
         </div>
         <div class="hidden sm:flex sm:gap-x-6 lg:gap-x-12">
-            <NavLink href="" ActiveClass="@DesktopNavLinkActiveClass" class="@DesktopNavLinkClass">
+            <NavLink href="" Match="NavLinkMatch.All" ActiveClass="@DesktopNavLinkActiveClass" class="@DesktopNavLinkClass">
                 Search
             </NavLink>
             <NavLink href="create" ActiveClass="@DesktopNavLinkActiveClass" class="@DesktopNavLinkClass">
@@ -57,7 +57,7 @@
                         <div class="ml-2 text-black dark:text-white">Diffusion</div>
                     </NavLink>
                     <nav class="mt-5 px-2 space-y-1">
-                        <NavLink href="" ActiveClass="@MobileNavLinkActiveClass" class="@MobileNavLinkClass">
+                        <NavLink href="" Match="NavLinkMatch.All" ActiveClass="@MobileNavLinkActiveClass" class="@MobileNavLinkClass">
                             Search
                         </NavLink>
                         <NavLink href="create" ActiveClass="@MobileNavLinkActiveClass" class="@MobileNavLinkClass">
