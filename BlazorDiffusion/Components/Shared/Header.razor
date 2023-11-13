@@ -6,13 +6,13 @@
     <LogoutForm id="logout-form" />
     <nav class="flex items-center justify-between px-4" aria-label="Global">
         <div class="flex sm:flex-1">
-            <a href="/" class="flex items-center flex-shrink-0 text-2xl whitespace-nowrap overflow-x-hidden flex items-center active">
+            <NavLink href="/" class="flex items-center flex-shrink-0 text-2xl whitespace-nowrap overflow-x-hidden flex items-center active">
                 <img class="h-8 w-8 my-3" src="/img/blazor.svg" alt="My App">
                 <div class="ml-2 text-black dark:text-white">Diffusion</div>
-            </a>
+            </NavLink>
         </div>
         <div class="flex sm:hidden">
-            <button v-on:click="showMobileNav=true" type="button" class="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-400">
+            <button onclick="toggleSidebar()" type="button" class="-m-2.5 inline-flex items-center justify-center rounded-md p-2.5 text-gray-400">
                 <span class="sr-only">Open main menu</span>
                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -20,66 +20,86 @@
             </button>
         </div>
         <div class="hidden sm:flex sm:gap-x-6 lg:gap-x-12">
-            @foreach (var link in links)
-            {
-                if (link.Item1 == HttpContext!.Request.Path.ToString().TrimStart('/'))
-                {
-                    <NavLink href="@link.Item1" class="text-lg font-semibold leading-6 text-white border-b-2">@link.Item2</NavLink>
-                }
-                else
-                {
-                    <NavLink href="@link.Item1" class="text-lg font-semibold leading-6 text-white">@link.Item2</NavLink>
-                }
-            }
+            <NavLink href="" ActiveClass="@DesktopNavLinkActiveClass" class="@DesktopNavLinkClass">
+                Search
+            </NavLink>
+            <NavLink href="create" ActiveClass="@DesktopNavLinkActiveClass" class="@DesktopNavLinkClass">
+                Create
+            </NavLink>
+            <NavLink href="favorites" ActiveClass="@DesktopNavLinkActiveClass" class="@DesktopNavLinkClass">
+                Favorites
+            </NavLink>
         </div>
         <div class="hidden sm:flex sm:flex-1 sm:justify-end">
             <SignInLink />
         </div>
     </nav>
-    <div v-if="showMobileNav" class="sm:hidden" role="dialog" aria-modal="true">
-        <div class="fixed inset-0 z-50"></div>
-        <div class="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-gray-900 px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-white/10">
-            <div class="flex items-center justify-between">
-                <a href="#" class="-m-1.5 p-1.5">
-                    <span class="sr-only">Your Company</span>
-                    <svg class="h-8 w-auto" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-                        <path fill="#41b883" d="M24.4 3.925H30l-14 24.15L2 3.925h10.71l3.29 5.6l3.22-5.6Z" />
-                        <path fill="#41b883" d="m2 3.925l14 24.15l14-24.15h-5.6L16 18.415L7.53 3.925Z" />
-                        <path fill="#35495e" d="M7.53 3.925L16 18.485l8.4-14.56h-5.18L16 9.525l-3.29-5.6Z" />
-                    </svg>
-                </a>
-                <button v-on:click="showMobileNav=false" type="button" class="-m-2.5 rounded-md p-2.5 text-gray-400">
-                    <span class="sr-only">Close menu</span>
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            <div class="mt-6 flow-root">
-                <div class="-my-6 divide-y divide-gray-500/25">
-                    <div class="space-y-2 py-6">
-                        @foreach (var link in links)
-                        {
-                            <a href="@link.Item1" class="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-white hover:bg-gray-800">@link.Item2</a>
-                        }
-                    </div>
-                    <div class="py-6">
-                        <SignInLink MenuClass="left-4" />
-                    </div>
+    <!-- Off-canvas menu for mobile, show/hide based on off-canvas menu state. -->
+    <div class="mobile relative z-40 md:hidden" role="dialog" aria-modal="true" data-collapse="hidden">
+        <div class="fixed inset-0 bg-gray-600 dark:bg-gray-400 bg-opacity-75 dark:bg-opacity-75" data-collapse="opacity-0" data-collapse-off="opacity-100"></div>
+        <div class="fixed inset-0 flex z-40">
+            <div class="relative flex-1 flex flex-col max-w-xs w-full bg-white dark:bg-black" data-collapse="-translate-x-full" data-collapse-off="translate-x-0">
+                <div class="absolute top-0 right-0 -mr-12 pt-2" data-collapse="opacity-0" data-collapse-off="opacity-100">
+                    <button type="button" onclick="toggleSidebar()"
+                            class="ml-1 flex items-center justify-center h-10 w-10 rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white dark:focus:ring-black">
+                        <span class="sr-only">Close sidebar</span>
+                        <!-- Heroicon name: outline/x -->
+                        <svg class="h-6 w-6 text-white dark:text-black" xmlns="http://www.w3.org/2000/svg" fill="none"
+                             viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
+
+                <div class="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
+                    <NavLink href="/" class="flex-shrink-0 flex items-center px-4 text-2xl whitespace-nowrap overflow-x-hidden flex items-center">
+                        <img class="h-8 w-8 my-3" src="/img/blazor.svg" alt="Diffusion Logo">
+                        <div class="ml-2 text-black dark:text-white">Diffusion</div>
+                    </NavLink>
+                    <nav class="mt-5 px-2 space-y-1">
+                        <NavLink href="" ActiveClass="@MobileNavLinkActiveClass" class="@MobileNavLinkClass">
+                            Search
+                        </NavLink>
+                        <NavLink href="create" ActiveClass="@MobileNavLinkActiveClass" class="@MobileNavLinkClass">
+                            Create
+                        </NavLink>
+                        <NavLink href="favorites" ActiveClass="@MobileNavLinkActiveClass" class="@MobileNavLinkClass">
+                            Favorites
+                        </NavLink>
+                    </nav>
+                </div>
+            </div>
+
+            <div class="flex-shrink-0 w-14">
+                <!-- Force sidebar to shrink to fit close icon -->
             </div>
         </div>
     </div>
+
 </header>
 
+<script>
+function hideSidebar() {
+    document.body.setAttribute('data-collapsed', 'true')
+}
+function toggleSidebar() {
+    let collapsed = document.body.getAttribute('data-collapsed')
+    if (collapsed) {
+        document.body.removeAttribute('data-collapsed')
+    } else {
+        hideSidebar()
+    }
+}
+document.addEventListener('DOMContentLoaded', () =>
+    Blazor.addEventListener('enhancedload', hideSidebar))
+</script>
+
 @code {
+    const string DesktopNavLinkActiveClass = "text-lg font-semibold leading-6 text-white border-b-2";
+    const string DesktopNavLinkClass = "text-lg font-semibold leading-6 text-white";
+
+    const string MobileNavLinkActiveClass = "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-50";
+    const string MobileNavLinkClass = "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-gray-50 group flex items-center px-2 py-2 text-sm font-medium rounded-md";
+
     [CascadingParameter] public HttpContext? HttpContext { get; set; }
-
-    (string,string)[] links = new[]
-    {
-        ("", "Search"),
-        ("create", "Create"),
-        ("favorites", "Favorites"),
-    };
-
 }
