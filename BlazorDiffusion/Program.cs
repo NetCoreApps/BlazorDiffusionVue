@@ -10,6 +10,7 @@ using BlazorDiffusion.Components;
 using BlazorDiffusion.Data;
 using BlazorDiffusion.Identity;
 using BlazorDiffusion.ServiceModel;
+using BlazorDiffusion.ServiceInterface;
 
 AppHost.RegisterKey();
 var builder = WebApplication.CreateBuilder(args);
@@ -66,6 +67,7 @@ builder.Services.AddIdentityCore<AppUser>(options => options.SignIn.RequireConfi
     .AddDefaultTokenProviders();
 
 builder.Services.AddSingleton<IEmailSender, EmailSender>();
+builder.Services.AddScoped<IUserClaimsPrincipalFactory<AppUser>, AdditionalUserClaimsPrincipalFactory>();
 
 var baseUrl = builder.Configuration["ApiBaseUrl"] ??
     (builder.Environment.IsDevelopment() ? "https://localhost:5001" : "http://" + IPAddress.Loopback);

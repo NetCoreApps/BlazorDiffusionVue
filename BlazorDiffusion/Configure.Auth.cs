@@ -9,8 +9,7 @@ namespace BlazorDiffusion;
 public class ConfigureAuth : IHostingStartup
 {
     public void Configure(IWebHostBuilder builder) => builder
-        .ConfigureAppHost(appHost => 
-        {
+        .ConfigureAppHost(appHost => {
             appHost.Plugins.Add(new AuthFeature(IdentityAuth.For<AppUser,int>(options => {
                 options.EnableCredentialsAuth = true;
                 options.IncludeRegisterService = true;
