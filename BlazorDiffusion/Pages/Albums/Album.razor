@@ -61,41 +61,40 @@
         ApiResult<QueryResponse<ArtifactResult>> api = new();
         GalleryResults = new GalleryResults { GridColumns = GridColumns };
 
-        var albumRef = userState.GetAlbumRefBySlug(Slug!);
+        var albumRef = await userState.GetAlbumRefBySlugAsync(Slug!);
+        if (albumRef?.RefId == null)
+            throw HttpError.NotFound($"Album '{Slug}' was not found");
+
         RefId = albumRef?.RefId;
+        request.Album = RefId;
+        request.Skip = (UsePage - 1) * UserState.StaticPagedTake;
+        request.Take = UserState.StaticPagedTake;
+        request.Include = "Total";
+        api = await userState.ApiAsync(request);
+        clearResults();
 
-        if (RefId != null)
+        if (api.Succeeded)
         {
-            request.Album = RefId;
-            request.Skip = (UsePage - 1) * UserState.StaticPagedTake;
-            request.Take = UserState.StaticPagedTake;
-            request.Include = "Total";
-            api = await userState.ApiAsync(request);
-            clearResults();
-
-            if (api.Succeeded)
+            if (api.Response?.Results != null)
             {
-                if (api.Response?.Results != null)
-                {
-                    addResults(api.Response.Results);
-                }
+                addResults(api.Response.Results);
             }
+        }
 
-            var apiAlbum = await userState.ApiAsync(new GetAlbumResults { RefIds = new() { RefId } });
-            if (apiAlbum.Succeeded)
+        var apiAlbum = await userState.ApiAsync(new GetAlbumResults { RefIds = new() { RefId } });
+        if (apiAlbum.Succeeded)
+        {
+            SelectedAlbum = apiAlbum.Response?.Results.FirstOrDefault();
+            if (SelectedAlbum != null)
             {
-                SelectedAlbum = apiAlbum.Response?.Results.FirstOrDefault();
-                if (SelectedAlbum != null)
-                {
-                    Title = SelectedAlbum.Name + (UsePage > 1 ? $" Page {UsePage}" : "");
-                }
+                Title = SelectedAlbum.Name + (UsePage > 1 ? $" Page {UsePage}" : "");
             }
+        }
 
-            var apiAlbums = await userState.ApiAsync(new GetAlbumRefs());
-            if (apiAlbums.Succeeded)
-            {
-                OtherAlbums = apiAlbums.Response!.Results;
-            }
+        var apiAlbums = await userState.ApiAsync(new GetAlbumRefs());
+        if (apiAlbums.Succeeded)
+        {
+            OtherAlbums = apiAlbums.Response!.Results;
         }
 
         Total = api.Response?.Total ?? 0;

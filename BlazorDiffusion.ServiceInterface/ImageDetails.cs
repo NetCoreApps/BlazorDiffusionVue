@@ -68,20 +68,26 @@ public class ImageDetails
             var differenceProvider = new DifferenceHash();
 
             // Each hash resizes + manipulates image
-            var hashImage = image.Clone();
-            ret.PerceptualHash = perceptualProvider.Hash(hashImage);
-            if (Log) Console.WriteLine($"PerceptualHash took {sw.ElapsedMilliseconds}ms");
-            sw.Restart();
+            using (var hashImage = image.Clone())
+            {
+                ret.PerceptualHash = perceptualProvider.Hash(hashImage);
+                if (Log) Console.WriteLine($"PerceptualHash took {sw.ElapsedMilliseconds}ms");
+                sw.Restart();
+            }
 
-            hashImage = image.Clone();
-            ret.AverageHash = averageProvider.Hash(hashImage);
-            if (Log) Console.WriteLine($"AverageHash took {sw.ElapsedMilliseconds}ms");
-            sw.Restart();
+            using (var hashImage = image.Clone())
+            {
+                ret.AverageHash = averageProvider.Hash(hashImage);
+                if (Log) Console.WriteLine($"AverageHash took {sw.ElapsedMilliseconds}ms");
+                sw.Restart();
+            }
 
-            hashImage = image.Clone();
-            ret.DifferenceHash = differenceProvider.Hash(hashImage);
-            if (Log) Console.WriteLine($"DifferenceHash took {sw.ElapsedMilliseconds}ms");
-            sw.Restart();
+            using (var hashImage = image.Clone())
+            {
+                ret.DifferenceHash = differenceProvider.Hash(hashImage);
+                if (Log) Console.WriteLine($"DifferenceHash took {sw.ElapsedMilliseconds}ms");
+                sw.Restart();
+            }
 
             return ret;
         }
@@ -226,8 +232,7 @@ public static class ImageUtils
     public static async Task<MemoryStream> CropAndResizeAsync(Stream inStream, int width, int height, IImageFormat format)
     {
         var outStream = new MemoryStream();
-        var image = await Image.LoadAsync(inStream);
-        using (image)
+        using (var image = await Image.LoadAsync(inStream))
         {
             var clone = image.Clone(context => context
                 .Resize(new ResizeOptions {
@@ -263,7 +268,7 @@ public static class ImageUtils
             var height = artifact.Height > artifact.Width
                 ? 207
                 : 118;
-            var clone = image.Clone(context => context.Resize(new ResizeOptions
+            using var clone = image.Clone(context => context.Resize(new ResizeOptions
             {
                 Mode = ResizeMode.Crop,
                 Size = new Size(width, height),
@@ -283,7 +288,7 @@ public static class ImageUtils
             var height = artifact.Height > artifact.Width
                 ? 504
                 : 288;
-            var clone = image.Clone(context => context.Resize(new ResizeOptions
+            using var clone = image.Clone(context => context.Resize(new ResizeOptions
             {
                 Mode = ResizeMode.Crop,
                 Size = new Size(width, height),

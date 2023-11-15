@@ -84,7 +84,7 @@ public class DreamStudioClient : IStableDiffusionClient
             },
         };
         var sw = Stopwatch.StartNew();
-        var response = client.Generate(generateRequest);
+        using var response = client.Generate(generateRequest);
         Log?.LogInformation("client.Generate(images:{images}, {width}x{height}, {prompt}): {ms}ms", 
             request.Images, request.Width, request.Height, request.Prompt.SafeSubstring(50), sw.ElapsedMilliseconds);
 
