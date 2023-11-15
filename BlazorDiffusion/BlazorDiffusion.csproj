@@ -15,16 +15,11 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.0-rc.2.23480.2" />
-        <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.0-rc.2.23480.2" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.0-rc.2.23480.1" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.0-rc.2.23480.1" />
-        <!-- https://github.com/dotnet/aspnetcore/issues/51302#issue-1938612540 -->
-        <PackageReference Include="Microsoft.Net.Compilers.Razor.Toolset" Version="7.0.0-preview.23512.5">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Markdig" Version="0.33.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.*" />
+        <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.*" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.*" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.*" />
+        <PackageReference Include="Markdig" Version="0.33.*" />
     </ItemGroup>
 
     <ItemGroup>
@@ -37,17 +32,17 @@
     </ItemGroup>
     
     <ItemGroup>
-        <PackageReference Include="Google.Protobuf" Version="3.24.4" />
-        <PackageReference Include="Grpc.Core" Version="2.46.6" />
-        <PackageReference Include="Grpc.Net.Client" Version="2.58.0" />
-        <PackageReference Include="Grpc.Tools" Version="2.59.0">
+        <PackageReference Include="Google.Protobuf" Version="3.*" />
+        <PackageReference Include="Grpc.Core" Version="2.*" />
+        <PackageReference Include="Grpc.Net.Client" Version="2.*" />
+        <PackageReference Include="Grpc.Tools" Version="2.*">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="6.0.9" />
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.Facebook" Version="6.0.0" />
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="6.0.0" />
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.MicrosoftAccount" Version="6.0.0" />
+        <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="8.*" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.Facebook" Version="8.*" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="8.*" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.MicrosoftAccount" Version="8.*" />
     </ItemGroup>
 
     <ItemGroup>
