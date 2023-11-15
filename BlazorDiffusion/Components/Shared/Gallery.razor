@@ -7,7 +7,7 @@
             <StaticArtifactImage Artifact="@artifact" />
         </div>
     }
-    <artifact-modal v-if="artifact" :artifact="artifact" v-on:selected="showArtifact" v-on:done="showArtifact(null)" v-on:open="openDialog">
+    <artifact-modal v-if="artifact" :artifact="artifact" v-on:selected="showArtifact" v-on:done="showArtifact(null)" v-on:contextmenu="artifactMenu=$event" v-on:open="openDialog">
         <template #icons="artifact">
             <div class="p-2 relative w-full h-full overflow-hidden flex flex-col justify-between overflow-hidden">
                 <div class="flex flex-col h-full justify-between">
