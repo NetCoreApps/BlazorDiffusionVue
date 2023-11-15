@@ -336,7 +336,7 @@ export default {
                 if (api.succeeded) {
                     store.removeArtifactFromAlbum(selectedAlbum.value, artifact)
                     store.addArtifactToAlbum(selectedAlbum.value, artifact)
-                    await store.swrUserData(forceUpdate)
+                    await store.loadUserData()
                 }
             }
             notifyChanged()
