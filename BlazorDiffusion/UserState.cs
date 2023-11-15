@@ -28,7 +28,19 @@ public class UserState
     public Dictionary<int, Creative> CreativesMap { get; } = new();
     public Dictionary<int, AlbumResult[]> CreativesInAlbumsMap { get; } = new();
 
-    public AlbumRef? GetAlbumRefBySlug(string slug) => AppData.AlbumRefs.FirstOrDefault(x => x.Slug == slug); 
+    public async Task<AlbumRef?> GetAlbumRefBySlugAsync(string slug)
+    {
+        var albumRef = AppData.AlbumRefs.FirstOrDefault(x => x.Slug == slug);
+        if (albumRef != null)
+            return albumRef;
+        var api = await ApiAsync(new GetAlbumRefs());
+        if (api.Succeeded)
+        {
+            AppData.AlbumRefs = api.Response!.Results;
+            return AppData.AlbumRefs.FirstOrDefault(x => x.Slug == slug);
+        }
+        return null;
+    }
 
     public AlbumResult? GetCachedAlbum(int? id) => id != null
         ? AlbumsMap.TryGetValue(id.Value, out var a) ? a : null

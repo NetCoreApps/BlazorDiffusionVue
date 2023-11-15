@@ -51,4 +51,11 @@ public static class DbExtensions
         AppData.Instance.UserRefMap[userId] = userRef;
         return userRef;
     }
+
+    public static async Task LoadAppDataAsync(this IDbConnection db, AppData appData)
+    {
+        appData.AlbumRefs = await db.GetAlbumRefsAsync();
+        appData.UserRefMap = await db.DictionaryAsync<int, string>(db.From<AppUser>().Select(x => new { x.Id, x.RefIdStr }));
+        appData.TotalArtifacts = await db.CountAsync<Artifact>();
+    }
 }

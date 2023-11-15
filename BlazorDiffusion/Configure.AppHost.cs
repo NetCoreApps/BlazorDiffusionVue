@@ -122,18 +122,10 @@ public class AppHost : AppHostBase, IHostingStartup
             VirtualFiles = appFs
         });
 
-
         using var db = container.Resolve<IDbConnectionFactory>().Open();
-        LoadAppData(db, AppData.Instance);
+        db.LoadAppDataAsync(AppData.Instance).Wait();
 
         ScriptContext.Args[nameof(AppData)] = AppData.Instance;
-    }
-
-    public void LoadAppData(IDbConnection db, AppData appData)
-    {
-        appData.AlbumRefs = db.GetAlbumRefsAsync().Result;
-        appData.UserRefMap = db.Dictionary<int,string>(db.From<AppUser>().Select(x => new { x.Id, x.RefIdStr }));
-        appData.TotalArtifacts = db.Count<ServiceModel.Artifact>();
     }
 
     public override void OnStartupException(Exception ex)
