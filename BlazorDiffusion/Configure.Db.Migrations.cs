@@ -9,6 +9,7 @@ using ServiceStack;
 using ServiceStack.Data;
 using ServiceStack.DataAnnotations;
 using ServiceStack.OrmLite;
+using SQLitePCL;
 using static System.Formats.Asn1.AsnWriter;
 
 [assembly: HostingStartup(typeof(BlazorDiffusion.ConfigureDbMigrations))]
@@ -38,13 +39,6 @@ public class ConfigureDbMigrations : IHostingStartup
                     {
                         log.LogInformation("Adding Seed Users...");
                         AddSeedUsers(scope.ServiceProvider).Wait();
-
-                        //using var db = scope.ServiceProvider.GetRequiredService<IDbConnectionFactory>().Open();
-                        //var existingEmails = db.ColumnDistinct<string>(db.From<AppUser>().Select(x => x.Email));
-                        //var migrateUsers = db.Select(db.From<OldAppUser>().Where(x => !existingEmails.Contains(x.Email!)).OrderBy(x => x.Id));
-
-                        //log.LogInformation("Migrating {Count} Existing Users...", migrateUsers.Count);
-                        //MigrateExistingUsers(scope.ServiceProvider, migrateUsers).Wait();
                     }
                 }
 
@@ -52,6 +46,19 @@ public class ConfigureDbMigrations : IHostingStartup
                 migrator.Run();
             });
             AppTasks.Register("migrate.revert", args => migrator.Revert(args[0]));
+            AppTasks.Register("migrate.users", _ => {
+                var log = appHost.GetApplicationServices().GetRequiredService<ILogger<ConfigureDbMigrations>>();
+
+                log.LogInformation("Running migrate.users...");
+                var scopeFactory = appHost.GetApplicationServices().GetRequiredService<IServiceScopeFactory>();
+                using var scope = scopeFactory.CreateScope();
+                using var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                using var db = scope.ServiceProvider.GetRequiredService<IDbConnectionFactory>().Open();
+                var migrateUsers = db.Select(db.From<OldAppUser>().OrderBy(x => x.Id));
+
+                log.LogInformation("Migrating {Count} Existing ServiceStack Users to Identity Auth Users...", migrateUsers.Count);
+                MigrateExistingUsers(dbContext, scope.ServiceProvider, migrateUsers).Wait();
+            });
             AppTasks.Run();
 
             using var db = migrator.DbFactory.OpenDbConnection();
@@ -112,7 +119,8 @@ public class ConfigureDbMigrations : IHostingStartup
         }
     }
 
-    private async Task MigrateExistingUsers(IServiceProvider services, List<OldAppUser> migrateUsers)
+    private async Task MigrateExistingUsers(ApplicationDbContext dbContext, IServiceProvider services, 
+        List<OldAppUser> migrateUsers, string tempPassword="p@55wOrd")
     {
         var userManager = services.GetRequiredService<UserManager<AppUser>>();
         var now = DateTime.UtcNow;
@@ -137,11 +145,19 @@ public class ConfigureDbMigrations : IHostingStartup
                 LastLoginIp = user.LastLoginIp,
                 CreatedDate = user.CreatedDate,
                 ModifiedDate = user.ModifiedDate,
+                EmailConfirmed = true,
             };
-            await userManager.CreateAsync(appUser, "p@55wOrd");
+            await userManager.CreateAsync(appUser, tempPassword);
+            if (user.PasswordHash != null)
+            {
+                // Update raw PasswordHash (which uses older ASP.NET Identity v2 format), after users successfully signs in
+                // the password will be re-hashed using the latest ASP.NET Identity v3 implementation
+                dbContext.Users
+                    .Where(x => x.Id == user.Id)
+                    .ExecuteUpdate(setters => setters.SetProperty(x => x.PasswordHash, user.PasswordHash));
+            }
         }
     }
-
 
     [Alias("AppUser")]
     public class OldAppUser
@@ -154,6 +170,7 @@ public class ConfigureDbMigrations : IHostingStartup
         public string LastName { get; set; }
         public string? Handle { get; set; }
         public string Email { get; set; }
+        public string PasswordHash { get; set; }
         public string? ProfileUrl { get; set; }
         public string? Avatar { get; set; } //overrides ProfileUrl
         public string? LastLoginIp { get; set; }

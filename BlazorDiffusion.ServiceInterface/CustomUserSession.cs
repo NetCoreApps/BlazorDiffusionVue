@@ -33,7 +33,7 @@ public class AdditionalUserClaimsPrincipalFactory
         IOptions<IdentityOptions> optionsAccessor)
         : base(userManager, roleManager, optionsAccessor) { }
 
-    public async override Task<ClaimsPrincipal> CreateAsync(AppUser user)
+    public override async Task<ClaimsPrincipal> CreateAsync(AppUser user)
     {
         var principal = await base.CreateAsync(user);
         var identity = (ClaimsIdentity)principal.Identity!;
