@@ -8,9 +8,9 @@
 
     <ItemGroup>
         <PackageReference Include="CoenM.ImageSharp.ImageHash" Version="1.3.6" />
-        <PackageReference Include="Microsoft.Data.Sqlite" Version="6.0.5" />
-        <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.0-rc.2.23480.2" />
-        <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.0-rc.2.23480.2" />
+        <PackageReference Include="Microsoft.Data.Sqlite" Version="8.*" />
+        <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.*" />
+        <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.*" />
     </ItemGroup>
 
     <ItemGroup>
