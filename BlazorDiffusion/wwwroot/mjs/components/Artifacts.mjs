@@ -323,7 +323,7 @@ export const ArtifactModal = {
                     <svg class="w-8 h-8 text-slate-700 group-hover:text-slate-300" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M15.125 21.1L6.7 12.7q-.15-.15-.213-.325T6.425 12q0-.2.062-.375T6.7 11.3l8.425-8.425q.35-.35.875-.35t.9.375q.375.375.375.875t-.375.875L9.55 12l7.35 7.35q.35.35.35.863t-.375.887q-.375.375-.875.375t-.875-.375Z"/></svg>
                 </div>
                 <div>
-                    <div class="relative p-2 w-max flex flex-col mx-auto cursor-context-menu" @contextmenu.prevent="$emit('contextmenu',artifact)">
+                    <div class="relative p-2 flex flex-col mx-auto cursor-context-menu" @contextmenu.prevent="$emit('contextmenu',artifact)">
                         <ArtifactImage :artifact="artifact" :minSize="artifact.width" class="rounded sm:rounded-lg" loading="eager" imageClass="object-cover" imageStyle="max-width:min(70vw,1150px);max-height:min(70vh,1024px);" />
             
                         <div class="absolute top-0 left-0 w-full h-full group select-none overflow-hidden sm:m-1 rounded sm:rounded-xl">
