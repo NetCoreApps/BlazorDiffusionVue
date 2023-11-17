@@ -53,7 +53,6 @@ jobs:
         uses: actions/setup-dotnet@v3
         with:
           dotnet-version: '8.*'
-          dotnet-quality: 'preview'
           
       - name: Install x tool
         run: dotnet tool install -g x
