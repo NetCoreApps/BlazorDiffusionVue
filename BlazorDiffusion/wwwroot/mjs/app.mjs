@@ -270,8 +270,8 @@ globalThis.copy = function (e) {
 /* used in <SignInLink /> */
 globalThis.logout = function () {
     const form = $1('#logout-form')
-    form.submit()
     $1('[name=ReturnUrl]', form).value = location.href
+    form.submit()
 }
 
 document.addEventListener('DOMContentLoaded', () =>
