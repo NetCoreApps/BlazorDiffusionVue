@@ -17,7 +17,7 @@
 
 <div class="mt-8 mx-auto max-w-lg">
     <div class="max-w-xl">
-        <h1 class="mb-4 text-center text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-50">Sign up to create images for FREE!</h1>
+        <Heading1>Use a local account to log in.</Heading1>
         <StatusMessage class="mb-3" Message="@errorMessage" />
         <section class="mt-4 sm:shadow overflow-hidden sm:rounded-md">
             <EditForm id="account" Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
@@ -57,9 +57,6 @@
                                 <HyperLink class="font-semibold" id="forgot-password" href="/Account/ForgotPassword">Forgot your password?</HyperLink>
                             </p>
                             <p class="mb-3">
-                                <HyperLink class="font-semibold" href="@(NavigationManager.GetUriWithQueryParameters("/Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register as a new user</HyperLink>
-                            </p>
-                            <p class="mb-3">
                                 <HyperLink class="font-semibold" id="resend-confirmation" href="/Account/ResendEmailConfirmation">Resend email confirmation</HyperLink>
                             </p>
                         </div>
@@ -71,6 +68,12 @@
             <section>
                 <Heading3>Use another service to log in.</Heading3>
                 <ExternalLoginPicker />
+            </section>
+        </div>
+        <div class="mt-8">
+            <section>
+                <Heading3>Sign up to create images for FREE!</Heading3>
+                <PrimaryButton Style="ButtonStyle.Green" href="@(NavigationManager.GetUriWithQueryParameters("/Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Sign up</PrimaryButton>
             </section>
         </div>
     </div>
