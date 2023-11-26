@@ -59,10 +59,11 @@ setConfig({
 
 const alreadyMounted = el => el.__vue_app__ 
 
+const mockArgs = { attrs:{}, slots:{}, emit:() => {}, expose: () => {} }
 function hasTemplate(el,component) {
     return !!(el.firstElementChild
         || component.template
-        || (component.setup && typeof component.setup({}, {}) == 'function'))
+        || (component.setup && typeof component.setup({}, mockArgs) == 'function'))
 }
 
 /** Mount Vue3 Component
