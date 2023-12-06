@@ -8,9 +8,9 @@ using Microsoft.EntityFrameworkCore;
 using ServiceStack.Blazor;
 using BlazorDiffusion.Components;
 using BlazorDiffusion.Data;
-using BlazorDiffusion.Identity;
 using BlazorDiffusion.ServiceModel;
 using BlazorDiffusion.ServiceInterface;
+using BlazorDiffusion.Components.Account;
 
 AppHost.RegisterKey();
 var builder = WebApplication.CreateBuilder(args);
@@ -19,7 +19,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents();
 
 builder.Services.AddCascadingAuthenticationState();
-builder.Services.AddScoped<UserAccessor>();
+builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, ServerAuthenticationStateProvider>();
 
@@ -66,7 +66,7 @@ builder.Services.AddIdentityCore<AppUser>(options => options.SignIn.RequireConfi
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
-builder.Services.AddSingleton<IEmailSender, EmailSender>();
+builder.Services.AddSingleton<IEmailSender<AppUser>, EmailSender>();
 builder.Services.AddScoped<IUserClaimsPrincipalFactory<AppUser>, AdditionalUserClaimsPrincipalFactory>();
 
 var baseUrl = builder.Configuration["ApiBaseUrl"] ??

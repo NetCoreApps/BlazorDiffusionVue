@@ -271,7 +271,7 @@ globalThis.copy = function (e) {
 /* used in <SignInLink /> */
 globalThis.logout = function () {
     const form = $1('#logout-form')
-    $1('[name=ReturnUrl]', form).value = location.href
+    $1('[name=ReturnUrl]', form).value = location.pathname.substring(1)
     form.submit()
 }
 

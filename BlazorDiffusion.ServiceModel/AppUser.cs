@@ -5,7 +5,7 @@ using System;
 
 namespace BlazorDiffusion.ServiceModel;
 
-// Add profile data for application users by adding properties to the ApplicationUser class
+// Add profile data for application users by adding properties to the AppUser class
 [Alias("AspNetUsers")]
 public class AppUser : IdentityUser<int>
 {

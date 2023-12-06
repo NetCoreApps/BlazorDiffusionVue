@@ -12,6 +12,7 @@
     <ItemGroup>
         <Using Include="ServiceStack" />
         <Using Include="BlazorDiffusion" />
+        <Using Include="BlazorDiffusion.ServiceModel" />
     </ItemGroup>
 
     <ItemGroup>
@@ -76,4 +77,5 @@
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </None>
     </ItemGroup>
+    
 </Project>

@@ -1,20 +1,18 @@
 ﻿using BlazorDiffusion.ServiceModel;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using ServiceStack.Messaging;
 
 namespace BlazorDiffusion;
 
-public class EmailSender : IEmailSender
+/// <summary>
+/// Sends emails by publishing a message to the Background MQ Server where it's processed in the background
+/// </summary>
+public class EmailSender(IMessageService messageService) : IEmailSender<AppUser>
 {
-    IMessageService MessageService { get; }
-    public EmailSender(IMessageService messageService)
-    {
-        MessageService = messageService;
-    }
-
     public Task SendEmailAsync(string email, string subject, string htmlMessage)
-    {        
-        using var mqClient = MessageService.CreateMessageProducer();
+    {
+        using var mqClient = messageService.CreateMessageProducer();
         mqClient.Publish(new SendEmail
         {
             To = email,
@@ -24,4 +22,13 @@ public class EmailSender : IEmailSender
 
         return Task.CompletedTask;
     }
+
+    public Task SendConfirmationLinkAsync(AppUser user, string email, string confirmationLink) =>
+        SendEmailAsync(email, "Confirm your email", $"Please confirm your account by <a href='{confirmationLink}'>clicking here</a>.");
+
+    public Task SendPasswordResetLinkAsync(AppUser user, string email, string resetLink) =>
+        SendEmailAsync(email, "Reset your password", $"Please reset your password by <a href='{resetLink}'>clicking here</a>.");
+
+    public Task SendPasswordResetCodeAsync(AppUser user, string email, string resetCode) =>
+        SendEmailAsync(email, "Reset your password", $"Please reset your password using the following code: {resetCode}");
 }

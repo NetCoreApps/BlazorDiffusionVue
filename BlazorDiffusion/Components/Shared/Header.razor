@@ -1,9 +1,13 @@
-@using BlazorDiffusion.Components.Identity
 @inherits AppAuthComponentBase
+@implements IDisposable
 @inject NavigationManager NavigationManager
 
 <header id="header" class="absolute inset-x-0 top-0 z-50">
-    <LogoutForm id="logout-form" />
+    <form id="logout-form" action="Account/Logout" method="post">
+        <AntiforgeryToken />
+        <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+        <button type="submit" class="hidden"></button>
+    </form>
     <nav class="flex items-center justify-between px-4" aria-label="Global">
         <div class="flex sm:flex-1">
             <NavLink href="/" class="flex items-center flex-shrink-0 text-2xl whitespace-nowrap overflow-x-hidden flex items-center active">
@@ -102,4 +106,23 @@ document.addEventListener('DOMContentLoaded', () =>
     const string MobileNavLinkClass = "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 hover:text-gray-900 dark:hover:text-gray-50 group flex items-center px-2 py-2 text-sm font-medium rounded-md";
 
     [CascadingParameter] public HttpContext? HttpContext { get; set; }
+    
+    private string? currentUrl;
+
+    protected override void OnInitialized()
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
 }
