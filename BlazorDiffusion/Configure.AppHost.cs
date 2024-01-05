@@ -134,5 +134,5 @@ public class AppHost : AppHostBase, IHostingStartup
     }
 
     public static void RegisterKey() =>
-        ServiceStack.Licensing.RegisterLicense("OSS BSD-3-Clause 2023 https://github.com/NetCoreApps/BlazorDiffusionVue DsTKwLQqs8eXjfszoK62cu4zpAEp5ZuDfXjq7majdXF5vsD38zzPG01aqShWv44m8sf/XUbqvVy1jTPV+2G4vZAsteVJ8b9U7JWoFzxfjHTBWAMuSXMdXs76J+RR0gBTK5UWu/xDQqpAEY4BroEMkXpp5ybsFcUjnIt0Wqg7NoA=");
+        Licensing.RegisterLicense("OSS GPL-3.0 2024 https://github.com/NetCoreApps/BlazorDiffusionVue K0VsMikfSp8ZKaRhYB9deGsvqJW7L8liuUmg6wD6kDAWoXiVRN3nKZ+nWLzgBvsuxK1yJ2NlL2XEwo2Zmj+e/jPDbnzEBasPOJVAP4E3lIPye7KfqUVWICvwTn6kav5BNfcyLlG/MTX6HloKEqQijOV/Azrw5fACOeNh9mXUQ1o=");
 }
