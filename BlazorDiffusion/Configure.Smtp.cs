@@ -24,6 +24,18 @@ namespace BlazorDiffusion
             .ConfigureAppHost(appHost => {
                 var mqService = appHost.Resolve<IMessageService>();
                 mqService.RegisterHandler<SendEmail>(appHost.ExecuteMessage);
+                // Check if SMTP is configured
+                var smtpConfig = appHost.TryResolve<SmtpConfig>();
+                var log = appHost.GetApplicationServices().GetRequiredService<ILogger<ConfigureSmtp>>();
+                // Log if missing
+                if (smtpConfig is null)
+                {
+                    log.LogWarning("SMTP is not configured, please configure SMTP to enable sending emails");
+                }
+                else
+                {
+                    log.LogWarning("SMTP is configured with <{SmtpConfigFromEmail}> {SmtpConfigFromName}", smtpConfig.FromEmail, smtpConfig.FromName);
+                }
             });
     }
 }
