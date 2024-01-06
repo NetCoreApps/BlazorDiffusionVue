@@ -1,16 +1,17 @@
 using System.Net;
+using System.Text;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.EntityFrameworkCore;
 using ServiceStack.Blazor;
 using BlazorDiffusion.Components;
 using BlazorDiffusion.Data;
-using BlazorDiffusion.ServiceModel;
 using BlazorDiffusion.ServiceInterface;
 using BlazorDiffusion.Components.Account;
+using Microsoft.AspNetCore.Authentication;
 
 AppHost.RegisterKey();
 var builder = WebApplication.CreateBuilder(args);
@@ -29,6 +30,15 @@ builder.Services.AddAuthentication(options =>
     {
         options.DefaultScheme = IdentityConstants.ApplicationScheme;
         options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+    })
+    .AddJwtBearer(options => {
+        options.TokenValidationParameters = new()
+        {
+            ValidIssuer = config["JwtBearer:ValidIssuer"],
+            ValidAudience = config["JwtBearer:ValidAudience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["JwtBearer:IssuerSigningKey"]!)),
+            ValidateIssuerSigningKey = true,
+        };
     })
     .AddFacebook(options => { /* Create App https://developers.facebook.com/apps */
         options.AppId = config["oauth.facebook.AppId"]!;
@@ -51,7 +61,7 @@ builder.Services.AddAuthentication(options =>
     .AddIdentityCookies();
 
 builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo(@"App_Data"));
+    .PersistKeysToFileSystem(new DirectoryInfo("App_Data"));
 
 // $ dotnet ef migrations add CreateIdentitySchema
 // $ dotnet ef database update
@@ -76,12 +86,22 @@ builder.Services.AddBlazorServerIdentityApiClient(baseUrl);
 builder.Services.AddLocalStorage();
 builder.Services.AddScoped<UserState>();
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddServiceStack(typeof(MyServices).Assembly, c => {
+    c.AddSwagger(o => {
+        o.AddJwtBearer();
+    });
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 else
 {
@@ -100,7 +120,9 @@ app.MapRazorComponents<App>();
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
 
-app.UseServiceStack(new AppHost());
+app.UseServiceStack(new AppHost(), options => {
+    options.MapEndpoints();
+});
 
 BlazorConfig.Set(new()
 {

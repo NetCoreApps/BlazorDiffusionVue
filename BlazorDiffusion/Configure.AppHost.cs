@@ -1,22 +1,17 @@
-using System.Data;
-using Funq;
 using ServiceStack.IO;
 using ServiceStack.Data;
 using ServiceStack.OrmLite;
 using ServiceStack.Configuration;
 using Amazon.S3;
 using BlazorDiffusion.ServiceInterface;
-using BlazorDiffusion.ServiceModel;
 
 [assembly: HostingStartup(typeof(BlazorDiffusion.AppHost))]
 
 namespace BlazorDiffusion;
 
-public class AppHost : AppHostBase, IHostingStartup
+public class AppHost() : AppHostBase("Blazor Diffusion"), IHostingStartup
 {
-    public AppHost() : base("Blazor Diffusion", typeof(MyServices).Assembly) { }
-
-    public const string LocalBaseUrl = "https://localhost:5001";
+    const string LocalBaseUrl = "https://localhost:5001";
 
     public void Configure(IWebHostBuilder builder) => builder
         .ConfigureServices((context, services) => {
@@ -24,7 +19,6 @@ public class AppHost : AppHostBase, IHostingStartup
             services.AddSingleton(AppData.Instance);
             services.AddSingleton<AppUserQuotas>();
 
-            //Plugins.Add(new ProfilingFeature());
             var baseUrl = Environment.GetEnvironmentVariable("VIRTUAL_HOST");
             baseUrl = !string.IsNullOrEmpty(baseUrl)
                 ? $"https://{baseUrl}"
@@ -36,8 +30,8 @@ public class AppHost : AppHostBase, IHostingStartup
                 : null;
 
             // set in launchSettings.json
-            var r2AccessId = Environment.GetEnvironmentVariable("R2_ACCESS_KEY_ID")!;
-            var r2AccessKey = Environment.GetEnvironmentVariable("R2_SECRET_ACCESS_KEY")!;
+            var r2AccessId = Environment.GetEnvironmentVariable("R2_ACCESS_KEY_ID");
+            var r2AccessKey = Environment.GetEnvironmentVariable("R2_SECRET_ACCESS_KEY");
 
             var appConfig = AppConfig.Set(new AppConfig
             {
@@ -54,27 +48,15 @@ public class AppHost : AppHostBase, IHostingStartup
                 FallbackAssetsBasePath = r2AccessId != null ? "https://pub-97bba6b94a944260b10a6e7d4bf98053.r2.dev" : "/uploads",
                 SyncTasksInterval = TimeSpan.FromMinutes(10),
             });
-            services.AddSingleton(AppConfig.Instance);
+            services.AddSingleton(appConfig);
 
             var s3Client = new AmazonS3Client(appConfig.R2AccessId, appConfig.R2AccessKey, new AmazonS3Config
             {
                 ServiceURL = $"https://{appConfig.R2Account}.r2.cloudflarestorage.com"
             });
             services.AddSingleton(s3Client);
-        });
-
-
-    public override void Configure(Container container)
-    {
-        SetConfig(new HostConfig
-        {
-            AddRedirectParamsToQueryString = true,
-            UseSameSiteCookies = false,
-        });
-
-        var appConfig = container.Resolve<AppConfig>();
-
-        Plugins.Add(new CorsFeature(allowedHeaders: "Content-Type,Authorization",
+            
+        services.AddPlugin(new CorsFeature(allowedHeaders: "Content-Type,Authorization",
             allowOriginWhitelist: new[]{
             "https://localhost:5002",
             "http://localhost:5000",
@@ -88,14 +70,14 @@ public class AppHost : AppHostBase, IHostingStartup
 
         var hasR2 = !string.IsNullOrEmpty(appConfig.R2AccessId);
         if (!hasR2)
-            Log.Warn($"Starting without R2 access.");
+            Log.Warn("Starting without R2 access.");
 
-        var s3Client = container.Resolve<AmazonS3Client>();
-
-        var appFs = VirtualFiles = hasR2 
+        IVirtualFiles appFs = hasR2 
             ? new R2VirtualFiles(s3Client, appConfig.ArtifactBucket) 
             : new FileSystemVirtualFiles(ContentRootDirectory.RealPath.CombineWith("App_Data").AssertDir());
-        Plugins.Add(new FilesUploadFeature(
+        services.AddSingleton(appFs);
+        
+        services.AddPlugin(new FilesUploadFeature(
             new UploadLocation("artifacts", appFs,
                 readAccessRole: RoleNames.AllowAnon,
                 maxFileBytes: AppData.MaxArtifactSize),
@@ -103,7 +85,7 @@ public class AppHost : AppHostBase, IHostingStartup
                 // Use unique URL to invalidate CDN caches
                 resolvePath: ctx =>
                 {
-                    using var db = GetDbConnection();
+                    using var db = Instance.GetDbConnection();
                     var q = db.From<AppUser>().Where(x => x.Id == ctx.Session.UserAuthId.ToInt()).Select(x => x.RefIdStr);
                     var userRef = db.Scalar<string>(q);
                     return $"/avatars/{userRef[..2]}/{userRef}/{ctx.FileName}";
@@ -113,16 +95,25 @@ public class AppHost : AppHostBase, IHostingStartup
             ));
 
         // Don't use public prefix if working locally
-        Register<IStableDiffusionClient>(new DreamStudioClient
+        services.AddSingleton<IStableDiffusionClient>(c => new DreamStudioClient
         {
-            Log = container.Resolve<ILogger<DreamStudioClient>>(),
+            Log = c.GetRequiredService<ILogger<DreamStudioClient>>(),
             ApiKey = Environment.GetEnvironmentVariable("DREAMAI_APIKEY") ?? "<your_api_key>",
             OutputPathPrefix = "artifacts",
             PublicPrefix = appConfig.AssetsBasePath,
             VirtualFiles = appFs
         });
+    });
 
-        using var db = container.Resolve<IDbConnectionFactory>().Open();
+    public override void Configure()
+    {
+        SetConfig(new HostConfig
+        {
+            AddRedirectParamsToQueryString = true,
+            UseSameSiteCookies = false,
+        });
+
+        using var db = Resolve<IDbConnectionFactory>().Open();
         db.LoadAppDataAsync(AppData.Instance).Wait();
 
         ScriptContext.Args[nameof(AppData)] = AppData.Instance;

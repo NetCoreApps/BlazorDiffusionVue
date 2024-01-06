@@ -1,26 +1,18 @@
-﻿using System;
-using System.Linq;
-using System.Text;
+﻿using System.Linq;
 using System.Threading.Tasks;
-using System.Collections;
-using System.Collections.Generic;
 using ServiceStack;
 using ServiceStack.OrmLite;
-using ServiceStack.OrmLite.Legacy;
 using BlazorDiffusion.ServiceModel;
 
 namespace BlazorDiffusion.ServiceInterface;
 
-public class VueServices : Service
+public class VueServices(IAutoQueryDb autoQuery) : Service
 {
-    public IAutoQueryDb AutoQuery { get; set; } = default!;
-    public ICrudEvents CrudEvents { get; set; }
-
     //public async Task<object> Any(QueryArtifactComments query)
     //{
-    //    using var db = AutoQuery.GetDb(query, base.Request);
-    //    var q = AutoQuery.CreateQuery(query, base.Request, db);
-    //    var response = await AutoQuery.ExecuteAsync(query, q, base.Request, db);
+    //    using var db = autoQuery.GetDb(query, base.Request);
+    //    var q = autoQuery.CreateQuery(query, base.Request, db);
+    //    var response = await autoQuery.ExecuteAsync(query, q, base.Request, db);
     //    return response;
     //}
     
@@ -58,7 +50,7 @@ public class VueServices : Service
         };
     }
 
-    async Task refreshVotes(int artifactCommentId)
+    async Task RefreshVotes(int artifactCommentId)
     {
         var commentVotes = await Db.SelectAsync<ArtifactCommentVote>(x => x.ArtifactCommentId == artifactCommentId);
         var upVotes = commentVotes.Count(x => x.Vote > 0);
@@ -74,14 +66,13 @@ public class VueServices : Service
 
     public async Task Post(CreateArtifactCommentVote request)
     {
-        await AutoQuery.CreateAsync(request, base.Request);
-        await refreshVotes(request.ArtifactCommentId);
+        await autoQuery.CreateAsync(request, base.Request);
+        await RefreshVotes(request.ArtifactCommentId);
     }
 
     public async Task Delete(DeleteArtifactCommentVote request)
     {
-        await AutoQuery.DeleteAsync(request, base.Request);
-        await refreshVotes(request.ArtifactCommentId);
+        await autoQuery.DeleteAsync(request, base.Request);
+        await RefreshVotes(request.ArtifactCommentId);
     }
-
 }

@@ -1,6 +1,4 @@
-﻿using BlazorDiffusion.ServiceModel;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.UI.Services;
+﻿using Microsoft.AspNetCore.Identity;
 using ServiceStack.Messaging;
 
 namespace BlazorDiffusion;

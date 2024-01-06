@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using BlazorDiffusion.ServiceModel;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Logging;
 using ServiceStack;
 using ServiceStack.Auth;
 using ServiceStack.IO;
@@ -17,28 +18,26 @@ using SixLabors.ImageSharp;
 
 namespace BlazorDiffusion.ServiceInterface;
 
-public class CreativeService : Service
+public class CreativeService(
+    ILogger<CreativeService> log,
+    IStableDiffusionClient stableDiffusion,
+    AppConfig appConfig,
+    AppUserQuotas userQuotas,
+    UserManager<AppUser> userManager)
+    : Service
 {
-    public static ILog Log = LogManager.GetLogger(typeof(CreativeService));
+    const string DefaultEngineId = "stable-diffusion-xl-1024-v1-0"; // "stable-diffusion-v1-5";
 
-    public IStableDiffusionClient StableDiffusionClient { get; set; } = default!;
+    const int DefaultHeight = 1024;
+    const int DefaultWidth = 1024;
+    const int DefaultImages = 4;
+    const int DefaultSteps = 30;
 
-    public const string DefaultEngineId = "stable-diffusion-xl-1024-v1-0"; // "stable-diffusion-v1-5";
+    const int DefaultModeratorImages = 9;
+    const int DefaultModeratorSteps = 30;
 
-    public const int DefaultHeight = 1024;
-    public const int DefaultWidth = 1024;
-    public const int DefaultImages = 4;
-    public const int DefaultSteps = 30;
-
-    public const int DefaultModeratorImages = 9;
-    public const int DefaultModeratorSteps = 30;
-
-    public const int DefaultMaxWidth = 1344;
-    public const int DefaultMaxHeight = 1344;
-
-    public AppConfig AppConfig { get; set; }
-    public AppUserQuotas UserQuotas { get; set; }
-    public UserManager<AppUser> UserManager { get; set; }
+    const int DefaultMaxWidth = 1344;
+    const int DefaultMaxHeight = 1344;
 
     public async Task<object> Any(CheckQuota request)
     {
@@ -52,10 +51,10 @@ public class CreativeService : Service
             Images = request.Images,
         };
         var imageGenerationRequest = CreateImageGenerationRequest(creative, new List<Modifier>(), new List<Artist>(), userRoles);
-        var requestCredits = UserQuotas.CalculateCredits(imageGenerationRequest);
+        var requestCredits = userQuotas.CalculateCredits(imageGenerationRequest);
         var startOfDay = DateTime.UtcNow.Date;
-        var dailyQuota = UserQuotas.GetDailyQuota(userRoles) ?? -1;
-        var creditsUsed = await UserQuotas.GetCreditsUsedAsync(Db, userId, since: DateTime.UtcNow.Date);
+        var dailyQuota = userQuotas.GetDailyQuota(userRoles) ?? -1;
+        var creditsUsed = await userQuotas.GetCreditsUsedAsync(Db, userId, since: DateTime.UtcNow.Date);
 
         return new CheckQuotaResponse
         {
@@ -64,7 +63,7 @@ public class CreativeService : Service
             CreditsRequested = requestCredits,
             DailyQuota = dailyQuota,
             CreditsRemaining = dailyQuota == -1 ? -1 : dailyQuota - creditsUsed,
-            RequestedDetails = UserQuotas.ToRequestDetails(imageGenerationRequest),
+            RequestedDetails = userQuotas.ToRequestDetails(imageGenerationRequest),
         };
     }
 
@@ -72,7 +71,7 @@ public class CreativeService : Service
     {
         var session = await SessionAsAsync<CustomUserSession>();
         var userId = session.GetUserId();
-        var userAuth = await UserManager.FindByIdAsync(session.UserAuthId);
+        var userAuth = await userManager.FindByIdAsync(session.UserAuthId);
         if (userAuth == null)
             throw HttpError.Unauthorized("Not Authorized");
 
@@ -81,8 +80,8 @@ public class CreativeService : Service
         {
             if (requestLower.Contains(banWord))
             {
-                await UserManager.SetLockoutEnabledAsync(userAuth, true);
-                await UserManager.SetLockoutEndDateAsync(userAuth, DateTime.UtcNow.AddYears(1));
+                await userManager.SetLockoutEnabledAsync(userAuth, true);
+                await userManager.SetLockoutEndDateAsync(userAuth, DateTime.UtcNow.AddYears(1));
                 break;
             }
         }
@@ -99,10 +98,10 @@ public class CreativeService : Service
 
         var imageGenerationRequest = CreateImageGenerationRequest(request, modifiers, artists, userRoles);
 
-        var quotaError = await UserQuotas.ValidateQuotaAsync(Db, imageGenerationRequest, userId, userRoles);
+        var quotaError = await userQuotas.ValidateQuotaAsync(Db, imageGenerationRequest, userId, userRoles);
         if (quotaError != null)
         {
-            Log.InfoFormat("User #{0} {1} exceeded quota, credits: {2} + {3} > {4}, time remaining: {5}",
+            log.LogInformation("User #{Id} {UserName} exceeded quota, credits: {CreditsUsed} + {CreditsRequested} > {DailyQuota}, time remaining: {TimeRemaining}",
                 session.UserAuthId, session.UserAuthName, quotaError.CreditsUsed,
                 quotaError.CreditsRequested, quotaError.DailyQuota, quotaError.TimeRemaining);
 
@@ -290,7 +289,7 @@ public class CreativeService : Service
             Seed = request.Seed
         };
 
-        if (Log.IsDebugEnabled) Log.DebugFormat("ImageGeneration {0}", to.Dump());
+        if (log.IsEnabled(LogLevel.Debug)) log.LogDebug("ImageGeneration {ImageGeneration}", to.Dump());
 
         return to;
     }
@@ -301,11 +300,11 @@ public class CreativeService : Service
 
         try
         {
-            return await StableDiffusionClient.GenerateImageAsync(request);
+            return await stableDiffusion.GenerateImageAsync(request);
         }
         catch (Exception e)
         {
-            Log.Error(e, "Failed to generate image: {0}", e.Message);
+            log.LogError(e, "Failed to generate image: {Message}", e.Message);
             throw HttpError.ServiceUnavailable($"Failed to generate image: {e.Message}");
         }
     }
@@ -317,13 +316,13 @@ public class CreativeService : Service
             return HttpError.NotFound("Artifact does not exist");
 
         if (request.Size == ArtifactSize.Original)
-            return HttpResult.Redirect(AppConfig.AssetsBasePath.CombineWith(artifact.FilePath));
+            return HttpResult.Redirect(appConfig.AssetsBasePath.CombineWith(artifact.FilePath));
         if (request.Size == ArtifactSize.Small && artifact.FilePathSmall != null)
-            return HttpResult.Redirect(AppConfig.AssetsBasePath.CombineWith(artifact.FilePathSmall));
+            return HttpResult.Redirect(appConfig.AssetsBasePath.CombineWith(artifact.FilePathSmall));
         if (request.Size == ArtifactSize.Medium && artifact.FilePathMedium != null)
-            return HttpResult.Redirect(AppConfig.AssetsBasePath.CombineWith(artifact.FilePathMedium));
+            return HttpResult.Redirect(appConfig.AssetsBasePath.CombineWith(artifact.FilePathMedium));
         if (request.Size == ArtifactSize.Large && artifact.FilePathLarge != null)
-            return HttpResult.Redirect(AppConfig.AssetsBasePath.CombineWith(artifact.FilePathLarge));
+            return HttpResult.Redirect(appConfig.AssetsBasePath.CombineWith(artifact.FilePathLarge));
 
         await VirtualFiles.ResizeArtifactsAsync(artifact);
 
@@ -335,13 +334,13 @@ public class CreativeService : Service
         }, where: x => x.Id == artifact.Id);
 
         if (request.Size == ArtifactSize.Small)
-            return HttpResult.Redirect(AppConfig.AssetsBasePath.CombineWith(artifact.FilePathSmall));
+            return HttpResult.Redirect(appConfig.AssetsBasePath.CombineWith(artifact.FilePathSmall));
         if (request.Size == ArtifactSize.Medium)
-            return HttpResult.Redirect(AppConfig.AssetsBasePath.CombineWith(artifact.FilePathMedium));
+            return HttpResult.Redirect(appConfig.AssetsBasePath.CombineWith(artifact.FilePathMedium));
         if (request.Size == ArtifactSize.Large)
-            return HttpResult.Redirect(AppConfig.AssetsBasePath.CombineWith(artifact.FilePathLarge));
+            return HttpResult.Redirect(appConfig.AssetsBasePath.CombineWith(artifact.FilePathLarge));
 
-        return HttpResult.Redirect(AppConfig.AssetsBasePath.CombineWith(artifact.FilePath));
+        return HttpResult.Redirect(appConfig.AssetsBasePath.CombineWith(artifact.FilePath));
     }
 
     public async Task Delete(DeleteCreative request)
@@ -391,7 +390,7 @@ public class CreativeService : Service
 
         transaction.Commit();
 
-        await StableDiffusionClient.DeleteFolderAsync(creative);
+        await stableDiffusion.DeleteFolderAsync(creative);
 
         using var analyticsDb = OpenDbConnection(Databases.Analytics);
         await analyticsDb.DeleteAsync<ArtifactStat>(x => artifactIds.Contains(x.ArtifactId));

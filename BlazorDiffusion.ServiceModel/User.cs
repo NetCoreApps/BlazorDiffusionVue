@@ -25,7 +25,7 @@ public class UserProfile
 public class UpdateUserProfile : IUpdateDb<AppUser>, IReturn<UserProfile>
 {
     [ValidateNotEmpty]
-    public string DisplayName { get; set; }
+    public string? DisplayName { get; set; }
     [Input(Type="File"), UploadTo("avatars")]
     public string? Avatar { get; set; }
     [ValidateMaximumLength(20)]
@@ -88,7 +88,7 @@ public class CheckQuotaResponse
 
 [Tag(Tag.User)]
 [ValidateIsAuthenticated]
-public class UserData : IReturn<UserDataResponse> {}
+public class UserData : IPost, IReturn<UserDataResponse> {}
 public class UserDataResponse
 {
     public UserResult User { get; set; }
@@ -99,7 +99,7 @@ public class UserDataResponse
 }
 
 [Tag(Tag.User)]
-public class GetUserInfo : IReturn<GetUserInfoResponse>
+public class GetUserInfo : IGet, IReturn<GetUserInfoResponse>
 {
     public string RefId { get; set; }
 }

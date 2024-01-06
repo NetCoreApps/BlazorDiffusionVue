@@ -24,15 +24,12 @@ public class CustomUserSession : AuthUserSession
     }
 }
 
-public class AdditionalUserClaimsPrincipalFactory
-    : UserClaimsPrincipalFactory<AppUser, AppRole>
+public class AdditionalUserClaimsPrincipalFactory(
+    UserManager<AppUser> userManager,
+    RoleManager<AppRole> roleManager,
+    IOptions<IdentityOptions> optionsAccessor)
+    : UserClaimsPrincipalFactory<AppUser, AppRole>(userManager, roleManager, optionsAccessor)
 {
-    public AdditionalUserClaimsPrincipalFactory(
-        UserManager<AppUser> userManager,
-        RoleManager<AppRole> roleManager,
-        IOptions<IdentityOptions> optionsAccessor)
-        : base(userManager, roleManager, optionsAccessor) { }
-
     public override async Task<ClaimsPrincipal> CreateAsync(AppUser user)
     {
         var principal = await base.CreateAsync(user);

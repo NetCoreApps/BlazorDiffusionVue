@@ -2,8 +2,9 @@
 using ServiceStack.Auth;
 using ServiceStack.Web;
 using System;
+using BlazorDiffusion.ServiceModel;
 
-namespace BlazorDiffusion.ServiceModel;
+namespace BlazorDiffusion;
 
 public static class StatUtils
 {

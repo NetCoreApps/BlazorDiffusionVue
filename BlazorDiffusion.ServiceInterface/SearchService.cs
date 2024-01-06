@@ -7,16 +7,14 @@ using CoenM.ImageHash.HashAlgorithms;
 
 namespace BlazorDiffusion.ServiceInterface;
 
-public class SearchService : Service
+public class SearchService(IAutoQueryDb autoQuery) : Service
 {
-    public IAutoQueryDb AutoQuery { get; set; }
-
     public async Task<object> Any(SearchArtifacts query)
     {
         var search = query.Query ?? "";
 
-        using var db = AutoQuery.GetDb(query, base.Request);
-        var q = AutoQuery.CreateQuery(query, base.Request, db);
+        using var db = autoQuery.GetDb(query, base.Request);
+        var q = autoQuery.CreateQuery(query, base.Request, db);
 
         var similar = query.Similar?.Trim();
         var similarToArtifact = !string.IsNullOrEmpty(similar)
@@ -215,6 +213,6 @@ public class SearchService : Service
             }
         }
 
-        return AutoQuery.ExecuteAsync(query, q, base.Request, db);
+        return autoQuery.ExecuteAsync(query, q, base.Request, db);
     }
 }

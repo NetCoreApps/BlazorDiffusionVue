@@ -11,8 +11,6 @@ namespace BlazorDiffusion.ServiceInterface;
 
 public class DataService : Service
 {
-    public IAutoQueryDb AutoQuery { get; set; }
-
     public async Task<object> Any(SearchData request)
     {
         var to = new SearchDataResponse

@@ -2,18 +2,14 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using BlazorDiffusion.ServiceModel;
 using ServiceStack;
 using ServiceStack.OrmLite;
+using BlazorDiffusion.ServiceModel;
 
 namespace BlazorDiffusion.ServiceInterface;
 
-public class AlbumServices : Service
+public class AlbumServices(ICrudEvents crudEvents) : Service
 {
-    public IAutoQueryDb AutoQuery { get; set; }
-    public ICrudEvents CrudEvents { get; set; }
-    public AppData AppData { get; set; }
-
     public async Task<object> Any(CreateAlbum request)
     {
         if (string.IsNullOrEmpty(request.Name))
@@ -50,7 +46,7 @@ public class AlbumServices : Service
         }
 
         var crudContext = CrudContext.Create<Album>(Request, Db, request, AutoCrudOperation.Create);
-        await CrudEvents.RecordAsync(crudContext);
+        await crudEvents.RecordAsync(crudContext);
 
         return album;
     }
@@ -95,7 +91,7 @@ public class AlbumServices : Service
         }
         if (request.AddArtifactIds?.Count > 0)
         {
-            var albumArtifacts = request.AddArtifactIds.Where(x => !album.Artifacts.OrEmpty().Any(a => a.ArtifactId == x))
+            var albumArtifacts = request.AddArtifactIds.Where(x => album.Artifacts.OrEmpty().All(a => a.ArtifactId != x))
                 .Map(x => new AlbumArtifact
                 {
                     AlbumId = album.Id,
@@ -117,7 +113,7 @@ public class AlbumServices : Service
         if (updateAlbum)
         {
             var crudContext = CrudContext.Create<Album>(Request, Db, request, AutoCrudOperation.Patch);
-            await CrudEvents.RecordAsync(crudContext);
+            await crudEvents.RecordAsync(crudContext);
         }
 
         trans.Commit();

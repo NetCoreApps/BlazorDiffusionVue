@@ -15,8 +15,8 @@ public class AppConfig
     public string ApiBaseUrl { get; set; }
     public string WwwBaseUrl { get; set; }
     public string CdnBaseUrl { get; set; }
-    public string R2AccessId { get; set; }
-    public string R2AccessKey { get; set; }
+    public string? R2AccessId { get; set; }
+    public string? R2AccessKey { get; set; }
     public string ArtifactBucket { get; set; }
     public string CdnBucket { get; set; }
     public string R2Account { get; set; }

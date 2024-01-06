@@ -152,9 +152,9 @@ public class ConfigureDbMigrations : IHostingStartup
             {
                 // Update raw PasswordHash (which uses older ASP.NET Identity v2 format), after users successfully signs in
                 // the password will be re-hashed using the latest ASP.NET Identity v3 implementation
-                dbContext.Users
+                await dbContext.Users
                     .Where(x => x.Id == user.Id)
-                    .ExecuteUpdate(setters => setters.SetProperty(x => x.PasswordHash, user.PasswordHash));
+                    .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.PasswordHash, user.PasswordHash));
             }
         }
     }
@@ -170,12 +170,12 @@ public class ConfigureDbMigrations : IHostingStartup
         public string LastName { get; set; }
         public string? Handle { get; set; }
         public string Email { get; set; }
-        public string PasswordHash { get; set; }
+        public string? PasswordHash { get; set; }
         public string? ProfileUrl { get; set; }
         public string? Avatar { get; set; } //overrides ProfileUrl
         public string? LastLoginIp { get; set; }
         public DateTime? LastLoginDate { get; set; }
-        public string RefIdStr { get; set; }
+        public string? RefIdStr { get; set; }
         public DateTime? LockedDate { get; set; }
         public DateTime CreatedDate { get; set; }
         public DateTime ModifiedDate { get; set; }

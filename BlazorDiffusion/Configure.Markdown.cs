@@ -11,8 +11,6 @@ public class ConfigureMarkdown : IHostingStartup
     public void Configure(IWebHostBuilder builder) => builder
         .ConfigureServices((context,services) =>
         {
-            context.Configuration.GetSection(nameof(AppConfig)).Bind(AppConfig.Instance);
-            services.AddSingleton(AppConfig.Instance);
             services.AddSingleton<MarkdownPages>();
         })
         .ConfigureAppHost(

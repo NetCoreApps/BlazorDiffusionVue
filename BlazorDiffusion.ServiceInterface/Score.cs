@@ -18,9 +18,9 @@ namespace BlazorDiffusion.ServiceInterface;
 public static class Updated
 {
     public static long Scores = 0;
-    public static ConcurrentBag<int> CreativeIds = new();
-    public static ConcurrentBag<int> ArtifactIds = new();
-    public static ConcurrentBag<int> AlbumIds = new();
+    public static ConcurrentBag<int> CreativeIds = [];
+    public static ConcurrentBag<int> ArtifactIds = [];
+    public static ConcurrentBag<int> AlbumIds = [];
 
     public static void CreativeScore(int creativeId)
     {
@@ -47,7 +47,6 @@ public static class Updated
 public static class Scores
 {
     public static ILog Log = LogManager.GetLogger(typeof(Scores));
-
 
     public static class Weights
     {

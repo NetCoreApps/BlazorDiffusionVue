@@ -8,7 +8,7 @@ using ServiceStack.OrmLite;
 
 namespace BlazorDiffusion.ServiceInterface;
 
-public class ArtifactServices : Service
+public class ArtifactServices(AppConfig appConfig) : Service
 {
     public async Task<object> Post(CreateArtifactLike request)
     {
@@ -78,8 +78,6 @@ public class ArtifactServices : Service
         return new HttpResult(file, asAttachment:true);
     }
 
-    public AppConfig AppConfig { get; set; }
-
     public async Task<object> Any(DownloadDirect request)
     {
         var artifact = !string.IsNullOrEmpty(request.RefId)
@@ -89,16 +87,16 @@ public class ArtifactServices : Service
         if (artifact == null)
             return HttpError.NotFound("File not found");
 
-        var accessId = request.AccessId ?? AppConfig.R2AccessId;
-        var accessKey = request.AccessKey ?? AppConfig.R2AccessKey;
+        var accessId = request.AccessId ?? appConfig.R2AccessId;
+        var accessKey = request.AccessKey ?? appConfig.R2AccessKey;
         var s3Client = new AmazonS3Client(accessId, accessKey, new AmazonS3Config
         {
-            ServiceURL = $"https://{AppConfig.R2Account}.r2.cloudflarestorage.com"
+            ServiceURL = $"https://{appConfig.R2Account}.r2.cloudflarestorage.com"
         });
 
         var s3Request = new GetObjectRequest
         {
-            BucketName = AppConfig.ArtifactBucket,
+            BucketName = appConfig.ArtifactBucket,
             Key = artifact.FilePath.TrimStart('/'),
         };
 

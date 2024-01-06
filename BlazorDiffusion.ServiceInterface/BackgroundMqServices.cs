@@ -8,19 +8,16 @@ using ServiceStack;
 using ServiceStack.Logging;
 using ServiceStack.OrmLite;
 using BlazorDiffusion.ServiceModel;
+using Microsoft.Extensions.Logging;
 
 namespace BlazorDiffusion.ServiceInterface;
 
-public class BackgroundMqServices : Service
+public class BackgroundMqServices(ILogger<BackgroundMqServices> log, IStableDiffusionClient stableDiffusion, AppConfig appConfig)
+    : Service
 {
-    public static ILog Log = LogManager.GetLogger(typeof(BackgroundMqServices));
-    public HtmlTemplate HtmlTemplate { get; set; } = default!;
-    public IStableDiffusionClient StableDiffusionClient { get; set; } = default!;
-    public AppConfig AppConfig { get; set; } = default!;
-
     public async Task Any(DiskTasks request)
     {
-        if (AppConfig.DisableWrites)
+        if (appConfig.DisableWrites)
             return;
 
         var creative = request.SaveCreative ?? (request.SaveCreativeId != null
@@ -29,7 +26,7 @@ public class BackgroundMqServices : Service
 
         if (creative != null)
         {
-            await StableDiffusionClient.SaveCreativeAsync(creative);
+            await stableDiffusion.SaveCreativeAsync(creative);
         }
 
         if (request.SaveFile != null)
@@ -50,7 +47,7 @@ public class BackgroundMqServices : Service
             return;
 
         var lastRun = DateTime.UtcNow - lastSyncTasksPeriodicRun;
-        if (lastRun > AppConfig.SyncTasksInterval)
+        if (lastRun > appConfig.SyncTasksInterval)
         {
             lastSyncTasksPeriodicRun = DateTime.UtcNow;
             await Any(new SyncTasks { Periodic = true });
@@ -70,10 +67,11 @@ public class BackgroundMqServices : Service
             var sw = Stopwatch.StartNew();
             var now = DateTime.UtcNow;
             var msgs = new List<string>();
-            void log(string message, params object[] args)
+            void Log(string message, params object[] args)
             {
-                msgs.Add(string.Format(message, args));
-                Log.DebugFormat(message, args);
+                var msg = string.Format(message, args); 
+                msgs.Add(msg);
+                log.LogDebug(msg);
             }
 
             var type = request.Periodic == true 
@@ -82,7 +80,7 @@ public class BackgroundMqServices : Service
                         ? nameof(request.Daily) 
                         : "";
 
-            log("SyncTasks {0} started at {1}", type, DateTime.UtcNow.ToString("s"));
+            Log("SyncTasks {0} started at {1}", type, DateTime.UtcNow.ToString("s"));
 
             if (request.Periodic == true)
             {
@@ -92,7 +90,7 @@ public class BackgroundMqServices : Service
                     .Join<Creative>((a,c) => a.Id == c.PrimaryArtifactId)
                     .Where(x => x.TemporalScore > 0 || x.CreatedDate >= thresholdDate));
 
-                log("Found {0} artifacts created before {1}", artifacts.Count, thresholdDate.ToString("s"));
+                Log("Found {0} artifacts created before {1}", artifacts.Count, thresholdDate.ToString("s"));
 
                 var count = 0;
                 foreach (var artifact in artifacts)
@@ -104,7 +102,7 @@ public class BackgroundMqServices : Service
                         Updated.ArtifactScore(artifact.Id);
                     }
                 }
-                log("SyncTasks Periodic updated {0} artifacts, took {1}ms", count, swTask.ElapsedMilliseconds);
+                Log("SyncTasks Periodic updated {0} artifacts, took {1}ms", count, swTask.ElapsedMilliseconds);
 
                 count = 0;
                 swTask.Restart();
@@ -129,7 +127,7 @@ public class BackgroundMqServices : Service
                         Updated.AlbumScore(album.Id);
                     }
                 }
-                log("SyncTasks Periodic updated {0} albums, took {1}ms", count, swTask.ElapsedMilliseconds);
+                Log("SyncTasks Periodic updated {0} albums, took {1}ms", count, swTask.ElapsedMilliseconds);
             }
 
             if (request.Daily == true)
@@ -165,7 +163,7 @@ public class BackgroundMqServices : Service
                         }
                     }
                 }
-                log("SyncTasks Daily updated {0} artifacts, took {1}ms", count, swTask.ElapsedMilliseconds);
+                Log("SyncTasks Daily updated {0} artifacts, took {1}ms", count, swTask.ElapsedMilliseconds);
 
                 count = 0;
                 swTask.Restart();
@@ -186,7 +184,7 @@ public class BackgroundMqServices : Service
                         }, x => x.Id == album.Id);
                     }
                 }
-                log("SyncTasks Daily updated {0} albums, took {1}ms", count, swTask.ElapsedMilliseconds);
+                Log("SyncTasks Daily updated {0} albums, took {1}ms", count, swTask.ElapsedMilliseconds);
             }
 
             var swWrites = Stopwatch.StartNew();
@@ -205,25 +203,25 @@ public class BackgroundMqServices : Service
                 .Select(x => x.CreativeId));
             artifactCreativeIds.Each(x => creativeIds.Add(x));
 
-            if (!AppConfig.DisableWrites)
+            if (!appConfig.DisableWrites)
             {
-                log("SyncTasks SaveCreatives {0} / {1}: {2}", creativeIds.Count, artifactCreativeIds.Count, string.Join(",", creativeIds));
+                Log("SyncTasks SaveCreatives {0} / {1}: {2}", creativeIds.Count, artifactCreativeIds.Count, string.Join(",", creativeIds));
                 var creatives = await Db.LoadSelectAsync<Creative>(x => creativeIds.Contains(x.Id));
                 foreach (var creative in creatives)
                 {
-                    await StableDiffusionClient.SaveCreativeAsync(creative);
+                    await stableDiffusion.SaveCreativeAsync(creative);
                 }
-                log("SyncTasks SaveCreatives took {0}ms", swWrites.ElapsedMilliseconds);
+                Log("SyncTasks SaveCreatives took {0}ms", swWrites.ElapsedMilliseconds);
 
                 // Rewrite all artifacts of modified creatives
                 creatives.SelectMany(c => c.Artifacts.Select(x => x.Id)).Each(id => artifactIds.Add(id));
 
-                var artifacts = await Db.SelectByIdsAsync<Artifact>(artifactIds);
-                using var ssgServices = HostContext.ResolveService<SsgServies>(Request);
+                //var artifacts = await Db.SelectByIdsAsync<Artifact>(artifactIds);
+                //await using var ssgServices = HostContext.ResolveService<SsgServices>(Request);
                 //await ssgServices.WriteArtifactHtmlPagesAsync(artifacts);
             }
 
-            log("SyncTasks {0} Total took {1}ms", type, sw.ElapsedMilliseconds);
+            Log("SyncTasks {0} Total took {1}ms", type, sw.ElapsedMilliseconds);
 
             return new SyncTasksResponse { Results = msgs };
         }

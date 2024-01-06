@@ -9,7 +9,7 @@ namespace BlazorDiffusion;
 
 public static class CreativeServerExtensions
 {
-    public const string SystemUserId = "2";
+    const string SystemUserId = "2";
 
     public static T WithAudit<T>(this T row, IRequest req, DateTime? date = null) where T : AuditBase =>
         row.WithAudit(req.GetSession().UserAuthId, date);
@@ -65,5 +65,4 @@ public static class CreativeServerExtensions
     public static string GetArtistName(this Artist artist) => string.IsNullOrEmpty(artist.FirstName)
         ? artist.LastName
         : $"{artist.FirstName} {artist.LastName}";
-
 }

@@ -1,25 +1,26 @@
 ﻿using System;
-using SixLabors.ImageSharp;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using BlazorDiffusion.ServiceModel;
 using CoenM.ImageHash.HashAlgorithms;
+using Microsoft.Extensions.Logging;
+using ServiceStack;
+using ServiceStack.Host;
+using ServiceStack.IO;
+using ServiceStack.Text;
+using ServiceStack.Web;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
-using System.Diagnostics;
-using System.IO;
-using ServiceStack;
-using System.Globalization;
-using SixLabors.ImageSharp.Formats;
-using System.Threading.Tasks;
-using ServiceStack.Web;
-using ServiceStack.Host;
-using SixLabors.ImageSharp.Formats.Png;
-using ServiceStack.IO;
-using ServiceStack.Text;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.Extensions.Logging;
 
-namespace BlazorDiffusion.ServiceModel;
+namespace BlazorDiffusion.ServiceInterface;
 
 public class ImageDetails
 {

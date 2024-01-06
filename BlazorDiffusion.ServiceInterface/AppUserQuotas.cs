@@ -11,18 +11,18 @@ namespace BlazorDiffusion.ServiceInterface;
 
 public class AppUserQuotas
 {
-    public static HashSet<string> UnrestrictedRoles = new()
-    {
+    static HashSet<string> UnrestrictedRoles =
+    [
         AppRoles.Admin,
-        AppRoles.Moderator,
-    };
+        AppRoles.Moderator
+    ];
 
-    public Dictionary<string, int> DailyRoleQuotas { get; } = new()
+    Dictionary<string, int> DailyRoleQuotas { get; } = new()
     {
         [AppRoles.Creator] = 320,
     };
 
-    public const int DefaultDailyQuota = 160; //80
+    const int DefaultDailyQuota = 160; //80
 
     /// <summary>
     /// Future:
@@ -90,7 +90,7 @@ public class AppUserQuotas
         return creditsUsed;
     }
 
-    public async Task<QuotaError?> ValidateQuotaAsync(IDbConnection db, int requestedCredits, int userId, ICollection<string> userRoles)
+    async Task<QuotaError?> ValidateQuotaAsync(IDbConnection db, int requestedCredits, int userId, ICollection<string> userRoles)
     {
         var dailyQuota = GetDailyQuota(userRoles);
         if (dailyQuota == null)
@@ -122,7 +122,7 @@ public class AppUserQuotas
 public static class AppUserQuotasUtils
 {
     public static HttpError ToHttpError(this QuotaError error, ResponseStatus status) => 
-        new HttpError(status, System.Net.HttpStatusCode.TooManyRequests) {
+        new(status, System.Net.HttpStatusCode.TooManyRequests) {
             Headers = {
                 ["Retry-After"] = error.TimeRemaining.TotalSeconds.ToString(),
             }

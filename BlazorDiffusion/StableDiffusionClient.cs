@@ -18,8 +18,8 @@ public class DreamStudioClient : IStableDiffusionClient
     public const string DefaultEngineId = "stable-diffusion-xl-1024-v1-0"; // "stable-diffusion-v1-5";
 
     public ILogger<DreamStudioClient> Log { get; set; }
-    public string ApiKey { get; set; }
-    public string OutputPathPrefix { get; set; }
+    public required string ApiKey { get; set; }
+    public required string OutputPathPrefix { get; set; }
     public string EngineId { get; set; }
     public string? PublicPrefix { get; set; }
     public IVirtualFiles VirtualFiles { get; set; }
@@ -32,7 +32,6 @@ public class DreamStudioClient : IStableDiffusionClient
             {
                 metadata.Add("Authorization", $"Bearer {ApiKey}");
             }
-
             return Task.CompletedTask;
         });
         channel = GrpcChannel.ForAddress("https://grpc.stability.ai", new GrpcChannelOptions
