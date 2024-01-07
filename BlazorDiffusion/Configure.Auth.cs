@@ -8,12 +8,15 @@ namespace BlazorDiffusion;
 public class ConfigureAuth : IHostingStartup
 {
     public void Configure(IWebHostBuilder builder) => builder
-        .ConfigureServices(services =>
+        .ConfigureServices((context,services) =>
         {
             services.AddPlugin(new AuthFeature(IdentityAuth.For<AppUser,int>(options => {
                 options.EnableCredentialsAuth = true;
-                options.EnableJwtAuth = true;
                 options.SessionFactory = () => new CustomUserSession();
+                if (context.HostingEnvironment.IsDevelopment())
+                {
+                    options.EnableJwtAuth = true;
+                }
             })));
         });
 }
