@@ -26,19 +26,10 @@ builder.Services.AddScoped<AuthenticationStateProvider, ServerAuthenticationStat
 
 var config = builder.Configuration;
 builder.Services.AddAuthorization();
-builder.Services.AddAuthentication(options =>
+var auth = builder.Services.AddAuthentication(options =>
     {
         options.DefaultScheme = IdentityConstants.ApplicationScheme;
         options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-    })
-    .AddJwtBearer(options => {
-        options.TokenValidationParameters = new()
-        {
-            ValidIssuer = config["JwtBearer:ValidIssuer"],
-            ValidAudience = config["JwtBearer:ValidAudience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["JwtBearer:IssuerSigningKey"]!)),
-            ValidateIssuerSigningKey = true,
-        };
     })
     .AddFacebook(options => { /* Create App https://developers.facebook.com/apps */
         options.AppId = config["oauth.facebook.AppId"]!;
@@ -57,8 +48,21 @@ builder.Services.AddAuthentication(options =>
         options.ClientId = config["oauth.microsoft.AppId"]!;
         options.ClientSecret = config["oauth.microsoft.AppSecret"]!;
         options.SaveTokens = true;
-    })   
-    .AddIdentityCookies();
+    });
+if (builder.Environment.IsDevelopment())
+{
+    auth.AddScheme<AuthenticationSchemeOptions, BasicAuthenticationHandler<AppUser, int>>(BasicAuthenticationHandler.Scheme, null)
+        .AddJwtBearer(options => {
+            options.TokenValidationParameters = new()
+            {
+                ValidIssuer = config["JwtBearer:ValidIssuer"],
+                ValidAudience = config["JwtBearer:ValidAudience"],
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["JwtBearer:IssuerSigningKey"]!)),
+                ValidateIssuerSigningKey = true,
+            };
+        });
+}
+auth.AddIdentityCookies();
 
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo("App_Data"));
@@ -90,7 +94,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddServiceStack(typeof(MyServices).Assembly, c => {
     c.AddSwagger(o => {
-        o.AddJwtBearer();
+        o.AddBasicAuth();
+        // o.AddJwtBearer();
     });
 });
 
