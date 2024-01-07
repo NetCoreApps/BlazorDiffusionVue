@@ -93,10 +93,13 @@ builder.Services.AddScoped<UserState>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddServiceStack(typeof(MyServices).Assembly, c => {
-    c.AddSwagger(o => {
-        o.AddBasicAuth();
-        // o.AddJwtBearer();
-    });
+    if (builder.Environment.IsDevelopment())
+    {
+        c.AddSwagger(o => {
+            o.AddBasicAuth();
+            // o.AddJwtBearer();
+        });
+    }
 });
 
 var app = builder.Build();
