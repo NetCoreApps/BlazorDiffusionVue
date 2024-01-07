@@ -74,7 +74,7 @@ public class AppHost() : AppHostBase("Blazor Diffusion"), IHostingStartup
 
         IVirtualFiles appFs = hasR2 
             ? new R2VirtualFiles(s3Client, appConfig.ArtifactBucket) 
-            : new FileSystemVirtualFiles(ContentRootDirectory.RealPath.CombineWith("App_Data").AssertDir());
+            : new FileSystemVirtualFiles(context.HostingEnvironment.ContentRootPath.CombineWith("App_Data").AssertDir());
         services.AddSingleton(appFs);
         
         services.AddPlugin(new FilesUploadFeature(
