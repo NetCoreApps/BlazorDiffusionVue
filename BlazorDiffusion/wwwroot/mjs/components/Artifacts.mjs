@@ -561,8 +561,7 @@ export const ArtifactExploreIcon = {
 
 export const ArtifactDialogs = {
     template:`<div>
-        <SignInDialog v-if="show==='SignInDialog'" @done="$emit('done')"  @signup="show==='SignUpDialog'" />
-        <SignUpDialog v-if="show==='SignUpDialog'" @done="$emit('done')"  @signin="show==='SignInDialog'" />
+        <SignInDialog v-if="show==='SignInDialog'" @done="$emit('done')" />
         <NewReport v-if="show==='NewReport'" :artifact="artifact" @done="$emit('done')" />
         <NewAlbum v-if="show==='NewAlbum'" :artifact="artifact" @done="$emit('done')" />
     </div>`,

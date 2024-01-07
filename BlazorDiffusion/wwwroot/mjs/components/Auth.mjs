@@ -2,7 +2,7 @@ import { computed, ref, inject } from "vue"
 import { useClient, useAuth } from "@servicestack/vue"
 import { appendQueryString, combinePaths, $1 } from "@servicestack/client"
 import { Store } from "../store.mjs"
-import { Authenticate, Register } from "../dtos.mjs"
+import { Authenticate } from "../dtos.mjs"
 
 export const SignInDialog = {
     template:/*html*/`<ModalDialog @done="done" class="z-40" sizeClass="sm:max-w-prose sm:w-full">
@@ -49,7 +49,6 @@ export const SignInDialog = {
                 </div>
             </div>
         </div>
-        <TextLink class="mt-4 block text-center" @click="$emit('signup')">Sign Up &rarr;</TextLink>
     </div> 
     </ModalDialog>`,
     emits:['done','signup'],
@@ -100,63 +99,6 @@ export const SignInDialog = {
         }
         
         return { request, signInHref, done, errorSummary, submit, oauthProviders, providerUrl, providerLabel, }
-    }
-}
-
-export const SignUpDialog = {
-    template:/*html*/`<ModalDialog @done="done" class="z-40" sizeClass="sm:max-w-prose sm:w-full">
-    <div class="min-h-full flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-        <div class="sm:mx-auto sm:w-full sm:max-w-md">
-            <h2 class="text-center text-3xl font-extrabold text-gray-50">
-                Sign Up
-            </h2>
-        </div>
-        <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-            <ErrorSummary class="mb-3" except="userName,password" />
-            <form @submit.prevent="submit">
-                <div class="flex flex-col gap-y-4">
-                    <TextInput id="email" v-model="request.email" placeholder="" />
-                    <TextInput id="displayName" v-model="request.displayName" placeholder="" />
-                    <TextInput id="password" type="password" help="6 characters or more" v-model="request.password" placeholder="" />
-                    <TextInput id="confirmPassword" type="password" v-model="request.confirmPassword" placeholder="" />
-                </div>
-                <div class="mt-8">
-                    <PrimaryButton class="w-full mb-4">Sign Up</PrimaryButton>
-                </div>
-            </form>
-        </div>
-        <TextLink class="block text-center pr-4" @click="$emit('signin')">&larr; Sign In</TextLink>
-    </div> 
-    </ModalDialog>`,
-    emits:['done','signin'],
-    setup(props, { emit }) {
-        /** @type {Store} */
-        const store = inject('store')
-
-        /** @type {Ref<Register>} */
-        const request = ref(new Register({ autoLogin:true }))
-        const client = useClient()
-
-        function done() {
-            emit('done')
-        }
-        async function submit() {
-            if (request.value.password !== request.value.confirmPassword) {
-                client.setError({ fieldName:'confirmPassword', message:'Passwords do not match' })
-                return
-            }
-            if (request.value.password.length < 6) {
-                client.setError({ fieldName:'password', message:'Minimum of 6 characters' })
-                return
-            }
-            const api = await client.api(request.value)
-            if (api.succeeded) {
-                await store.signIn(api.response)
-                await store.loadUserData()
-                done()
-            }
-        }
-        return { request, submit, done }
     }
 }
 

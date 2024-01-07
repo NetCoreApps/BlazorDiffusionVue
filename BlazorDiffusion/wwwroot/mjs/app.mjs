@@ -6,7 +6,7 @@ import {
     ArtifactDialogs, ArtifactLikeIcon, ArtifactExploreIcon, ArtifactMenuIcon,
     ArtifactGallery, ArtifactModal, ArtifactImage
 } from "./components/Artifacts.mjs"
-import { SignInDialog, SignUpDialog, SignInLink, AvatarImage } from "./components/Auth.mjs"
+import { SignInDialog, SignInLink, AvatarImage } from "./components/Auth.mjs"
 import { AssetsBasePath, BaseUrl, FallbackAssetsBasePath, Store } from "./store.mjs"
 import { Authenticate } from "./dtos.mjs"
 
@@ -30,7 +30,6 @@ const Components = {
     ArtifactModal,
     ArtifactImage,
     SignInDialog,
-    SignUpDialog,
     SignInLink,
     AvatarImage,
 }
