@@ -1,6 +1,6 @@
 /* Options:
-Date: 2023-11-04 17:30:46
-Version: 6.111
+Date: 2024-01-07 23:52:51
+Version: 8.01
 Tip: To override a DTO option, remove "//" prefix before updating
 BaseUrl: https://localhost:5001
 
@@ -114,7 +114,7 @@ export class Album extends AuditBase {
     constructor(init) { super(init); Object.assign(this, init) }
     /** @type {number} */
     id;
-    /** @type {string} */
+    /** @type {?string} */
     name;
     /** @type {string} */
     description;
@@ -954,30 +954,6 @@ export class AuthenticateResponse {
     /** @type {{ [index: string]: string; }} */
     meta;
 }
-export class RegisterResponse {
-    /** @param {{userId?:string,sessionId?:string,userName?:string,referrerUrl?:string,bearerToken?:string,refreshToken?:string,roles?:string[],permissions?:string[],responseStatus?:ResponseStatus,meta?:{ [index: string]: string; }}} [init] */
-    constructor(init) { Object.assign(this, init) }
-    /** @type {string} */
-    userId;
-    /** @type {string} */
-    sessionId;
-    /** @type {string} */
-    userName;
-    /** @type {string} */
-    referrerUrl;
-    /** @type {string} */
-    bearerToken;
-    /** @type {string} */
-    refreshToken;
-    /** @type {string[]} */
-    roles;
-    /** @type {string[]} */
-    permissions;
-    /** @type {ResponseStatus} */
-    responseStatus;
-    /** @type {{ [index: string]: string; }} */
-    meta;
-}
 export class AdminData {
     constructor(init) { Object.assign(this, init) }
     getTypeName() { return 'AdminData' }
@@ -1258,7 +1234,7 @@ export class GetUserInfo {
     /** @type {string} */
     refId;
     getTypeName() { return 'GetUserInfo' }
-    getMethod() { return 'POST' }
+    getMethod() { return 'GET' }
     createResponse() { return new GetUserInfoResponse() }
 }
 export class AnonData {
@@ -1452,80 +1428,6 @@ export class DeleteArtifactCommentVote {
     getTypeName() { return 'DeleteArtifactCommentVote' }
     getMethod() { return 'DELETE' }
     createResponse() { }
-}
-export class Authenticate {
-    /** @param {{provider?:string,state?:string,oauth_token?:string,oauth_verifier?:string,userName?:string,password?:string,rememberMe?:boolean,errorView?:string,nonce?:string,uri?:string,response?:string,qop?:string,nc?:string,cnonce?:string,accessToken?:string,accessTokenSecret?:string,scope?:string,returnUrl?:string,meta?:{ [index: string]: string; }}} [init] */
-    constructor(init) { Object.assign(this, init) }
-    /**
-     * @type {string}
-     * @description AuthProvider, e.g. credentials */
-    provider;
-    /** @type {string} */
-    state;
-    /** @type {string} */
-    oauth_token;
-    /** @type {string} */
-    oauth_verifier;
-    /** @type {string} */
-    userName;
-    /** @type {string} */
-    password;
-    /** @type {?boolean} */
-    rememberMe;
-    /** @type {string} */
-    errorView;
-    /** @type {string} */
-    nonce;
-    /** @type {string} */
-    uri;
-    /** @type {string} */
-    response;
-    /** @type {string} */
-    qop;
-    /** @type {string} */
-    nc;
-    /** @type {string} */
-    cnonce;
-    /** @type {string} */
-    accessToken;
-    /** @type {string} */
-    accessTokenSecret;
-    /** @type {string} */
-    scope;
-    /** @type {string} */
-    returnUrl;
-    /** @type {{ [index: string]: string; }} */
-    meta;
-    getTypeName() { return 'Authenticate' }
-    getMethod() { return 'POST' }
-    createResponse() { return new AuthenticateResponse() }
-}
-export class Register {
-    /** @param {{userName?:string,firstName?:string,lastName?:string,displayName?:string,email?:string,password?:string,confirmPassword?:string,autoLogin?:boolean,errorView?:string,meta?:{ [index: string]: string; }}} [init] */
-    constructor(init) { Object.assign(this, init) }
-    /** @type {string} */
-    userName;
-    /** @type {string} */
-    firstName;
-    /** @type {string} */
-    lastName;
-    /** @type {string} */
-    displayName;
-    /** @type {string} */
-    email;
-    /** @type {string} */
-    password;
-    /** @type {string} */
-    confirmPassword;
-    /** @type {?boolean} */
-    autoLogin;
-    /** @type {string} */
-    errorView;
-    /** @type {{ [index: string]: string; }} */
-    meta;
-    getTypeName() { return 'Register' }
-    getMethod() { return 'POST' }
-    createResponse() { return new RegisterResponse() }
 }
 export class AdminQueryArtifactComments extends QueryDb_1 {
     /** @param {{skip?:number,take?:number,orderBy?:string,orderByDesc?:string,include?:string,fields?:string,meta?:{ [index: string]: string; }}} [init] */
@@ -1976,5 +1878,32 @@ export class DeleteModifier {
     getTypeName() { return 'DeleteModifier' }
     getMethod() { return 'DELETE' }
     createResponse() { }
+}
+export class Authenticate {
+    /** @param {{provider?:string,userName?:string,password?:string,rememberMe?:boolean,accessToken?:string,accessTokenSecret?:string,returnUrl?:string,errorView?:string,meta?:{ [index: string]: string; }}} [init] */
+    constructor(init) { Object.assign(this, init) }
+    /**
+     * @type {string}
+     * @description AuthProvider, e.g. credentials */
+    provider;
+    /** @type {string} */
+    userName;
+    /** @type {string} */
+    password;
+    /** @type {?boolean} */
+    rememberMe;
+    /** @type {string} */
+    accessToken;
+    /** @type {string} */
+    accessTokenSecret;
+    /** @type {string} */
+    returnUrl;
+    /** @type {string} */
+    errorView;
+    /** @type {{ [index: string]: string; }} */
+    meta;
+    getTypeName() { return 'Authenticate' }
+    getMethod() { return 'POST' }
+    createResponse() { return new AuthenticateResponse() }
 }
 
