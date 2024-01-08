@@ -12,19 +12,13 @@ public class ConfigureMarkdown : IHostingStartup
         .ConfigureServices((context,services) =>
         {
             services.AddSingleton<MarkdownPages>();
+            AppConfig.Instance.GitPagesBaseUrl ??= ResolveGitBlobBaseUrl(context.HostingEnvironment.ContentRootPath);
         })
         .ConfigureAppHost(
-            appHost => appHost.Plugins.Add(new CleanUrlsFeature()),
             afterPluginsLoaded: appHost =>
             {
                 var pages = appHost.Resolve<MarkdownPages>();
-
-                var contentDir = appHost.GetHostingEnvironment().ContentRootPath;
-                var contentVfs = new FileSystemVirtualFiles(contentDir);
-                pages.VirtualFiles = contentVfs;
                 pages.LoadFrom("_pages");
-
-                AppConfig.Instance.GitPagesBaseUrl ??= ResolveGitBlobBaseUrl(contentDir);
             });
     
     private string? ResolveGitBlobBaseUrl(string contentDir)
