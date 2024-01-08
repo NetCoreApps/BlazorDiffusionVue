@@ -62,7 +62,7 @@ if (builder.Environment.IsDevelopment())
             };
         });
 }
-auth.AddIdentityCookies();
+auth.AddIdentityCookies(options => options.DisableRedirectsForApis());
 
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo("App_Data"));
