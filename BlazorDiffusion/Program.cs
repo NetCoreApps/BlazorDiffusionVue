@@ -120,6 +120,11 @@ else
 
 app.UseHttpsRedirection();
 
+// handle redirects from server.blazordiffusion.com
+app.MapGet("/index.html", async context => {    
+    await context.Response.Redirect("/");
+});
+
 app.UseStaticFiles();
 app.UseAntiforgery();
 
