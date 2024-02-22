@@ -15,7 +15,7 @@ public class ConfigureAuth : IHostingStartup
                 options.SessionFactory = () => new CustomUserSession();
                 if (context.HostingEnvironment.IsDevelopment())
                 {
-                    options.EnableJwtAuth = true;
+                    options.JwtAuth();
                 }
             })));
         });
