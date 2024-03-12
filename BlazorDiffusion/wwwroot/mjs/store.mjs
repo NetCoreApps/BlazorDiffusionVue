@@ -702,11 +702,11 @@ export function generateSlug(phrase, maxLength=100) {
     let str = phrase
     if (!str) return ''
     str = str.toLowerCase()
-        .replaceAll('#','')
+        .replace(/["'`?#]/g,'')
         .replaceAll('++','pp')
 
     str = str.replace(/[^\u0000-\u007F]+/g, '')
-    str = str.replace(/"[^a-z0-9\s-]/g, '-')
+    str = str.replace(/[^a-z0-9\s-]/g, '-')
     str = str.substring(0, Math.min(str.length, maxLength)).trim()
     str = str.replace(/\s+/g, '-')
     str = str.replace(/-+/g, '-')
