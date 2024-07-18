@@ -3,6 +3,7 @@ using ServiceStack.Data;
 using ServiceStack.OrmLite;
 using ServiceStack.Configuration;
 using Amazon.S3;
+using BlazorDiffusion.AiServer;
 using BlazorDiffusion.ServiceInterface;
 
 [assembly: HostingStartup(typeof(BlazorDiffusion.AppHost))]
@@ -93,17 +94,19 @@ public class AppHost() : AppHostBase("Blazor Diffusion"), IHostingStartup
                 maxFileBytes: AppData.MaxAvatarSize,
                 transformFile: ImageUtils.TransformAvatarAsync)
             ));
+        
+            var aiServerClient = new JsonApiClient("https://openai.servicestack.net/");
+            if(!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AI_SERVER_APIKEY")))
+                aiServerClient.BearerToken = Environment.GetEnvironmentVariable("AI_SERVER_APIKEY");
 
-        // Don't use public prefix if working locally
-        services.AddSingleton<IStableDiffusionClient>(c => new DreamStudioClient
-        {
-            Log = c.GetRequiredService<ILogger<DreamStudioClient>>(),
-            ApiKey = Environment.GetEnvironmentVariable("DREAMAI_APIKEY") ?? "<your_api_key>",
-            OutputPathPrefix = "artifacts",
-            PublicPrefix = appConfig.AssetsBasePath,
-            VirtualFiles = appFs
+            services.AddSingleton<IStableDiffusionClient>(new AiServerClient
+            {
+                Client = aiServerClient,
+                OutputPathPrefix = "artifacts",
+                VirtualFiles = appFs
+                //PublicPrefix = appConfig.AssetsBasePath,
+            });
         });
-    });
 
     public override void Configure()
     {
