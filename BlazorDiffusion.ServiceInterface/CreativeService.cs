@@ -31,10 +31,10 @@ public class CreativeService(
     const int DefaultHeight = 1024;
     const int DefaultWidth = 1024;
     const int DefaultImages = 4;
-    const int DefaultSteps = 30;
+    const int DefaultSteps = 4;
 
-    const int DefaultModeratorImages = 9;
-    const int DefaultModeratorSteps = 30;
+    const int DefaultModeratorImages = 5;
+    const int DefaultModeratorSteps = 4;
 
     const int DefaultMaxWidth = 1344;
     const int DefaultMaxHeight = 1344;
