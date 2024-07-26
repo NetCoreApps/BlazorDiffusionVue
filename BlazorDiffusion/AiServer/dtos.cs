@@ -1,5 +1,5 @@
 /* Options:
-Date: 2024-07-18 00:30:39
+Date: 2024-07-26 06:26:39
 Version: 8.31
 Tip: To override a DTO option, remove "//" prefix before updating
 BaseUrl: https://openai.servicestack.net
@@ -34,9 +34,69 @@ using ServiceStack.DataAnnotations;
 using System.IO;
 using AiServer.ServiceModel.Types;
 using AiServer.ServiceModel;
+using AiServer.ServiceInterface;
+
+namespace AiServer.ServiceInterface
+{
+    public partial class WaitForComfyGeneration
+        : IReturn<GetComfyGenerationResponse>
+    {
+        public virtual int? Id { get; set; }
+        public virtual string RefId { get; set; }
+    }
+
+}
 
 namespace AiServer.ServiceModel
 {
+    ///<summary>
+    ///Active Worker Models available in AI Server
+    ///</summary>
+    public partial class ActiveApiModels
+        : IReturn<StringsResponse>, IGet
+    {
+    }
+
+    public partial class AddComfyProviderModel
+        : IReturn<IdResponse>, IPost
+    {
+        public virtual int ComfyApiProviderId { get; set; }
+        public virtual int ComfyApiModelId { get; set; }
+        public virtual string ComfyApiModelName { get; set; }
+        public virtual string ComfyApiProviderName { get; set; }
+    }
+
+    public partial class AdminAddModel
+        : IReturn<EmptyResponse>, IPost
+    {
+        public AdminAddModel()
+        {
+            ApiTypes = new Dictionary<string, Property>{};
+            ApiProviders = new Dictionary<string, ApiProviderModel>{};
+        }
+
+        [Validate("NotNull")]
+        public virtual ApiModel Model { get; set; }
+
+        public virtual Dictionary<string, Property> ApiTypes { get; set; }
+        public virtual Dictionary<string, ApiProviderModel> ApiProviders { get; set; }
+    }
+
+    public partial class AdminData
+        : IReturn<AdminDataResponse>, IGet
+    {
+    }
+
+    public partial class AdminDataResponse
+    {
+        public AdminDataResponse()
+        {
+            PageStats = new List<PageStats>{};
+        }
+
+        public virtual List<PageStats> PageStats { get; set; }
+    }
+
     public partial class ApiModel
     {
         public virtual int Id { get; set; }
@@ -100,6 +160,13 @@ namespace AiServer.ServiceModel
     }
 
     public partial class ChangeApiProviderStatus
+        : IReturn<StringResponse>, IPost
+    {
+        public virtual string Provider { get; set; }
+        public virtual bool Online { get; set; }
+    }
+
+    public partial class ChangeComfyApiProviderStatus
         : IReturn<StringResponse>, IPost
     {
         public virtual string Provider { get; set; }
@@ -399,6 +466,7 @@ namespace AiServer.ServiceModel
         public virtual string Provider { get; set; }
         public virtual int DurationMs { get; set; }
         public virtual OpenAiChatResponse Response { get; set; }
+        public virtual string ReplyTo { get; set; }
     }
 
     public partial class ConfigureAndDownloadModel
@@ -536,6 +604,57 @@ namespace AiServer.ServiceModel
         public virtual string ApiModel { get; set; }
     }
 
+    ///<summary>
+    ///Create a Comfy API Model that can be used by Comfy API Providers
+    ///</summary>
+    public partial class CreateComfyApiModel
+        : IReturn<IdResponse>, ICreateDb<ComfyApiModel>
+    {
+        public virtual string Name { get; set; }
+        public virtual string Description { get; set; }
+        public virtual string Tags { get; set; }
+        public virtual string Filename { get; set; }
+        public virtual string DownloadUrl { get; set; }
+        public virtual string IconUrl { get; set; }
+        public virtual string Url { get; set; }
+        public virtual ComfyApiModelSettings ModelSettings { get; set; }
+    }
+
+    ///<summary>
+    ///Create a Comfy API Provider that can process Comfy Workflow Tasks
+    ///</summary>
+    public partial class CreateComfyApiProvider
+        : IReturn<IdResponse>, ICreateDb<ComfyApiProvider>
+    {
+        public virtual string Name { get; set; }
+        public virtual string ApiKey { get; set; }
+        public virtual string ApiKeyHeader { get; set; }
+        public virtual string ApiBaseUrl { get; set; }
+        public virtual string HeartbeatUrl { get; set; }
+        public virtual Dictionary<ComfyTaskType, string> TaskWorkflows { get; set; }
+        public virtual int Concurrency { get; set; }
+        public virtual int Priority { get; set; }
+        public virtual bool Enabled { get; set; }
+        public virtual List<ComfyApiProviderModel> Models { get; set; }
+    }
+
+    public partial class CreateComfyGeneration
+        : IReturn<CreateComfyGenerationResponse>, ICreateDb<ComfyGenerationTask>
+    {
+        public virtual string RefId { get; set; }
+        public virtual string Provider { get; set; }
+        public virtual string ReplyTo { get; set; }
+        public virtual string Tag { get; set; }
+        public virtual ComfyWorkflowRequest Request { get; set; }
+    }
+
+    public partial class CreateComfyGenerationResponse
+    {
+        public virtual long Id { get; set; }
+        public virtual string RefId { get; set; }
+        public virtual ResponseStatus ResponseStatus { get; set; }
+    }
+
     public partial class CreateOpenAiChat
         : IReturn<CreateOpenAiChatResponse>, ICreateDb<OpenAiChatTask>
     {
@@ -565,10 +684,46 @@ namespace AiServer.ServiceModel
         public virtual int Id { get; set; }
     }
 
+    public partial class DeleteComfyApiModel
+        : IReturn<IdResponse>, IDeleteDb<ComfyApiModel>
+    {
+        public virtual int? Id { get; set; }
+        public virtual string Name { get; set; }
+    }
+
+    public partial class DeleteComfyApiProvider
+        : IReturn<IdResponse>, IDeleteDb<ComfyApiProvider>
+    {
+        public virtual int? Id { get; set; }
+        public virtual string Name { get; set; }
+    }
+
+    [Route("/comfy/{Year}/{Month}/{Day}/{Filename}")]
+    public partial class DownloadComfyFile
+        : IReturn<Stream>
+    {
+        public virtual int? Year { get; set; }
+        public virtual int? Month { get; set; }
+        public virtual int? Day { get; set; }
+        public virtual string FileName { get; set; }
+    }
+
     public partial class DownloadConfgiuredArtStyleModel
         : IReturn<ComfyAgentDownloadStatus>
     {
         public virtual ArtStyle? ArtStyle { get; set; }
+    }
+
+    public partial class FetchComfyGenerationRequests
+    {
+        public FetchComfyGenerationRequests()
+        {
+            Models = new string[]{};
+        }
+
+        public virtual string[] Models { get; set; }
+        public virtual string Provider { get; set; }
+        public virtual int? Take { get; set; }
     }
 
     public partial class FetchOpenAiChatRequests
@@ -598,6 +753,11 @@ namespace AiServer.ServiceModel
 
         public virtual OpenAiChatRequest[] Results { get; set; }
         public virtual ResponseStatus ResponseStatus { get; set; }
+    }
+
+    public partial class FireComfyPeriodicTask
+    {
+        public virtual PeriodicFrequency Frequency { get; set; }
     }
 
     public partial class FirePeriodicTask
@@ -636,6 +796,32 @@ namespace AiServer.ServiceModel
 
         public virtual List<WorkerStats> Results { get; set; }
         public virtual ResponseStatus ResponseStatus { get; set; }
+    }
+
+    public partial class GetComfyGeneration
+        : IReturn<GetComfyGenerationResponse>
+    {
+        public virtual long? Id { get; set; }
+        public virtual string RefId { get; set; }
+    }
+
+    public partial class GetComfyGenerationResponse
+    {
+        public GetComfyGenerationResponse()
+        {
+            Outputs = new List<AiServerHostedComfyFile>{};
+        }
+
+        public virtual List<AiServerHostedComfyFile> Outputs { get; set; }
+        public virtual ComfyGenerationTask Result { get; set; }
+        public virtual ResponseStatus ResponseStatus { get; set; }
+    }
+
+    [Route("/icons/models/{Model}", "GET")]
+    public partial class GetModelImage
+        : IReturn<byte[]>, IGet
+    {
+        public virtual string Model { get; set; }
     }
 
     public partial class GetOpenAiChat
@@ -945,6 +1131,12 @@ namespace AiServer.ServiceModel
         public virtual int TotalTokens { get; set; }
     }
 
+    public partial class PageStats
+    {
+        public virtual string Label { get; set; }
+        public virtual int Total { get; set; }
+    }
+
     ///<summary>
     ///Different Models available in AI Server
     ///</summary>
@@ -981,6 +1173,18 @@ namespace AiServer.ServiceModel
     {
     }
 
+    public partial class QueryComfyApiModels
+        : QueryDb<ComfyApiModel>, IReturn<QueryResponse<ComfyApiModel>>
+    {
+        public virtual string Name { get; set; }
+    }
+
+    public partial class QueryComfyApiProviders
+        : QueryDb<ComfyApiProvider>, IReturn<QueryResponse<ComfyApiProvider>>
+    {
+        public virtual string Name { get; set; }
+    }
+
     public partial class QueryCompletedChatTasks
         : QueryDb<OpenAiChatCompleted>, IReturn<QueryResponse<OpenAiChatCompleted>>
     {
@@ -989,8 +1193,22 @@ namespace AiServer.ServiceModel
         public virtual string RefId { get; set; }
     }
 
+    public partial class QueryCompletedComfyTasks
+        : QueryDb<ComfyGenerationCompleted>, IReturn<QueryResponse<ComfyGenerationCompleted>>
+    {
+        public virtual string Db { get; set; }
+        public virtual int? Id { get; set; }
+        public virtual string RefId { get; set; }
+    }
+
     public partial class QueryFailedChatTasks
         : QueryDb<OpenAiChatFailed>, IReturn<QueryResponse<OpenAiChatFailed>>
+    {
+        public virtual string Db { get; set; }
+    }
+
+    public partial class QueryFailedComfyTasks
+        : QueryDb<ComfyGenerationFailed>, IReturn<QueryResponse<ComfyGenerationFailed>>
     {
         public virtual string Db { get; set; }
     }
@@ -1076,6 +1294,10 @@ namespace AiServer.ServiceModel
         public virtual ResponseStatus ResponseStatus { get; set; }
     }
 
+    public partial class ResetActiveComfyProviders
+    {
+    }
+
     public partial class ResetActiveProviders
         : IReturn<GetActiveProvidersResponse>, IGet
     {
@@ -1089,13 +1311,25 @@ namespace AiServer.ServiceModel
         JsonObject,
     }
 
+    public partial class RestartComfyWorkers
+    {
+    }
+
     public partial class RestartWorkers
         : IReturn<EmptyResponse>, IPost
     {
     }
 
+    public partial class StartComfyWorkers
+    {
+    }
+
     public partial class StartWorkers
         : IReturn<EmptyResponse>, IPost
+    {
+    }
+
+    public partial class StopComfyWorkers
     {
     }
 
@@ -1154,6 +1388,7 @@ namespace AiServer.ServiceModel
     public enum TaskType
     {
         OpenAiChat = 1,
+        Comfy = 2,
     }
 
     ///<summary>
@@ -1217,6 +1452,28 @@ namespace AiServer.ServiceModel
         public virtual string ApiModel { get; set; }
     }
 
+    public partial class UpdateComfyApiProvider
+        : IReturn<IdResponse>, IUpdateDb<ComfyApiProvider>
+    {
+        public virtual int Id { get; set; }
+        public virtual string Name { get; set; }
+        public virtual string ApiKey { get; set; }
+        public virtual string ApiKeyHeader { get; set; }
+        public virtual string ApiBaseUrl { get; set; }
+        public virtual string HeartbeatUrl { get; set; }
+        public virtual Dictionary<ComfyTaskType, string> TaskPaths { get; set; }
+        public virtual int? Concurrency { get; set; }
+        public virtual int? Priority { get; set; }
+        public virtual bool? Enabled { get; set; }
+    }
+
+    public partial class WaitForOpenAiChat
+        : IReturn<GetOpenAiChatResponse>, IGet
+    {
+        public virtual int? Id { get; set; }
+        public virtual string RefId { get; set; }
+    }
+
     public partial class WorkerStats
     {
         public virtual string Name { get; set; }
@@ -1233,6 +1490,13 @@ namespace AiServer.ServiceModel
 
 namespace AiServer.ServiceModel.Types
 {
+    public partial class AiServerHostedComfyFile
+    {
+        public virtual string Url { get; set; }
+        public virtual string FileName { get; set; }
+        public virtual string ContentType { get; set; }
+    }
+
     public enum ArtStyle
     {
         ThreeDModel,
@@ -1254,6 +1518,71 @@ namespace AiServer.ServiceModel.Types
         TileTexture,
     }
 
+    public partial class ComfyApiModel
+    {
+        public virtual int Id { get; set; }
+        public virtual string Name { get; set; }
+        public virtual string Description { get; set; }
+        public virtual string Tags { get; set; }
+        public virtual string Filename { get; set; }
+        public virtual string DownloadUrl { get; set; }
+        public virtual string IconUrl { get; set; }
+        public virtual string Url { get; set; }
+        public virtual DateTime CreatedDate { get; set; }
+        public virtual ComfyApiModelSettings ModelSettings { get; set; }
+    }
+
+    public partial class ComfyApiModelSettings
+    {
+        public virtual int Id { get; set; }
+        [References(typeof(AiServer.ServiceModel.Types.ComfyApiModel))]
+        public virtual int ComfyApiModelId { get; set; }
+
+        public virtual double? CfgScale { get; set; }
+        public virtual string Scheduler { get; set; }
+        public virtual ComfySampler? Sampler { get; set; }
+        public virtual int? Width { get; set; }
+        public virtual int? Height { get; set; }
+        public virtual int? Steps { get; set; }
+        public virtual string NegativePrompt { get; set; }
+    }
+
+    public partial class ComfyApiProvider
+    {
+        public ComfyApiProvider()
+        {
+            TaskWorkflows = new Dictionary<ComfyTaskType, string>{};
+            Models = new List<ComfyApiProviderModel>{};
+        }
+
+        public virtual int Id { get; set; }
+        public virtual string Name { get; set; }
+        public virtual string ApiKey { get; set; }
+        public virtual string ApiKeyHeader { get; set; }
+        public virtual string ApiBaseUrl { get; set; }
+        public virtual string HeartbeatUrl { get; set; }
+        public virtual Dictionary<ComfyTaskType, string> TaskWorkflows { get; set; }
+        public virtual int Concurrency { get; set; }
+        public virtual int Priority { get; set; }
+        public virtual bool Enabled { get; set; }
+        public virtual DateTime? OfflineDate { get; set; }
+        public virtual DateTime CreatedDate { get; set; }
+        public virtual List<ComfyApiProviderModel> Models { get; set; }
+    }
+
+    public partial class ComfyApiProviderModel
+    {
+        public virtual int Id { get; set; }
+        [References(typeof(AiServer.ServiceModel.Types.ComfyApiProvider))]
+        public virtual int ComfyApiProviderId { get; set; }
+
+        [References(typeof(AiServer.ServiceModel.Types.ComfyApiModel))]
+        public virtual int ComfyApiModelId { get; set; }
+
+        public virtual ComfyApiProvider ComfyApiProvider { get; set; }
+        public virtual ComfyApiModel ComfyApiModel { get; set; }
+    }
+
     public partial class ComfyFileInput
     {
         public virtual string Name { get; set; }
@@ -1266,6 +1595,27 @@ namespace AiServer.ServiceModel.Types
         public virtual string Filename { get; set; }
         public virtual string Type { get; set; }
         public virtual string Subfolder { get; set; }
+    }
+
+    public partial class ComfyGenerationCompleted
+        : ComfyGenerationTask
+    {
+    }
+
+    public partial class ComfyGenerationFailed
+        : ComfyGenerationTask
+    {
+        public virtual DateTime FailedDate { get; set; }
+    }
+
+    public partial class ComfyGenerationTask
+        : TaskBase
+    {
+        public virtual ComfyWorkflowRequest Request { get; set; }
+        public virtual ComfyWorkflowResponse Response { get; set; }
+        public virtual ComfyWorkflowStatus Status { get; set; }
+        public virtual ComfyTaskType TaskType { get; set; }
+        public virtual string WorkflowTemplate { get; set; }
     }
 
     public partial class ComfyHostedFileOutput
@@ -1339,7 +1689,6 @@ namespace AiServer.ServiceModel.Types
 
     public partial class ComfyWorkflowRequest
     {
-        public virtual long Id { get; set; }
         public virtual string Model { get; set; }
         public virtual int? Steps { get; set; }
         public virtual int BatchSize { get; set; }
@@ -1361,10 +1710,6 @@ namespace AiServer.ServiceModel.Types
         public virtual int? Width { get; set; }
         public virtual int? Height { get; set; }
         public virtual ComfyTaskType TaskType { get; set; }
-        public virtual string RefId { get; set; }
-        public virtual string Provider { get; set; }
-        public virtual string ReplyTo { get; set; }
-        public virtual string Tag { get; set; }
         public virtual string Clip { get; set; }
         public virtual double? SampleLength { get; set; }
         public virtual ComfyMaskSource MaskChannel { get; set; }
