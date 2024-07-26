@@ -107,6 +107,12 @@ public static class StableDiffusionClientExtensions
         };
     }
 
+    
+    /// <summary>
+    /// Testing, TODO: Replace with a proper mapping
+    /// </summary>
+    /// <param name="engineId"></param>
+    /// <returns></returns>
     private static string ConvertStabilityModelNameToComfy(string? engineId)
     {
         if(engineId == null)
