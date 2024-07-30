@@ -115,9 +115,7 @@ public static class StableDiffusionClientExtensions
             Width = request.Width,
             Seed = request.Seed ?? Random.Shared.Next(),
             BatchSize = request.Images,
-            PositivePrompt = request.Prompt,
-            // Leave fixed for now
-            Model = "sdxl"
+            PositivePrompt = request.Prompt
         };
     }
 }
