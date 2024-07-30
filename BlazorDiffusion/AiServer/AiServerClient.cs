@@ -12,6 +12,8 @@ public class AiServerClient: IStableDiffusionClient
     public JsonApiClient Client { get; set; }
     public IVirtualFiles VirtualFiles { get; set; }
     
+    public ILogger<AiServerClient>? Logger { get; set; }
+    
     public string? OutputPathPrefix { get; set; }
     
     private object seedLock = new();
@@ -19,9 +21,29 @@ public class AiServerClient: IStableDiffusionClient
     public async Task<ImageGenerationResponse> GenerateImageAsync(ImageGeneration request)
     {
         var req = request.ToComfy();
-        var res = await Client.PostAsync(req);
-        if (res == null)
+        var apiRes = await Client.ApiAsync(req);
+        if (apiRes == null)
+        {
+            Logger?.LogError("ApiAsync returned null.");
+            Logger?.LogInformation($"request: {req.ToJson()}");
             throw new Exception("Failed to generate image.");
+        }
+        
+        if(apiRes.Failed)
+        {
+            Logger?.LogError("API Call to AI Server failed.");
+            Logger?.LogInformation($"request: {req.ToJson()}");
+            Logger?.LogInformation($"response: {apiRes.ToJson()}");
+            throw new Exception("Failed to generate image.");
+        }
+
+        var res = apiRes.Response;
+        if (res == null)
+        {
+            Logger?.LogError("Failed to generate image.");
+            Logger?.LogInformation($"request: {req.ToJson()}");
+            throw new Exception("Failed to generate image.");
+        }
         var now = DateTime.UtcNow;
         var key = $"{now:yyyy/MM/dd}/{(long)now.TimeOfDay.TotalMilliseconds}";
         
@@ -94,6 +116,8 @@ public static class StableDiffusionClientExtensions
             Seed = request.Seed ?? Random.Shared.Next(),
             BatchSize = request.Images,
             PositivePrompt = request.Prompt,
+            // Leave fixed for now
+            Model = "sdxl"
         };
     }
 }

@@ -99,11 +99,12 @@ public class AppHost() : AppHostBase("Blazor Diffusion"), IHostingStartup
             if(!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AI_SERVER_APIKEY")))
                 aiServerClient.BearerToken = Environment.GetEnvironmentVariable("AI_SERVER_APIKEY");
 
-            services.AddSingleton<IStableDiffusionClient>(new AiServerClient
+            services.AddSingleton<IStableDiffusionClient>(x => new AiServerClient
             {
                 Client = aiServerClient,
                 OutputPathPrefix = "artifacts",
-                VirtualFiles = appFs
+                VirtualFiles = appFs,
+                Logger = x.GetService<ILoggerFactory>().CreateLogger<AiServerClient>(),
                 //PublicPrefix = appConfig.AssetsBasePath,
             });
         });
