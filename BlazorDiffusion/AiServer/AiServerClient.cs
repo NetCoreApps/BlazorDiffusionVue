@@ -1,3 +1,4 @@
+using AiServer.ServiceInterface;
 using AiServer.ServiceModel;
 using AiServer.ServiceModel.Types;
 using BlazorDiffusion.ServiceInterface;
@@ -48,10 +49,14 @@ public class AiServerClient: IStableDiffusionClient
         var key = $"{now:yyyy/MM/dd}/{(long)now.TimeOfDay.TotalMilliseconds}";
         
         var results = new List<ImageGenerationResult>();
-        var seed = (res?.Request?.Seed ?? 0).ConvertTo<uint>();
-        await Parallel.ForEachAsync(res.Images, async (item, token) =>
+        var completedRes = await Client.PostAsync(new WaitForComfyGeneration
         {
-            var artifactUrl = $"{Client.BaseUri.TrimEnd('/')}/uploads{item.Url}";
+            RefId = res.RefId
+        });
+        var seed = (completedRes?.Result?.Request?.Seed ?? 0).ConvertTo<uint>();
+        await Parallel.ForEachAsync(completedRes?.Outputs, async (item, token) =>
+        {
+            var artifactUrl = $"{item.Url}";
             var bytes = await artifactUrl.GetBytesFromUrlAsync(token: token);
             var imageDetails = ImageDetails.Calculate(bytes);
             var uuid = Guid.NewGuid().ToString("N");
@@ -61,7 +66,7 @@ public class AiServerClient: IStableDiffusionClient
                 {
                     Prompt = request.Prompt,
                     Seed = seed,
-                    AnswerId = res.PromptId,
+                    AnswerId = res.RefId,
                     FilePath = $"/artifacts/{key}/output_{uuid}.png",
                     FileName = $"output_{uuid}.png",
                     ContentLength = bytes.Length,
@@ -78,7 +83,7 @@ public class AiServerClient: IStableDiffusionClient
 
         return new ImageGenerationResponse
         {
-            RequestId = res.PromptId,
+            RequestId = res.RefId,
             EngineId = "comfy",
             Key = key,
             Results = results,
@@ -107,17 +112,38 @@ public class AiServerClient: IStableDiffusionClient
 
 public static class StableDiffusionClientExtensions
 {
-    public static ComfyTextToImage ToComfy(this ImageGeneration request)
+    public static CreateComfyGeneration ToComfy(this ImageGeneration request)
     {
-        return new ComfyTextToImage
+        return new CreateComfyGeneration
         {
-            Height = request.Height,
-            Width = request.Width,
-            Seed = request.Seed ?? Random.Shared.Next(),
-            BatchSize = request.Images,
-            PositivePrompt = request.Prompt,
-            // Leave fixed for now
-            Model = "sdxl"
+            Request = new ComfyWorkflowRequest
+            {
+                Height = request.Height,
+                Width = request.Width,
+                Seed = (int?)request.Seed ?? Random.Shared.Next(),
+                BatchSize = request.Images,
+                PositivePrompt = request.Prompt,
+                NegativePrompt = $"(nsfw),(nude),(explicit),(gore),(violence),(blood)",
+                Model = request.Engine,
+                TaskType = ComfyTaskType.TextToImage
+            }
         };
+    }
+
+    
+    /// <summary>
+    /// Testing, TODO: Replace with a proper mapping
+    /// </summary>
+    /// <param name="engineId"></param>
+    /// <returns></returns>
+    private static string ConvertStabilityModelNameToComfy(string? engineId)
+    {
+        if(engineId == null)
+            return "SDXL Lightning 4-Step";
+        
+        if(engineId == "stable-diffusion-xl-1024-v1-0")
+            return "SDXL Lightning 4-Step";
+        
+        return "SDXL Lightning 4-Step";
     }
 }

@@ -103,6 +103,8 @@ public class CreateCreative : ICreateDb<Creative>, IReturn<CreateCreativeRespons
     public int? Steps { get; set; }
     public long? Seed { get; set; }
     
+    public string? EngineId { get; set; }
+    
     public List<int> ArtistIds { get; set; }
     public List<int> ModifierIds { get; set; }
 }

@@ -26,7 +26,7 @@ public class CreativeService(
     UserManager<AppUser> userManager)
     : Service
 {
-    const string DefaultEngineId = "stable-diffusion-xl-1024-v1-0"; // "stable-diffusion-v1-5";
+    const string DefaultEngineId = "Realistic"; // "stable-diffusion-v1-5";
 
     const int DefaultHeight = 1024;
     const int DefaultWidth = 1024;
@@ -278,10 +278,16 @@ public class CreativeService(
         int noOfImages = request.Images ?? (adminOrMod ? DefaultModeratorImages : DefaultImages);
         int noOfSteps = request.Steps ?? (adminOrMod ? DefaultModeratorSteps : DefaultSteps);
 
+        string modelId;
+        if (string.IsNullOrEmpty(request.EngineId) || !appConfig.AvailableModelMappings.ContainsKey(request.EngineId))
+            modelId = appConfig.AvailableModelMappings[DefaultEngineId];
+        else
+            modelId = appConfig.AvailableModelMappings[request.EngineId];
+        
         var to = new ImageGeneration
         {
             Prompt = apiPrompt,
-            Engine = DefaultEngineId,
+            Engine = modelId,
             Height = height,
             Width = width,
             Images = noOfImages,
