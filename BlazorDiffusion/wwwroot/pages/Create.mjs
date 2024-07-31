@@ -161,9 +161,9 @@ export default {
           <h3 class="text-lg font-medium mb-4 text-center">Select Model</h3>
           <div class="flex justify-center space-x-4">
             <div v-for="model in models" :key="model.name" 
-                 @click="selectedModel = model"
+                 @click="selectModel(model)"
                  :class="['cursor-pointer p-2 rounded-lg transition-colors w-[110px]', 
-                          selectedModel === model ? 'bg-indigo-100 dark:bg-indigo-800' : 'hover:bg-gray-100 dark:hover:bg-gray-800']">
+                          selectedModel.name === model.name ? 'bg-indigo-100 dark:bg-indigo-800' : 'hover:bg-gray-100 dark:hover:bg-gray-800']">
               <div class="w-[100px] h-[100px] mb-2 mx-auto overflow-hidden">
                 <img :src="model.imgUrl" :alt="model.name" class="w-full h-full object-cover">
               </div>
@@ -439,6 +439,10 @@ export default {
             forceUpdate()
         }
 
+        function selectModel(model) {
+            selectedModel.value = model;
+        }
+
         function noop(){}
         function navTo(creativeId, artifactId) {
             console.log('navTo', creativeId, artifactId)
@@ -547,6 +551,7 @@ export default {
                     : 1024
             request.value.artistIds = artists.value.map(x => x.id)
             request.value.modifierIds = modifiers.value.map(x => x.id)
+            request.value.engineId = selectedModel.value.name
             loading.value = true
             api.value = await client.api(request.value)
             if (api.value.succeeded) {
@@ -679,7 +684,7 @@ export default {
             selectedGroup, selectGroup, selectedCategory, selectCategory, removeArtist, addModifier, removeModifier, discard,
             likeArtifact, unlikeArtifact, primaryArtifactChanged,
             artifactMenu, open, openDialog, closeDialog, notifyChanged, update,
-            models, selectedModel
+            models, selectedModel,selectModel
         }
     }
 }

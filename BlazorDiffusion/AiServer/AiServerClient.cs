@@ -57,9 +57,11 @@ public class AiServerClient: IStableDiffusionClient
         await Parallel.ForEachAsync(completedRes?.Outputs, async (item, token) =>
         {
             var artifactUrl = $"{item.Url}";
+            Logger?.LogInformation($"Downloading artifact from {artifactUrl}...");
             var bytes = await artifactUrl.GetBytesFromUrlAsync(token: token);
             var imageDetails = ImageDetails.Calculate(bytes);
             var uuid = Guid.NewGuid().ToString("N");
+            var filePath = $"/artifacts/{key}/output_{uuid}.png";
             lock (seedLock)
             {
                 results.Add(new()
@@ -67,7 +69,7 @@ public class AiServerClient: IStableDiffusionClient
                     Prompt = request.Prompt,
                     Seed = seed,
                     AnswerId = res.RefId,
-                    FilePath = $"/artifacts/{key}/output_{uuid}.png",
+                    FilePath = filePath,
                     FileName = $"output_{uuid}.png",
                     ContentLength = bytes.Length,
                     Width = request.Width,
@@ -77,7 +79,7 @@ public class AiServerClient: IStableDiffusionClient
                 // Assume incremental seeds for multiple images as comfyui does not provide the specific image seed back
                 seed++;
             }
-            var output = Path.Join(OutputPathPrefix, key, $"output_{uuid}.png");
+            var output = filePath;
             await VirtualFiles.WriteFileAsync(output, bytes, token);
         });
 
