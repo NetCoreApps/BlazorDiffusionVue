@@ -129,21 +129,4 @@ public static class StableDiffusionClientExtensions
             }
         };
     }
-
-    
-    /// <summary>
-    /// Testing, TODO: Replace with a proper mapping
-    /// </summary>
-    /// <param name="engineId"></param>
-    /// <returns></returns>
-    private static string ConvertStabilityModelNameToComfy(string? engineId)
-    {
-        if(engineId == null)
-            return "SDXL Lightning 4-Step";
-        
-        if(engineId == "stable-diffusion-xl-1024-v1-0")
-            return "SDXL Lightning 4-Step";
-        
-        return "SDXL Lightning 4-Step";
-    }
 }
