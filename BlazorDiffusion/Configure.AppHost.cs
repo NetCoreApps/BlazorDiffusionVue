@@ -105,7 +105,7 @@ public class AppHost() : AppHostBase("Blazor Diffusion"), IHostingStartup
                 HttpUtils.CreateClient = () => new HttpClient(clientHandler);
             }
         
-            var aiServerClient = new JsonApiClient("https://localhost:5005/");
+            var aiServerClient = new JsonApiClient("https://openai.servicestack.net/");
             // Ignore local SSL Errors
             aiServerClient = IgnoreSslValidation(aiServerClient);
             if(!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AI_SERVER_APIKEY")))
