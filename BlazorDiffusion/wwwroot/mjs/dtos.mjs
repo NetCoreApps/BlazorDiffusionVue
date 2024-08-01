@@ -1,6 +1,6 @@
 /* Options:
-Date: 2024-01-07 23:52:51
-Version: 8.01
+Date: 2024-07-31 18:47:01
+Version: 8.30
 Tip: To override a DTO option, remove "//" prefix before updating
 BaseUrl: https://localhost:5001
 
@@ -927,7 +927,7 @@ export class GetAlbumUserDataResponse {
     likedArtifacts;
 }
 export class AuthenticateResponse {
-    /** @param {{userId?:string,sessionId?:string,userName?:string,displayName?:string,referrerUrl?:string,bearerToken?:string,refreshToken?:string,profileUrl?:string,roles?:string[],permissions?:string[],responseStatus?:ResponseStatus,meta?:{ [index: string]: string; }}} [init] */
+    /** @param {{userId?:string,sessionId?:string,userName?:string,displayName?:string,referrerUrl?:string,bearerToken?:string,refreshToken?:string,refreshTokenExpiry?:string,profileUrl?:string,roles?:string[],permissions?:string[],responseStatus?:ResponseStatus,meta?:{ [index: string]: string; }}} [init] */
     constructor(init) { Object.assign(this, init) }
     /** @type {string} */
     userId;
@@ -943,6 +943,8 @@ export class AuthenticateResponse {
     bearerToken;
     /** @type {string} */
     refreshToken;
+    /** @type {?string} */
+    refreshTokenExpiry;
     /** @type {string} */
     profileUrl;
     /** @type {string[]} */
@@ -1107,7 +1109,7 @@ export class CheckQuota {
     createResponse() { return new CheckQuotaResponse() }
 }
 export class CreateCreative {
-    /** @param {{userPrompt?:string,images?:number,width?:number,height?:number,steps?:number,seed?:number,artistIds?:number[],modifierIds?:number[]}} [init] */
+    /** @param {{userPrompt?:string,images?:number,width?:number,height?:number,steps?:number,seed?:number,engineId?:string,artistIds?:number[],modifierIds?:number[]}} [init] */
     constructor(init) { Object.assign(this, init) }
     /** @type {string} */
     userPrompt;
@@ -1121,6 +1123,8 @@ export class CreateCreative {
     steps;
     /** @type {?number} */
     seed;
+    /** @type {?string} */
+    engineId;
     /** @type {number[]} */
     artistIds;
     /** @type {number[]} */
@@ -1428,6 +1432,33 @@ export class DeleteArtifactCommentVote {
     getTypeName() { return 'DeleteArtifactCommentVote' }
     getMethod() { return 'DELETE' }
     createResponse() { }
+}
+export class Authenticate {
+    /** @param {{provider?:string,userName?:string,password?:string,rememberMe?:boolean,accessToken?:string,accessTokenSecret?:string,returnUrl?:string,errorView?:string,meta?:{ [index: string]: string; }}} [init] */
+    constructor(init) { Object.assign(this, init) }
+    /**
+     * @type {string}
+     * @description AuthProvider, e.g. credentials */
+    provider;
+    /** @type {string} */
+    userName;
+    /** @type {string} */
+    password;
+    /** @type {?boolean} */
+    rememberMe;
+    /** @type {string} */
+    accessToken;
+    /** @type {string} */
+    accessTokenSecret;
+    /** @type {string} */
+    returnUrl;
+    /** @type {string} */
+    errorView;
+    /** @type {{ [index: string]: string; }} */
+    meta;
+    getTypeName() { return 'Authenticate' }
+    getMethod() { return 'POST' }
+    createResponse() { return new AuthenticateResponse() }
 }
 export class AdminQueryArtifactComments extends QueryDb_1 {
     /** @param {{skip?:number,take?:number,orderBy?:string,orderByDesc?:string,include?:string,fields?:string,meta?:{ [index: string]: string; }}} [init] */
@@ -1878,32 +1909,5 @@ export class DeleteModifier {
     getTypeName() { return 'DeleteModifier' }
     getMethod() { return 'DELETE' }
     createResponse() { }
-}
-export class Authenticate {
-    /** @param {{provider?:string,userName?:string,password?:string,rememberMe?:boolean,accessToken?:string,accessTokenSecret?:string,returnUrl?:string,errorView?:string,meta?:{ [index: string]: string; }}} [init] */
-    constructor(init) { Object.assign(this, init) }
-    /**
-     * @type {string}
-     * @description AuthProvider, e.g. credentials */
-    provider;
-    /** @type {string} */
-    userName;
-    /** @type {string} */
-    password;
-    /** @type {?boolean} */
-    rememberMe;
-    /** @type {string} */
-    accessToken;
-    /** @type {string} */
-    accessTokenSecret;
-    /** @type {string} */
-    returnUrl;
-    /** @type {string} */
-    errorView;
-    /** @type {{ [index: string]: string; }} */
-    meta;
-    getTypeName() { return 'Authenticate' }
-    getMethod() { return 'POST' }
-    createResponse() { return new AuthenticateResponse() }
 }
 

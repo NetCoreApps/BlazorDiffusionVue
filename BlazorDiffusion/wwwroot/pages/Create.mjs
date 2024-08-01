@@ -156,6 +156,21 @@ export default {
                 </div>
             </div>
         </div>
+        
+        <div class="mt-8 mb-4">
+          <h3 class="text-lg font-medium mb-4 text-center">Select Model</h3>
+          <div class="flex justify-center space-x-4">
+            <div v-for="model in models" :key="model.name" 
+                 @click="selectModel(model)"
+                 :class="['cursor-pointer p-2 rounded-lg transition-colors w-[110px]', 
+                          selectedModel.name === model.name ? 'bg-indigo-100 dark:bg-indigo-800' : 'hover:bg-gray-100 dark:hover:bg-gray-800']">
+              <div class="w-[100px] h-[100px] mb-2 mx-auto overflow-hidden">
+                <img :src="model.imgUrl" :alt="model.name" class="w-full h-full object-cover">
+              </div>
+              <p class="text-sm text-center">{{ model.name }}</p>
+            </div>
+          </div>
+        </div>
 
         <div v-if="dataCache">
 
@@ -349,7 +364,15 @@ export default {
         const { user } = useAuth()
         const { pushState } = useUtils()
         const instance = getCurrentInstance()
-        const qs = queryString(location.search) 
+        const qs = queryString(location.search)
+        const models = ref([
+            { name: "Realistic", imgUrl: "https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/0d074c63-1ab6-4e58-9141-7681ec5be94c/width=450/17898822.jpeg" },
+            { name: "Caricatures", imgUrl: "https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/c64b73c8-ab2c-4f25-8df4-7e1ab02951b3/width=450/18231974.jpeg" },
+            { name: "Anime", imgUrl: "https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/150fc6fc-88cb-47ec-872f-f04c7ded01ac/width=450/4456416.jpeg" },
+            { name: "SciFi", imgUrl: "https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/cf9dbfdf-0c26-4ec9-94fe-4a4babd0446b/width=450/6014220.jpeg" }
+        ]);
+
+        const selectedModel = ref(models.value[0]);
         
         const api = ref(new ApiResult())
         /** @type {import('vue').Ref<CreateCreative>} */
@@ -414,6 +437,10 @@ export default {
             forceUpdate()
             await fetchHistory({ skip: 0}, x => null) //update swr cache
             forceUpdate()
+        }
+
+        function selectModel(model) {
+            selectedModel.value = model;
         }
 
         function noop(){}
@@ -524,6 +551,7 @@ export default {
                     : 1024
             request.value.artistIds = artists.value.map(x => x.id)
             request.value.modifierIds = modifiers.value.map(x => x.id)
+            request.value.engineId = selectedModel.value.name
             loading.value = true
             api.value = await client.api(request.value)
             if (api.value.succeeded) {
@@ -656,6 +684,7 @@ export default {
             selectedGroup, selectGroup, selectedCategory, selectCategory, removeArtist, addModifier, removeModifier, discard,
             likeArtifact, unlikeArtifact, primaryArtifactChanged,
             artifactMenu, open, openDialog, closeDialog, notifyChanged, update,
+            models, selectedModel,selectModel
         }
     }
 }

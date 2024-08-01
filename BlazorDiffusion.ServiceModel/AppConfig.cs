@@ -22,6 +22,14 @@ public class AppConfig
     public string R2Account { get; set; }
     public string AssetsBasePath { get; set; }
     public string FallbackAssetsBasePath { get; set; }
+
+    public Dictionary<string, string> AvailableModelMappings { get; set; } = new()
+    {
+        { "Realistic", "jibMixRealisticXL_v130RisenFromAshes.safetensors" },
+        { "Caricatures", "crazycaricaturesxl_v10.safetensors" },
+        { "Anime", "animexlXuebimix_v60LCM.safetensors" },
+        { "SciFi", "psyfiXLLCM_v10.safetensors" },
+    };
     public HashSet<string> BanWords { get; set; } = new(StringComparer.OrdinalIgnoreCase)
     {
         "panties",

@@ -96,6 +96,19 @@ public class AppHost() : AppHostBase("Blazor Diffusion"), IHostingStartup
             ));
         
             var aiServerClient = new JsonApiClient("https://openai.servicestack.net/");
+            // If development, ignore SSL
+            if (context.HostingEnvironment.IsDevelopment())
+            {
+                aiServerClient = new JsonApiClient("https://localhost:5005/");
+                HttpClientHandler? clientHandler = new HttpClientHandler
+                {
+                    ServerCertificateCustomValidationCallback = (message, certificate2, arg3, arg4) => true
+                };
+                HttpUtils.CreateClient = () => new HttpClient(clientHandler);
+                // Ignore local SSL Errors
+                aiServerClient = IgnoreSslValidation(aiServerClient);
+            }
+            
             if(!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AI_SERVER_APIKEY")))
                 aiServerClient.BearerToken = Environment.GetEnvironmentVariable("AI_SERVER_APIKEY");
 
@@ -109,6 +122,18 @@ public class AppHost() : AppHostBase("Blazor Diffusion"), IHostingStartup
             });
         });
 
+    private JsonApiClient IgnoreSslValidation(JsonApiClient client)
+    {
+        // Ignore local SSL Errors
+        var handler = HttpUtils.HttpClientHandlerFactory();
+        handler.ServerCertificateCustomValidationCallback = (httpRequestMessage, cert, cetChain, policyErrors) => true;
+        var httpClient = new HttpClient(handler, disposeHandler:client.HttpMessageHandler == null) {
+            BaseAddress = new Uri(client.BaseUri),
+        };
+        client = new JsonApiClient(httpClient);
+        return client;
+    }
+    
     public override void Configure()
     {
         SetConfig(new HostConfig
