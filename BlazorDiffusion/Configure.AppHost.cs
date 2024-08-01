@@ -95,19 +95,20 @@ public class AppHost() : AppHostBase("Blazor Diffusion"), IHostingStartup
                 transformFile: ImageUtils.TransformAvatarAsync)
             ));
         
+            var aiServerClient = new JsonApiClient("https://openai.servicestack.net/");
             // If development, ignore SSL
             if (context.HostingEnvironment.IsDevelopment())
             {
+                aiServerClient = new JsonApiClient("https://localhost:5005/");
                 HttpClientHandler? clientHandler = new HttpClientHandler
                 {
                     ServerCertificateCustomValidationCallback = (message, certificate2, arg3, arg4) => true
                 };
                 HttpUtils.CreateClient = () => new HttpClient(clientHandler);
+                // Ignore local SSL Errors
+                aiServerClient = IgnoreSslValidation(aiServerClient);
             }
-        
-            var aiServerClient = new JsonApiClient("https://openai.servicestack.net/");
-            // Ignore local SSL Errors
-            aiServerClient = IgnoreSslValidation(aiServerClient);
+            
             if(!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AI_SERVER_APIKEY")))
                 aiServerClient.BearerToken = Environment.GetEnvironmentVariable("AI_SERVER_APIKEY");
 
