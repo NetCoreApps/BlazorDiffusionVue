@@ -116,6 +116,7 @@ jobs:
           echo "R2_ACCESS_KEY_ID=${{ secrets.R2_ACCESS_KEY_ID }}" >> .deploy/.env
           echo "R2_SECRET_ACCESS_KEY=${{ secrets.R2_SECRET_ACCESS_KEY }}" >> .deploy/.env
           echo "DREAMAI_APIKEY=${{ secrets.DREAMAI_APIKEY }}" >> .deploy/.env
+          echo "AI_SERVER_APIKEY=${{ secrets.AI_SERVER_APIKEY }}" >> .deploy/.env
       
       # Copy only the docker-compose.yml to remote server home folder
       - name: copy files to target server via scp
