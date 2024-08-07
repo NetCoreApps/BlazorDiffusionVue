@@ -76,9 +76,21 @@ public class CreativeService(
         var modifiers = await Db.SelectAsync<Modifier>(x => Sql.In(x.Id, createCreative.ModifierIds));
         var artists = createCreative.ArtistIds.Count == 0 ? new List<Artist>() :
             await Db.SelectAsync<Artist>(x => Sql.In(x.Id, createCreative.ArtistIds));
-        
 
-        var creativeId = await PersistCreative(createCreative, imageGenerationResponse, modifiers, artists);
+        var imageGenerationResponse = await stableDiffusion.GetQueueResult(request.RefId);
+        if (imageGenerationResponse == null)
+            throw HttpError.NotFound("ImageGenerationResponse not found");
+        
+        var creativeQueue = await Db.SingleAsync<CreativeQueue>(x => x.RefId == request.RefId);
+        if (creativeQueue == null)
+            throw HttpError.NotFound("CreativeQueue not found");
+        
+        var creativeId = await PersistCreative(createCreative, 
+            imageGenerationResponse, 
+            modifiers, 
+            artists,
+            creativeQueue.UserId,
+            creativeQueue.RefId);
     
         var creative = await Db.LoadSingleByIdAsync<Creative>(creativeId);
     
@@ -87,52 +99,6 @@ public class CreativeService(
         return new CreateCreativeResponse { Result = creative };
     }
     
-    private object seedLock = new();
-
-    private async Task<ImageGenerationResponse> GetImageGenerationResponse(string refId)
-    {
-        
-        var now = DateTime.UtcNow;
-        var key = $"{now:yyyy/MM/dd}/{(long)now.TimeOfDay.TotalMilliseconds}";
-
-        var seed = (completedRes?.Request?.Request?.Seed ?? 0).ConvertTo<uint>();
-        await Parallel.ForEachAsync(completedRes?.Outputs, async (item, token) =>
-        {
-            var artifactUrl = $"{item.Url}";
-            var bytes = await artifactUrl.GetBytesFromUrlAsync(token: token);
-            var imageDetails = ImageDetails.Calculate(bytes);
-            var uuid = Guid.NewGuid().ToString("N");
-            var filePath = $"/artifacts/{key}/output_{uuid}.png";
-            lock (seedLock)
-            {
-                results.Add(new()
-                {
-                    Prompt = request.Prompt,
-                    Seed = seed,
-                    AnswerId = res.RefId,
-                    FilePath = filePath,
-                    FileName = $"output_{uuid}.png",
-                    ContentLength = bytes.Length,
-                    Width = request.Width,
-                    Height = request.Height,
-                    ImageDetails = imageDetails,
-                });
-                // Assume incremental seeds for multiple images as comfyui does not provide the specific image seed back
-                seed++;
-            }
-            var output = filePath;
-            await VirtualFiles.WriteFileAsync(output, bytes, token);
-        });
-
-        return new ImageGenerationResponse
-        {
-            RequestId = res.RefId,
-            EngineId = "comfy",
-            Key = key,
-            Results = results,
-        };
-    }
-
     public async Task<object> Post(QueueCreative request)
     {
         var session = await SessionAsAsync<CustomUserSession>();
@@ -174,7 +140,17 @@ public class CreativeService(
             return quotaError.ToHttpError(quotaError.ToResponseStatus());
         }
 
-        var queueImageGenerationResponse = await QueueImageGeneration(imageGenerationRequest);
+        var queueReq = new QueueImageGeneration
+        {
+            ImageGeneration = imageGenerationRequest,
+            Context = request
+        };
+        var queueImageGenerationResponse = await stableDiffusion.QueueGenerateImageAsync(queueReq);
+        Db.Insert(new CreativeQueue
+        {
+            RefId = queueImageGenerationResponse.RefId,
+            UserId = userId
+        });
         return queueImageGenerationResponse;
     }
 
@@ -219,13 +195,22 @@ public class CreativeService(
             return quotaError.ToHttpError(quotaError.ToResponseStatus());
         }
 
-        var imageGenerationResponse = await QueueImageGeneration(imageGenerationRequest);
-        
+        var queueReq = new QueueImageGeneration
+        {
+            ImageGeneration = imageGenerationRequest,
+            Context = request
+        };
+        var imageGenerationResponse = await stableDiffusion.QueueGenerateImageAsync(queueReq);
+        Db.Insert(new CreativeQueue
+        {
+            RefId = imageGenerationResponse.RefId,
+            UserId = userId
+        });
         // Poll for completion
         var refId = imageGenerationResponse.RefId;
 
         Creative? creative = null;
-        var timeout = DateTime.UtcNow.AddSeconds(30);
+        var timeout = DateTime.UtcNow.AddSeconds(120);
         while (DateTime.UtcNow < timeout)
         {
             creative = await Db.SingleAsync<Creative>(x => x.RefId == refId);
@@ -237,7 +222,7 @@ public class CreativeService(
         }
         
         if(creative == null)
-            throw new HttpError(HttpStatusCode.RequestTimeout,"Request timed out waiting for Creative");
+            throw new HttpError(HttpStatusCode.BadRequest,"Request timed out waiting for Creative");
         
         PublishMessage(new BackgroundTasks { NewCreative = creative });
 
@@ -323,15 +308,21 @@ public class CreativeService(
 
         return artifact;
     }
-    
-    private async Task<int> PersistCreative(CreateCreative request, 
+
+    private async Task<int> PersistCreative(CreateCreative request,
         ImageGenerationResponse imageGenerationResponse,
-        List<Modifier> modifiers, 
-        List<Artist> artists)
+        List<Modifier> modifiers,
+        List<Artist> artists,
+        int callbackUserId = 0,
+        string? refId = null)
     {
         request.UserPrompt = request.UserPrompt.Trim();
         var session = await SessionAsAsync<CustomUserSession>();
         var userId = session.GetUserId();
+        if(userId == 0)
+            userId = callbackUserId;
+        if(userId == 0)
+            throw HttpError.Unauthorized("Not Authorized");
         var now = DateTime.UtcNow;
         var creative = request.ConvertTo<Creative>()
             .WithAudit(session.UserAuthId, now);
@@ -344,7 +335,7 @@ public class CreativeService(
         creative.ArtistNames = artists.Select(x => x.GetArtistName()).ToList();
         creative.ModifierNames = modifiers.Select(x => x.Name).ToList();
         creative.Prompt = request.UserPrompt.ConstructPrompt(modifiers, artists);
-        creative.RefId = Guid.NewGuid().ToString("D");
+        creative.RefId = refId ?? Guid.NewGuid().ToString("D");
 
         using var db = HostContext.AppHost.GetDbConnection();
         using var transaction = db.OpenTransaction();
@@ -440,12 +431,6 @@ public class CreativeService(
         }
     }
     
-    private async Task<QueueImageGenerationResponse> QueueImageGeneration(ImageGeneration request)
-    {
-        var to = new QueueImageGeneration { ImageGeneration = request };
-        return await stableDiffusion.QueueGenerateImageAsync(to);
-    }
-
     public async Task<object> Get(ResizedArtifact request)
     {
         var artifact = Db.SingleById<Artifact>(request.ArtifactId);
@@ -601,6 +586,7 @@ public class QueueCreativeResponse
     public string? RefId { get; set; }
 }
 
+[Route("/creatives/callback", "POST")]
 public class CreateCreativeCallback : IReturn<CreateCreativeCallbackResponse>
 {
     /// <summary>
@@ -649,6 +635,7 @@ public interface IStableDiffusionClient
 {
     Task<ImageGenerationResponse> GenerateImageAsync(ImageGeneration request);
     Task<QueueImageGenerationResponse> QueueGenerateImageAsync(QueueImageGeneration request);
+    Task<ImageGenerationResponse> GetQueueResult(string refId);
     IVirtualFile? GetMetadataFile(Creative creative);
     Task SaveMetadataAsync(Creative entry);
     Task DeleteFolderAsync(Creative entry);
@@ -705,6 +692,7 @@ public class ImageGenerationResult
 public class QueueImageGeneration : IReturn<QueueImageGenerationResponse>
 {
     public ImageGeneration ImageGeneration { get; set; }
+    public object Context { get; set; }
 }
 
 public class QueueImageGenerationResponse

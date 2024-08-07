@@ -59,6 +59,17 @@ public class Creative : AuditBase
 }
 
 [Tag(Tag.Creatives)]
+public class CreativeQueue
+{
+    [AutoIncrement]
+    public int Id { get; set; }
+        
+    public string RefId { get; set; }
+        
+    public int UserId { get; set; }
+}
+
+[Tag(Tag.Creatives)]
 public class QueryCreatives : QueryDb<Creative>
 {
     public int? Id { get; set; }
