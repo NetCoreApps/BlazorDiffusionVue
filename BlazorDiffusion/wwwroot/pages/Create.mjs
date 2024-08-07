@@ -367,9 +367,8 @@ export default {
         const qs = queryString(location.search)
         const models = ref([
             { name: "Realistic", imgUrl: "https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/0d074c63-1ab6-4e58-9141-7681ec5be94c/width=450/17898822.jpeg" },
-            { name: "Caricatures", imgUrl: "https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/c64b73c8-ab2c-4f25-8df4-7e1ab02951b3/width=450/18231974.jpeg" },
             { name: "Anime", imgUrl: "https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/150fc6fc-88cb-47ec-872f-f04c7ded01ac/width=450/4456416.jpeg" },
-            { name: "SciFi", imgUrl: "https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/cf9dbfdf-0c26-4ec9-94fe-4a4babd0446b/width=450/6014220.jpeg" }
+            { name: "SciFi", imgUrl: "https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/80120322-6242-424e-bef7-37821c0b4ff9/width=450/7826960.jpeg" }
         ]);
 
         const selectedModel = ref(models.value[0]);

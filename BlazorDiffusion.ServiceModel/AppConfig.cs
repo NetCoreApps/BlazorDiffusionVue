@@ -26,9 +26,9 @@ public class AppConfig
     public Dictionary<string, string> AvailableModelMappings { get; set; } = new()
     {
         { "Realistic", "jibMixRealisticXL_v130RisenFromAshes.safetensors" },
-        { "Caricatures", "crazycaricaturesxl_v10.safetensors" },
         { "Anime", "animexlXuebimix_v60LCM.safetensors" },
-        { "SciFi", "psyfiXLLCM_v10.safetensors" },
+        { "SciFi", "LahHongchenSDXLSD15_xlLightning.safetensors" },
+        { "Replicate", "5f24084160c9089501c1b3545d9be3c27883ae2239b6f412990e82d4a6210f8f"}
     };
     public HashSet<string> BanWords { get; set; } = new(StringComparer.OrdinalIgnoreCase)
     {
