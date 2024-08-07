@@ -53,7 +53,7 @@ public class AiServerClient: IStableDiffusionClient
         {
             RefId = res.RefId
         });
-        var seed = (completedRes?.Result?.Request?.Seed ?? 0).ConvertTo<uint>();
+        var seed = (completedRes?.Request?.Request?.Seed ?? 0).ConvertTo<uint>();
         await Parallel.ForEachAsync(completedRes?.Outputs, async (item, token) =>
         {
             var artifactUrl = $"{item.Url}";

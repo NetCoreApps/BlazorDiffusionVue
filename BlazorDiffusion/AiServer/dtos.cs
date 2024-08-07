@@ -1,8 +1,8 @@
 /* Options:
-Date: 2024-07-26 06:26:39
+Date: 2024-08-06 16:51:18
 Version: 8.31
 Tip: To override a DTO option, remove "//" prefix before updating
-BaseUrl: https://openai.servicestack.net
+BaseUrl: https://localhost:5005
 
 //GlobalNamespace: 
 //MakePartial: True
@@ -34,6 +34,7 @@ using ServiceStack.DataAnnotations;
 using System.IO;
 using AiServer.ServiceModel.Types;
 using AiServer.ServiceModel;
+using ServiceStack.Jobs;
 using AiServer.ServiceInterface;
 
 namespace AiServer.ServiceInterface
@@ -180,50 +181,6 @@ namespace AiServer.ServiceModel
         public virtual string Model { get; set; }
         public virtual OpenAiChat Request { get; set; }
         public virtual string Prompt { get; set; }
-    }
-
-    public partial class ChatFailedTasks
-        : IReturn<EmptyResponse>, IPost
-    {
-        public ChatFailedTasks()
-        {
-            RequeueFailedTaskIds = new List<long>{};
-        }
-
-        public virtual bool? ResetErrorState { get; set; }
-        public virtual List<long> RequeueFailedTaskIds { get; set; }
-    }
-
-    public partial class ChatNotifyCompletedTasks
-        : IReturn<ChatNotifyCompletedTasksResponse>, IPost
-    {
-        public ChatNotifyCompletedTasks()
-        {
-            Ids = new List<int>{};
-        }
-
-        [Validate("NotEmpty")]
-        public virtual List<int> Ids { get; set; }
-    }
-
-    public partial class ChatNotifyCompletedTasksResponse
-    {
-        public ChatNotifyCompletedTasksResponse()
-        {
-            Errors = new Dictionary<long, string>{};
-            Results = new List<long>{};
-        }
-
-        public virtual Dictionary<long, string> Errors { get; set; }
-        public virtual List<long> Results { get; set; }
-        public virtual ResponseStatus ResponseStatus { get; set; }
-    }
-
-    public partial class ChatOperations
-        : IReturn<EmptyResponse>, IPost
-    {
-        public virtual bool? ResetTaskQueue { get; set; }
-        public virtual bool? RequeueIncompleteTasks { get; set; }
     }
 
     public partial class Choice
@@ -459,16 +416,6 @@ namespace AiServer.ServiceModel
         public virtual List<ComfyHostedFileOutput> Speech { get; set; }
     }
 
-    public partial class CompleteOpenAiChat
-        : IReturn<EmptyResponse>, IPost
-    {
-        public virtual long Id { get; set; }
-        public virtual string Provider { get; set; }
-        public virtual int DurationMs { get; set; }
-        public virtual OpenAiChatResponse Response { get; set; }
-        public virtual string ReplyTo { get; set; }
-    }
-
     public partial class ConfigureAndDownloadModel
         : IReturn<ComfyAgentDownloadStatus>
     {
@@ -620,6 +567,19 @@ namespace AiServer.ServiceModel
         public virtual ComfyApiModelSettings ModelSettings { get; set; }
     }
 
+    public partial class CreateComfyApiModelSettings
+        : IReturn<IdResponse>, ICreateDb<ComfyApiModelSettings>
+    {
+        public virtual int ComfyApiModelId { get; set; }
+        public virtual double? CfgScale { get; set; }
+        public virtual string Scheduler { get; set; }
+        public virtual ComfySampler? Sampler { get; set; }
+        public virtual int? Width { get; set; }
+        public virtual int? Height { get; set; }
+        public virtual int? Steps { get; set; }
+        public virtual string NegativePrompt { get; set; }
+    }
+
     ///<summary>
     ///Create a Comfy API Provider that can process Comfy Workflow Tasks
     ///</summary>
@@ -636,6 +596,16 @@ namespace AiServer.ServiceModel
         public virtual int Priority { get; set; }
         public virtual bool Enabled { get; set; }
         public virtual List<ComfyApiProviderModel> Models { get; set; }
+    }
+
+    ///<summary>
+    ///Update a Comfy API Model that can be used by Comfy API Providers
+    ///</summary>
+    public partial class CreateComfyApiProviderModel
+        : IReturn<IdResponse>, ICreateDb<ComfyApiProviderModel>
+    {
+        public virtual int ComfyApiProviderId { get; set; }
+        public virtual int ComfyApiModelId { get; set; }
     }
 
     public partial class CreateComfyGeneration
@@ -656,7 +626,7 @@ namespace AiServer.ServiceModel
     }
 
     public partial class CreateOpenAiChat
-        : IReturn<CreateOpenAiChatResponse>, ICreateDb<OpenAiChatTask>
+        : IReturn<CreateOpenAiChatResponse>
     {
         public virtual string RefId { get; set; }
         public virtual string Provider { get; set; }
@@ -691,11 +661,23 @@ namespace AiServer.ServiceModel
         public virtual string Name { get; set; }
     }
 
+    public partial class DeleteComfyApiModelSettings
+        : IReturn<EmptyResponse>, IDeleteDb<ComfyApiModelSettings>
+    {
+        public virtual int Id { get; set; }
+    }
+
     public partial class DeleteComfyApiProvider
         : IReturn<IdResponse>, IDeleteDb<ComfyApiProvider>
     {
         public virtual int? Id { get; set; }
         public virtual string Name { get; set; }
+    }
+
+    public partial class DeleteComfyApiProviderModel
+        : IReturn<EmptyResponse>, IDeleteDb<ComfyApiProviderModel>
+    {
+        public virtual int Id { get; set; }
     }
 
     [Route("/comfy/{Year}/{Month}/{Day}/{Filename}")]
@@ -708,51 +690,15 @@ namespace AiServer.ServiceModel
         public virtual string FileName { get; set; }
     }
 
-    public partial class DownloadConfgiuredArtStyleModel
-        : IReturn<ComfyAgentDownloadStatus>
+    public partial class DownloadComfyProviderModel
+        : IReturn<DownloadComfyProviderModelResponse>
     {
-        public virtual ArtStyle? ArtStyle { get; set; }
+        public virtual int? ComfyApiProviderModelId { get; set; }
     }
 
-    public partial class FetchComfyGenerationRequests
+    public partial class DownloadComfyProviderModelResponse
     {
-        public FetchComfyGenerationRequests()
-        {
-            Models = new string[]{};
-        }
-
-        public virtual string[] Models { get; set; }
-        public virtual string Provider { get; set; }
-        public virtual int? Take { get; set; }
-    }
-
-    public partial class FetchOpenAiChatRequests
-        : IReturn<FetchOpenAiChatRequestsResponse>, IPost
-    {
-        public FetchOpenAiChatRequests()
-        {
-            Models = new string[]{};
-        }
-
-        [Validate("NotEmpty")]
-        public virtual string[] Models { get; set; }
-
-        [Validate("NotEmpty")]
-        public virtual string Provider { get; set; }
-
-        public virtual string Worker { get; set; }
-        public virtual int? Take { get; set; }
-    }
-
-    public partial class FetchOpenAiChatRequestsResponse
-    {
-        public FetchOpenAiChatRequestsResponse()
-        {
-            Results = new OpenAiChatRequest[]{};
-        }
-
-        public virtual OpenAiChatRequest[] Results { get; set; }
-        public virtual ResponseStatus ResponseStatus { get; set; }
+        public virtual ComfyAgentDownloadStatus DownloadStatus { get; set; }
     }
 
     public partial class FireComfyPeriodicTask
@@ -782,29 +728,6 @@ namespace AiServer.ServiceModel
         public virtual ResponseStatus ResponseStatus { get; set; }
     }
 
-    public partial class GetApiWorkerStats
-        : IReturn<GetApiWorkerStatsResponse>, IGet
-    {
-    }
-
-    public partial class GetApiWorkerStatsResponse
-    {
-        public GetApiWorkerStatsResponse()
-        {
-            Results = new List<WorkerStats>{};
-        }
-
-        public virtual List<WorkerStats> Results { get; set; }
-        public virtual ResponseStatus ResponseStatus { get; set; }
-    }
-
-    public partial class GetComfyGeneration
-        : IReturn<GetComfyGenerationResponse>
-    {
-        public virtual long? Id { get; set; }
-        public virtual string RefId { get; set; }
-    }
-
     public partial class GetComfyGenerationResponse
     {
         public GetComfyGenerationResponse()
@@ -812,8 +735,9 @@ namespace AiServer.ServiceModel
             Outputs = new List<AiServerHostedComfyFile>{};
         }
 
+        public virtual CreateComfyGeneration Request { get; set; }
         public virtual List<AiServerHostedComfyFile> Outputs { get; set; }
-        public virtual ComfyGenerationTask Result { get; set; }
+        public virtual ComfyWorkflowStatus Result { get; set; }
         public virtual ResponseStatus ResponseStatus { get; set; }
     }
 
@@ -833,7 +757,7 @@ namespace AiServer.ServiceModel
 
     public partial class GetOpenAiChatResponse
     {
-        public virtual OpenAiChatTask Result { get; set; }
+        public virtual BackgroundJob Result { get; set; }
         public virtual ResponseStatus ResponseStatus { get; set; }
     }
 
@@ -858,6 +782,22 @@ namespace AiServer.ServiceModel
         public virtual List<SummaryStats> MonthStats { get; set; }
     }
 
+    public partial class GetWorkerStats
+        : IReturn<GetWorkerStatsResponse>, IGet
+    {
+    }
+
+    public partial class GetWorkerStatsResponse
+    {
+        public GetWorkerStatsResponse()
+        {
+            Results = new List<WorkerStats>{};
+        }
+
+        public virtual List<WorkerStats> Results { get; set; }
+        public virtual ResponseStatus ResponseStatus { get; set; }
+    }
+
     [Route("/hello/{Name}")]
     public partial class Hello
         : IReturn<HelloResponse>, IGet
@@ -868,6 +808,20 @@ namespace AiServer.ServiceModel
     public partial class HelloResponse
     {
         public virtual string Result { get; set; }
+    }
+
+    public partial class ImportCivitAiModel
+        : IReturn<ImportCivitAiModelResponse>
+    {
+        public virtual string Provider { get; set; }
+        public virtual string ModelUrl { get; set; }
+        public virtual ComfyApiModelSettings Settings { get; set; }
+    }
+
+    public partial class ImportCivitAiModelResponse
+    {
+        public virtual ComfyApiModel Model { get; set; }
+        public virtual ComfyApiProvider Provider { get; set; }
     }
 
     ///<summary>
@@ -1173,10 +1127,30 @@ namespace AiServer.ServiceModel
     {
     }
 
+    public partial class QueryBackgroundJobs
+        : QueryDb<BackgroundJob>, IReturn<QueryResponse<BackgroundJob>>
+    {
+        public virtual int? Id { get; set; }
+        public virtual string RefId { get; set; }
+    }
+
     public partial class QueryComfyApiModels
         : QueryDb<ComfyApiModel>, IReturn<QueryResponse<ComfyApiModel>>
     {
         public virtual string Name { get; set; }
+    }
+
+    public partial class QueryComfyApiModelSettings
+        : QueryDb<ComfyApiModelSettings>, IReturn<QueryResponse<ComfyApiModelSettings>>
+    {
+        public virtual int? ComfyApiModelId { get; set; }
+    }
+
+    public partial class QueryComfyApiProviderModels
+        : QueryDb<ComfyApiProviderModel>, IReturn<QueryResponse<ComfyApiProviderModel>>
+    {
+        public virtual int? ComfyApiProviderId { get; set; }
+        public virtual int? ComfyApiModelId { get; set; }
     }
 
     public partial class QueryComfyApiProviders
@@ -1185,10 +1159,25 @@ namespace AiServer.ServiceModel
         public virtual string Name { get; set; }
     }
 
-    public partial class QueryCompletedChatTasks
-        : QueryDb<OpenAiChatCompleted>, IReturn<QueryResponse<OpenAiChatCompleted>>
+    public partial class QueryComfyGenerationTasks
+        : QueryDb<ComfyGenerationTask>, IReturn<QueryResponse<ComfyGenerationTask>>
     {
-        public virtual string Db { get; set; }
+        public virtual string RefId { get; set; }
+        public virtual string Provider { get; set; }
+        public virtual ComfyWorkflowStatus Status { get; set; }
+    }
+
+    public partial class QueryComfySummary
+        : QueryDb<ComfySummary>, IReturn<QueryResponse<ComfySummary>>
+    {
+        public virtual string RefId { get; set; }
+        public virtual string Provider { get; set; }
+    }
+
+    public partial class QueryCompletedChatTasks
+        : QueryDb<CompletedJob>, IReturn<QueryResponse<CompletedJob>>
+    {
+        public virtual DateTime? Db { get; set; }
         public virtual int? Id { get; set; }
         public virtual string RefId { get; set; }
     }
@@ -1202,9 +1191,9 @@ namespace AiServer.ServiceModel
     }
 
     public partial class QueryFailedChatTasks
-        : QueryDb<OpenAiChatFailed>, IReturn<QueryResponse<OpenAiChatFailed>>
+        : QueryDb<FailedJob>, IReturn<QueryResponse<FailedJob>>
     {
-        public virtual string Db { get; set; }
+        public virtual DateTime? Db { get; set; }
     }
 
     public partial class QueryFailedComfyTasks
@@ -1213,16 +1202,11 @@ namespace AiServer.ServiceModel
         public virtual string Db { get; set; }
     }
 
-    public partial class QueryOpenAiChat
-        : QueryDb<OpenAiChatTask>, IReturn<QueryResponse<OpenAiChatTask>>
+    public partial class QueryJobSummary
+        : QueryDb<JobSummary>, IReturn<QueryResponse<JobSummary>>
     {
         public virtual int? Id { get; set; }
         public virtual string RefId { get; set; }
-    }
-
-    public partial class QueryTaskSummary
-        : QueryDb<TaskSummary>, IReturn<QueryResponse<TaskSummary>>
-    {
     }
 
     public partial class QueueComfyWorkflow
@@ -1238,7 +1222,6 @@ namespace AiServer.ServiceModel
         public virtual Stream SpeechInput { get; set; }
         public virtual Stream MaskInput { get; set; }
         public virtual ComfySampler? Sampler { get; set; }
-        public virtual ArtStyle? ArtStyle { get; set; }
         public virtual string Scheduler { get; set; }
         public virtual int? CfgScale { get; set; }
         public virtual double? Denoise { get; set; }
@@ -1270,36 +1253,7 @@ namespace AiServer.ServiceModel
         public virtual List<ComfyTextOutput> TextOutputs { get; set; }
     }
 
-    public partial class RerunCompletedTasks
-        : IReturn<RerunCompletedTasksResponse>, IPost
-    {
-        public RerunCompletedTasks()
-        {
-            Ids = new List<long>{};
-        }
-
-        public virtual List<long> Ids { get; set; }
-    }
-
-    public partial class RerunCompletedTasksResponse
-    {
-        public RerunCompletedTasksResponse()
-        {
-            Errors = new Dictionary<long, string>{};
-            Results = new List<long>{};
-        }
-
-        public virtual Dictionary<long, string> Errors { get; set; }
-        public virtual List<long> Results { get; set; }
-        public virtual ResponseStatus ResponseStatus { get; set; }
-    }
-
     public partial class ResetActiveComfyProviders
-    {
-    }
-
-    public partial class ResetActiveProviders
-        : IReturn<GetActiveProvidersResponse>, IGet
     {
     }
 
@@ -1371,20 +1325,6 @@ namespace AiServer.ServiceModel
         public virtual ResponseStatus Error { get; set; }
     }
 
-    public partial class TaskSummary
-    {
-        public virtual long Id { get; set; }
-        public virtual TaskType Type { get; set; }
-        public virtual string Model { get; set; }
-        public virtual string Provider { get; set; }
-        public virtual string RefId { get; set; }
-        public virtual string Tag { get; set; }
-        public virtual int PromptTokens { get; set; }
-        public virtual int CompletionTokens { get; set; }
-        public virtual int DurationMs { get; set; }
-        public virtual DateTime CreatedDate { get; set; }
-    }
-
     public enum TaskType
     {
         OpenAiChat = 1,
@@ -1452,6 +1392,19 @@ namespace AiServer.ServiceModel
         public virtual string ApiModel { get; set; }
     }
 
+    public partial class UpdateComfyApiModelSettings
+        : IReturn<EmptyResponse>, IUpdateDb<ComfyApiModelSettings>
+    {
+        public virtual int Id { get; set; }
+        public virtual double? CfgScale { get; set; }
+        public virtual string Scheduler { get; set; }
+        public virtual ComfySampler? Sampler { get; set; }
+        public virtual int? Width { get; set; }
+        public virtual int? Height { get; set; }
+        public virtual int? Steps { get; set; }
+        public virtual string NegativePrompt { get; set; }
+    }
+
     public partial class UpdateComfyApiProvider
         : IReturn<IdResponse>, IUpdateDb<ComfyApiProvider>
     {
@@ -1467,23 +1420,19 @@ namespace AiServer.ServiceModel
         public virtual bool? Enabled { get; set; }
     }
 
+    public partial class UpdateComfyApiProviderModel
+        : IReturn<EmptyResponse>, IUpdateDb<ComfyApiProviderModel>
+    {
+        public virtual int Id { get; set; }
+        public virtual int ComfyApiModelId { get; set; }
+        public virtual int ComfyApiProviderId { get; set; }
+    }
+
     public partial class WaitForOpenAiChat
         : IReturn<GetOpenAiChatResponse>, IGet
     {
         public virtual int? Id { get; set; }
         public virtual string RefId { get; set; }
-    }
-
-    public partial class WorkerStats
-    {
-        public virtual string Name { get; set; }
-        public virtual long Queued { get; set; }
-        public virtual long Received { get; set; }
-        public virtual long Completed { get; set; }
-        public virtual long Retries { get; set; }
-        public virtual long Failed { get; set; }
-        public virtual DateTime? Offline { get; set; }
-        public virtual bool Running { get; set; }
     }
 
 }
@@ -1495,27 +1444,6 @@ namespace AiServer.ServiceModel.Types
         public virtual string Url { get; set; }
         public virtual string FileName { get; set; }
         public virtual string ContentType { get; set; }
-    }
-
-    public enum ArtStyle
-    {
-        ThreeDModel,
-        AnalogFilm,
-        Anime,
-        Cinematic,
-        ComicBook,
-        DigitalArt,
-        Enhance,
-        FantasyArt,
-        Isometric,
-        LineArt,
-        LowPoly,
-        ModelingCompound,
-        NeonPunk,
-        Origami,
-        Photographic,
-        PixelArt,
-        TileTexture,
     }
 
     public partial class ComfyApiModel
@@ -1647,7 +1575,9 @@ namespace AiServer.ServiceModel.Types
     public enum ComfySampler
     {
         euler,
+        euler_cfg_pp,
         euler_ancestral,
+        euler_ancestral_cfg_pp,
         huen,
         huenpp2,
         dpm_2,
@@ -1668,6 +1598,20 @@ namespace AiServer.ServiceModel.Types
         ddim,
         uni_pc,
         uni_pc_bh2,
+    }
+
+    public partial class ComfySummary
+    {
+        public virtual long Id { get; set; }
+        public virtual ComfyTaskType Type { get; set; }
+        public virtual string Model { get; set; }
+        public virtual string Provider { get; set; }
+        public virtual string RefId { get; set; }
+        public virtual string PromptId { get; set; }
+        public virtual string Tag { get; set; }
+        public virtual int DurationMs { get; set; }
+        public virtual DateTime CreatedDate { get; set; }
+        public virtual long JobId { get; set; }
     }
 
     public enum ComfyTaskType
@@ -1702,7 +1646,6 @@ namespace AiServer.ServiceModel.Types
         public virtual Stream SpeechInput { get; set; }
         public virtual Stream MaskInput { get; set; }
         public virtual ComfySampler? Sampler { get; set; }
-        public virtual ArtStyle? ArtStyle { get; set; }
         public virtual string Scheduler { get; set; }
         public virtual double? CfgScale { get; set; }
         public virtual double? Denoise { get; set; }
@@ -1735,6 +1678,7 @@ namespace AiServer.ServiceModel.Types
         }
 
         public virtual string StatusMessage { get; set; }
+        public virtual string Error { get; set; }
         public virtual bool Completed { get; set; }
         public virtual List<ComfyOutput> Outputs { get; set; }
     }
@@ -1743,38 +1687,123 @@ namespace AiServer.ServiceModel.Types
     {
     }
 
-    public partial class OpenAiChatCompleted
-        : OpenAiChatTask
-    {
-    }
-
-    public partial class OpenAiChatFailed
-        : OpenAiChatTask
-    {
-        public virtual DateTime FailedDate { get; set; }
-    }
-
-    public partial class OpenAiChatRequest
-    {
-        public virtual long Id { get; set; }
-        public virtual string Model { get; set; }
-        public virtual string Provider { get; set; }
-        public virtual OpenAiChat Request { get; set; }
-    }
-
-    public partial class OpenAiChatTask
-        : TaskBase
-    {
-        public virtual OpenAiChat Request { get; set; }
-        public virtual OpenAiChatResponse Response { get; set; }
-    }
-
     public enum PeriodicFrequency
     {
         Minute,
         Hourly,
         Daily,
         Monthly,
+    }
+
+}
+
+namespace ServiceStack.Jobs
+{
+    public partial class BackgroundJob
+        : IMeta
+    {
+        public BackgroundJob()
+        {
+            Args = new Dictionary<string, string>{};
+            Meta = new Dictionary<string, string>{};
+        }
+
+        public virtual long Id { get; set; }
+        public virtual long? ParentId { get; set; }
+        public virtual string RefId { get; set; }
+        public virtual string Worker { get; set; }
+        public virtual string Tag { get; set; }
+        public virtual string Callback { get; set; }
+        public virtual DateTime CreatedDate { get; set; }
+        public virtual string CreatedBy { get; set; }
+        public virtual string RequestId { get; set; }
+        public virtual string RequestType { get; set; }
+        public virtual string Command { get; set; }
+        public virtual string Request { get; set; }
+        public virtual string RequestBody { get; set; }
+        public virtual string RequestUserId { get; set; }
+        public virtual string Response { get; set; }
+        public virtual string ResponseBody { get; set; }
+        public virtual BackgroundJobState State { get; set; }
+        public virtual DateTime? StartedDate { get; set; }
+        public virtual DateTime? CompletedDate { get; set; }
+        public virtual DateTime? NotifiedDate { get; set; }
+        public virtual int DurationMs { get; set; }
+        public virtual int? TimeoutSecs { get; set; }
+        public virtual int? RetryLimit { get; set; }
+        public virtual int Attempts { get; set; }
+        public virtual double? Progress { get; set; }
+        public virtual string Status { get; set; }
+        public virtual string Logs { get; set; }
+        public virtual DateTime? LastActivityDate { get; set; }
+        public virtual string ReplyTo { get; set; }
+        public virtual string ErrorCode { get; set; }
+        public virtual ResponseStatus Error { get; set; }
+        public virtual Dictionary<string, string> Args { get; set; }
+        public virtual Dictionary<string, string> Meta { get; set; }
+        [Ignore]
+        public virtual bool Transient { get; set; }
+
+        [Ignore]
+        public virtual Action<Object> OnSuccess { get; set; }
+
+        [Ignore]
+        public virtual Action<Exception> OnFailed { get; set; }
+    }
+
+    public enum BackgroundJobState
+    {
+        Queued,
+        Started,
+        Executed,
+        Completed,
+        Failed,
+        Cancelled,
+    }
+
+    public partial class CompletedJob
+        : BackgroundJob
+    {
+    }
+
+    public partial class FailedJob
+        : BackgroundJob
+    {
+    }
+
+    public partial class JobSummary
+    {
+        public virtual long Id { get; set; }
+        public virtual long? ParentId { get; set; }
+        public virtual string RefId { get; set; }
+        public virtual string Worker { get; set; }
+        public virtual string Tag { get; set; }
+        public virtual DateTime CreatedDate { get; set; }
+        public virtual string CreatedBy { get; set; }
+        public virtual string RequestId { get; set; }
+        public virtual string RequestType { get; set; }
+        public virtual string Request { get; set; }
+        public virtual string Response { get; set; }
+        public virtual string RequestUserId { get; set; }
+        public virtual string Callback { get; set; }
+        public virtual DateTime? StartedDate { get; set; }
+        public virtual DateTime? CompletedDate { get; set; }
+        public virtual BackgroundJobState Status { get; set; }
+        public virtual int DurationMs { get; set; }
+        public virtual int? RetryLimit { get; set; }
+        public virtual int Retries { get; set; }
+        public virtual string ErrorCode { get; set; }
+        public virtual string ErrorMessage { get; set; }
+    }
+
+    public partial class WorkerStats
+    {
+        public virtual string Name { get; set; }
+        public virtual long Queued { get; set; }
+        public virtual long Received { get; set; }
+        public virtual long Completed { get; set; }
+        public virtual long Retries { get; set; }
+        public virtual long Failed { get; set; }
     }
 
 }
