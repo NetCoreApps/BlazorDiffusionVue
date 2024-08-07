@@ -153,6 +153,16 @@ public class DreamStudioClient : IStableDiffusionClient
         };
     }
 
+    public Task<QueueImageGenerationResponse> QueueGenerateImageAsync(QueueImageGeneration request)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<ImageGenerationResponse> GetQueueResult(string refId)
+    {
+        throw new NotImplementedException();
+    }
+
     public string GetMetadataPath(Creative creative) => OutputPathPrefix.CombineWith(creative.Key, "metadata.json");
     public IVirtualFile GetMetadataFile(Creative creative) => VirtualFiles.GetFile(GetMetadataPath(creative));
 

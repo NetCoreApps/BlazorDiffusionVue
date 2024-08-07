@@ -1,5 +1,5 @@
 /* Options:
-Date: 2024-08-06 16:51:18
+Date: 2024-08-07 14:26:37
 Version: 8.31
 Tip: To override a DTO option, remove "//" prefix before updating
 BaseUrl: https://localhost:5005
@@ -39,6 +39,11 @@ using AiServer.ServiceInterface;
 
 namespace AiServer.ServiceInterface
 {
+    public partial class PopulateChatSummary
+        : IReturn<StringsResponse>, IGet
+    {
+    }
+
     public partial class WaitForComfyGeneration
         : IReturn<GetComfyGenerationResponse>
     {
@@ -616,6 +621,7 @@ namespace AiServer.ServiceModel
         public virtual string ReplyTo { get; set; }
         public virtual string Tag { get; set; }
         public virtual ComfyWorkflowRequest Request { get; set; }
+        public virtual Object Context { get; set; }
     }
 
     public partial class CreateComfyGenerationResponse
@@ -726,6 +732,13 @@ namespace AiServer.ServiceModel
 
         public virtual ApiProvider[] Results { get; set; }
         public virtual ResponseStatus ResponseStatus { get; set; }
+    }
+
+    public partial class GetComfyGeneration
+        : IReturn<GetComfyGenerationResponse>
+    {
+        public virtual int? Id { get; set; }
+        public virtual string RefId { get; set; }
     }
 
     public partial class GetComfyGenerationResponse
@@ -1295,7 +1308,7 @@ namespace AiServer.ServiceModel
     public partial class SummaryStats
     {
         public virtual string Name { get; set; }
-        public virtual int TotalTasks { get; set; }
+        public virtual int Total { get; set; }
         public virtual int TotalPromptTokens { get; set; }
         public virtual int TotalCompletionTokens { get; set; }
         public virtual double TotalMinutes { get; set; }
@@ -1714,6 +1727,7 @@ namespace ServiceStack.Jobs
         public virtual string Worker { get; set; }
         public virtual string Tag { get; set; }
         public virtual string Callback { get; set; }
+        public virtual DateTime? RunAfter { get; set; }
         public virtual DateTime CreatedDate { get; set; }
         public virtual string CreatedBy { get; set; }
         public virtual string RequestId { get; set; }

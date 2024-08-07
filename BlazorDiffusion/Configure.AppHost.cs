@@ -117,6 +117,7 @@ public class AppHost() : AppHostBase("Blazor Diffusion"), IHostingStartup
                 Client = aiServerClient,
                 OutputPathPrefix = "artifacts",
                 VirtualFiles = appFs,
+                ReplyToUrl = appConfig.BaseUrl.CombineWith("/creatives/callback"),
                 Logger = x.GetService<ILoggerFactory>().CreateLogger<AiServerClient>(),
                 //PublicPrefix = appConfig.AssetsBasePath,
             });

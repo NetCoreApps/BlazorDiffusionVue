@@ -19,6 +19,118 @@ public class AiServerClient: IStableDiffusionClient
     
     private object seedLock = new();
     
+    public string? ReplyToUrl { get; set; }
+    
+    public string? ReplyToAuthSecret { get; set; }
+
+    public async Task<QueueImageGenerationResponse> QueueGenerateImageAsync(QueueImageGeneration request)
+    {
+        var req = request.ImageGeneration.ToComfy();
+        req.Context = request.Context;
+        req.ReplyTo = (!string.IsNullOrEmpty(ReplyToAuthSecret) ? ReplyToAuthSecret + "@" : "")
+                      + ReplyToUrl.CombineWith(req.RefId);
+        var apiRes = await Client.ApiAsync(req);
+        if (apiRes == null)
+        {
+            Logger?.LogError("ApiAsync returned null.");
+            Logger?.LogInformation($"request: {req.ToJson()}");
+            throw new Exception("Failed to generate image.");
+        }
+        
+        if(apiRes.Failed)
+        {
+            Logger?.LogError("API Call to AI Server failed.");
+            Logger?.LogInformation($"request: {req.ToJson()}");
+            Logger?.LogInformation($"response: {apiRes.ToJson()}");
+            throw new Exception("Failed to generate image.");
+        }
+
+        var res = apiRes.Response;
+        if (res == null)
+        {
+            Logger?.LogError("Failed to generate image.");
+            Logger?.LogInformation($"request: {req.ToJson()}");
+            throw new Exception("Failed to generate image.");
+        }
+
+        return new QueueImageGenerationResponse
+        {
+            RefId = apiRes.Response.RefId
+        };
+    }
+
+    public async Task<ImageGenerationResponse> GetQueueResult(string refId)
+    {
+        var getComfyGeneration = new GetComfyGeneration
+        {
+            RefId = refId
+        };
+        var apiRes = await Client.ApiAsync(getComfyGeneration);
+        if (apiRes == null)
+        {
+            Logger?.LogError("ApiAsync returned null.");
+            Logger?.LogInformation($"request: {getComfyGeneration.ToJson()}");
+            throw new Exception("Failed to generate image.");
+        }
+        
+        if(apiRes.Failed)
+        {
+            Logger?.LogError("API Call to AI Server failed.");
+            Logger?.LogInformation($"request: {getComfyGeneration.ToJson()}");
+            Logger?.LogInformation($"response: {apiRes.ToJson()}");
+            throw new Exception("Failed to generate image.");
+        }
+
+        var completedRes = apiRes.Response;
+        var results = new List<ImageGenerationResult>();
+        var seed = (completedRes?.Request?.Request?.Seed ?? 0).ConvertTo<uint>();
+        var request = completedRes?.Request?.Request;
+        if(request == null)
+        {
+            Logger?.LogError("Failed to generate image.");
+            Logger?.LogInformation($"request: {getComfyGeneration.ToJson()}");
+            throw new Exception("Failed to generate image.");
+        }
+        var now = DateTime.UtcNow;
+        var key = $"{now:yyyy/MM/dd}/{(long)now.TimeOfDay.TotalMilliseconds}";
+        await Parallel.ForEachAsync(completedRes?.Outputs, async (item, token) =>
+        {
+            var artifactUrl = $"{item.Url}";
+            Logger?.LogInformation($"Downloading artifact from {artifactUrl}...");
+            var bytes = await artifactUrl.GetBytesFromUrlAsync(token: token);
+            var imageDetails = ImageDetails.Calculate(bytes);
+            var uuid = Guid.NewGuid().ToString("N");
+            var filePath = $"/artifacts/{key}/output_{uuid}.png";
+            lock (seedLock)
+            {
+                results.Add(new()
+                {
+                    Prompt = request.PositivePrompt,
+                    Seed = seed,
+                    AnswerId = refId,
+                    FilePath = filePath,
+                    FileName = $"output_{uuid}.png",
+                    ContentLength = bytes.Length,
+                    Width = (int)request.Width!,
+                    Height = (int)request.Height!,
+                    ImageDetails = imageDetails,
+                });
+                // Assume incremental seeds for multiple images as comfyui does not provide the specific image seed back
+                seed++;
+            }
+            var output = filePath;
+            await VirtualFiles.WriteFileAsync(output, bytes, token);
+        });
+
+        return new ImageGenerationResponse
+        {
+            RequestId = refId,
+            EngineId = "comfy",
+            Key = key,
+            Results = results,
+        };
+    }
+    
     public async Task<ImageGenerationResponse> GenerateImageAsync(ImageGeneration request)
     {
         var req = request.ToComfy();
