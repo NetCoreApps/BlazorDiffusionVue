@@ -110,7 +110,7 @@ public class AppHost() : AppHostBase("Blazor Diffusion"), IHostingStartup
             }
             
             if(!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("AI_SERVER_APIKEY")))
-                aiServerClient.BearerToken = Environment.GetEnvironmentVariable("AI_SERVER_APIKEY");
+                aiServerClient.AddHeader("Authorization","Bearer " + Environment.GetEnvironmentVariable("AI_SERVER_APIKEY"));
 
             services.AddSingleton<IStableDiffusionClient>(x => new AiServerClient
             {

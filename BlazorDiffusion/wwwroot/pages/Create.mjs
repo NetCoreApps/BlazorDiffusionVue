@@ -485,6 +485,7 @@ export default {
                         : 'square'
                 artists.value = creative.artists?.map(x => artistOptions.value.find(a => a.id === x.artistId)) || []
                 modifiers.value = creative.modifiers?.map(x => modifierOptions.value.find(a => a.id === x.modifierId)) || []
+                selectedModel.value = models.value.find(x => x.name === creative.engineId) || models.value[0]
                 document.documentElement.scrollIntoView({ behavior: "smooth" })
             } else {
                 reset()
