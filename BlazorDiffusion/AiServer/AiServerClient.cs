@@ -18,6 +18,47 @@ public class AiServerClient: IStableDiffusionClient
     public string? OutputPathPrefix { get; set; }
     
     private object seedLock = new();
+
+    public async Task<QueueImageGenerationResponse> QueueGenerateImageAsync(QueueImageGeneration request)
+    {
+        var req = request.ImageGeneration.ToComfy();
+        var apiRes = await Client.ApiAsync(req);
+        if (apiRes == null)
+        {
+            Logger?.LogError("ApiAsync returned null.");
+            Logger?.LogInformation($"request: {req.ToJson()}");
+            throw new Exception("Failed to generate image.");
+        }
+        
+        if(apiRes.Failed)
+        {
+            Logger?.LogError("API Call to AI Server failed.");
+            Logger?.LogInformation($"request: {req.ToJson()}");
+            Logger?.LogInformation($"response: {apiRes.ToJson()}");
+            throw new Exception("Failed to generate image.");
+        }
+
+        var res = apiRes.Response;
+        if (res == null)
+        {
+            Logger?.LogError("Failed to generate image.");
+            Logger?.LogInformation($"request: {req.ToJson()}");
+            throw new Exception("Failed to generate image.");
+        }
+
+        return new QueueImageGenerationResponse
+        {
+            RefId = apiRes.Response.RefId
+        };
+    }
+
+    public async Task<ImageGenerationResponse> GetQueueResult(string refId)
+    {
+        var getComfyGeneration = new GetComfyGeneration
+        {
+            RefId = refId
+        };
+    }
     
     public async Task<ImageGenerationResponse> GenerateImageAsync(ImageGeneration request)
     {

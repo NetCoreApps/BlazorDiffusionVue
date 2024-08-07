@@ -50,6 +50,11 @@ public class CreativeServiceMockedTests
                 };
             }
 
+            public Task<QueueImageGenerationResponse> QueueGenerateImageAsync(QueueImageGeneration request)
+            {
+                throw new NotImplementedException();
+            }
+
             public Task SaveMetadataAsync(Creative entry) => Task.CompletedTask;
             public Task DeleteFolderAsync(Creative entry) => Task.CompletedTask;
 
