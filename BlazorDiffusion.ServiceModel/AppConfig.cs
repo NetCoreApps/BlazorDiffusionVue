@@ -28,7 +28,7 @@ public class AppConfig
         { "Realistic", "jibMixRealisticXL_v130RisenFromAshes.safetensors" },
         { "Anime", "animexlXuebimix_v60LCM.safetensors" },
         { "SciFi", "LahHongchenSDXLSD15_xlLightning.safetensors" },
-        { "Replicate", "5f24084160c9089501c1b3545d9be3c27883ae2239b6f412990e82d4a6210f8f"}
+        { "Replicate", ""}
     };
     public HashSet<string> BanWords { get; set; } = new(StringComparer.OrdinalIgnoreCase)
     {

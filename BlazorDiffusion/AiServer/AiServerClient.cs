@@ -93,34 +93,37 @@ public class AiServerClient: IStableDiffusionClient
         }
         var now = DateTime.UtcNow;
         var key = $"{now:yyyy/MM/dd}/{(long)now.TimeOfDay.TotalMilliseconds}";
-        await Parallel.ForEachAsync(completedRes?.Outputs, async (item, token) =>
+        if(completedRes?.Outputs == null)
+        {
+            Logger?.LogError("Failed to generate image.");
+            Logger?.LogInformation($"request: {getComfyGeneration.ToJson()}");
+            throw new Exception("Failed to generate image.");
+        }
+        foreach(var item in completedRes?.Outputs)
         {
             var artifactUrl = $"{item.Url}";
             Logger?.LogInformation($"Downloading artifact from {artifactUrl}...");
-            var bytes = await artifactUrl.GetBytesFromUrlAsync(token: token);
+            var bytes = await artifactUrl.GetBytesFromUrlAsync();
             var imageDetails = ImageDetails.Calculate(bytes);
             var uuid = Guid.NewGuid().ToString("N");
             var filePath = $"/artifacts/{key}/output_{uuid}.png";
-            lock (seedLock)
+            results.Add(new()
             {
-                results.Add(new()
-                {
-                    Prompt = request.PositivePrompt,
-                    Seed = seed,
-                    AnswerId = refId,
-                    FilePath = filePath,
-                    FileName = $"output_{uuid}.png",
-                    ContentLength = bytes.Length,
-                    Width = (int)request.Width!,
-                    Height = (int)request.Height!,
-                    ImageDetails = imageDetails,
-                });
-                // Assume incremental seeds for multiple images as comfyui does not provide the specific image seed back
-                seed++;
-            }
+                Prompt = request.PositivePrompt,
+                Seed = seed,
+                AnswerId = refId,
+                FilePath = filePath,
+                FileName = $"output_{uuid}.png",
+                ContentLength = bytes.Length,
+                Width = (int)request.Width!,
+                Height = (int)request.Height!,
+                ImageDetails = imageDetails,
+            });
+            // Assume incremental seeds for multiple images as comfyui does not provide the specific image seed back
+            seed++;
             var output = filePath;
-            await VirtualFiles.WriteFileAsync(output, bytes, token);
-        });
+            await VirtualFiles.WriteFileAsync(output, bytes);
+        };
 
         return new ImageGenerationResponse
         {
