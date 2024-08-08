@@ -76,8 +76,8 @@ public class AiServerClient: IStableDiffusionClient
         if(apiRes.Failed)
         {
             Logger?.LogError("API Call to AI Server failed.");
-            Logger?.LogInformation($"request: {getComfyGeneration.ToJson()}");
-            Logger?.LogInformation($"response: {apiRes.ToJson()}");
+            Logger?.LogError($"request: {getComfyGeneration.ToJson()}");
+            Logger?.LogError($"response: {apiRes.ToJson()}");
             throw new Exception("Failed to generate image.");
         }
 
