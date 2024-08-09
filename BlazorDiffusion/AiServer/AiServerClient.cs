@@ -61,7 +61,7 @@ public class AiServerClient: IStableDiffusionClient
 
     public async Task<ImageGenerationResponse> GetQueueResult(string refId)
     {
-        var getComfyGeneration = new GetComfyGeneration
+        var getComfyGeneration = new GetDiffusionGeneration
         {
             RefId = refId
         };
@@ -83,8 +83,8 @@ public class AiServerClient: IStableDiffusionClient
 
         var completedRes = apiRes.Response;
         var results = new List<ImageGenerationResult>();
-        var seed = (completedRes?.Request?.Request?.Seed ?? 0).ConvertTo<uint>();
-        var request = completedRes?.Request?.Request;
+        var seed = (completedRes?.Request?.Seed ?? 0).ConvertTo<uint>();
+        var request = completedRes?.Request;
         if(request == null)
         {
             Logger?.LogError("Failed to generate image.");
@@ -136,75 +136,7 @@ public class AiServerClient: IStableDiffusionClient
     
     public async Task<ImageGenerationResponse> GenerateImageAsync(ImageGeneration request)
     {
-        var req = request.ToComfy();
-        var apiRes = await Client.ApiAsync(req);
-        if (apiRes == null)
-        {
-            Logger?.LogError("ApiAsync returned null.");
-            Logger?.LogInformation($"request: {req.ToJson()}");
-            throw new Exception("Failed to generate image.");
-        }
-        
-        if(apiRes.Failed)
-        {
-            Logger?.LogError("API Call to AI Server failed.");
-            Logger?.LogInformation($"request: {req.ToJson()}");
-            Logger?.LogInformation($"response: {apiRes.ToJson()}");
-            throw new Exception("Failed to generate image.");
-        }
-
-        var res = apiRes.Response;
-        if (res == null)
-        {
-            Logger?.LogError("Failed to generate image.");
-            Logger?.LogInformation($"request: {req.ToJson()}");
-            throw new Exception("Failed to generate image.");
-        }
-        var now = DateTime.UtcNow;
-        var key = $"{now:yyyy/MM/dd}/{(long)now.TimeOfDay.TotalMilliseconds}";
-        
-        var results = new List<ImageGenerationResult>();
-        var completedRes = await Client.PostAsync(new WaitForComfyGeneration
-        {
-            RefId = res.RefId
-        });
-        var seed = (completedRes?.Request?.Request?.Seed ?? 0).ConvertTo<uint>();
-        await Parallel.ForEachAsync(completedRes?.Outputs, async (item, token) =>
-        {
-            var artifactUrl = $"{item.Url}";
-            Logger?.LogInformation($"Downloading artifact from {artifactUrl}...");
-            var bytes = await artifactUrl.GetBytesFromUrlAsync(token: token);
-            var imageDetails = ImageDetails.Calculate(bytes);
-            var uuid = Guid.NewGuid().ToString("N");
-            var filePath = $"/artifacts/{key}/output_{uuid}.png";
-            lock (seedLock)
-            {
-                results.Add(new()
-                {
-                    Prompt = request.Prompt,
-                    Seed = seed,
-                    AnswerId = res.RefId,
-                    FilePath = filePath,
-                    FileName = $"output_{uuid}.png",
-                    ContentLength = bytes.Length,
-                    Width = request.Width,
-                    Height = request.Height,
-                    ImageDetails = imageDetails,
-                });
-                // Assume incremental seeds for multiple images as comfyui does not provide the specific image seed back
-                seed++;
-            }
-            var output = filePath;
-            await VirtualFiles.WriteFileAsync(output, bytes, token);
-        });
-
-        return new ImageGenerationResponse
-        {
-            RequestId = res.RefId,
-            EngineId = "comfy",
-            Key = key,
-            Results = results,
-        };
+        throw new NotImplementedException();
     }
 
     public string GetMetadataPath(Creative creative) => OutputPathPrefix.CombineWith(creative.Key, "metadata.json");
@@ -229,20 +161,19 @@ public class AiServerClient: IStableDiffusionClient
 
 public static class StableDiffusionClientExtensions
 {
-    public static CreateComfyGeneration ToComfy(this ImageGeneration request)
+    public static CreateDiffusionGeneration ToComfy(this ImageGeneration request)
     {
-        return new CreateComfyGeneration
+        return new CreateDiffusionGeneration()
         {
-            Request = new ComfyWorkflowRequest
+            Request = new DiffusionImageGeneration()
             {
                 Height = request.Height,
                 Width = request.Width,
                 Seed = (int?)request.Seed ?? Random.Shared.Next(),
-                BatchSize = request.Images,
+                Images = request.Images,
                 PositivePrompt = request.Prompt,
                 NegativePrompt = $"(nsfw),(nude),(explicit),(gore),(violence),(blood)",
-                Model = request.Engine,
-                TaskType = ComfyTaskType.TextToImage
+                Model = request.Engine
             }
         };
     }
