@@ -1,5 +1,5 @@
 /* Options:
-Date: 2024-08-07 14:26:37
+Date: 2024-08-09 16:24:29
 Version: 8.31
 Tip: To override a DTO option, remove "//" prefix before updating
 BaseUrl: https://localhost:5005
@@ -42,13 +42,6 @@ namespace AiServer.ServiceInterface
     public partial class PopulateChatSummary
         : IReturn<StringsResponse>, IGet
     {
-    }
-
-    public partial class WaitForComfyGeneration
-        : IReturn<GetComfyGenerationResponse>
-    {
-        public virtual int? Id { get; set; }
-        public virtual string RefId { get; set; }
     }
 
 }
@@ -101,6 +94,12 @@ namespace AiServer.ServiceModel
         }
 
         public virtual List<PageStats> PageStats { get; set; }
+    }
+
+    public partial class AiServerHostedDiffusionFile
+    {
+        public virtual string FileName { get; set; }
+        public virtual string Url { get; set; }
     }
 
     public partial class ApiModel
@@ -240,200 +239,6 @@ namespace AiServer.ServiceModel
     {
         public virtual string Name { get; set; }
         public virtual int? Progress { get; set; }
-    }
-
-    public partial class ComfyImageToImage
-        : IReturn<ComfyImageToImageResponse>
-    {
-        public virtual long Seed { get; set; }
-        public virtual double CfgScale { get; set; }
-        public virtual ComfySampler Sampler { get; set; }
-        public virtual int Steps { get; set; }
-        public virtual int BatchSize { get; set; }
-        public virtual double Denoise { get; set; }
-        public virtual string Scheduler { get; set; }
-        public virtual string Model { get; set; }
-        public virtual string PositivePrompt { get; set; }
-        public virtual string NegativePrompt { get; set; }
-        public virtual Stream ImageInput { get; set; }
-    }
-
-    public partial class ComfyImageToImageResponse
-    {
-        public ComfyImageToImageResponse()
-        {
-            Images = new List<ComfyHostedFileOutput>{};
-        }
-
-        public virtual string PromptId { get; set; }
-        public virtual ComfyWorkflowRequest Request { get; set; }
-        public virtual List<ComfyHostedFileOutput> Images { get; set; }
-    }
-
-    public partial class ComfyImageToImageUpscale
-        : IReturn<ComfyImageToImageUpscaleResponse>
-    {
-        public virtual string UpscaleModel { get; set; }
-        public virtual ComfyFileInput Image { get; set; }
-        public virtual Stream ImageInput { get; set; }
-    }
-
-    public partial class ComfyImageToImageUpscaleResponse
-    {
-        public ComfyImageToImageUpscaleResponse()
-        {
-            Images = new List<ComfyHostedFileOutput>{};
-        }
-
-        public virtual string PromptId { get; set; }
-        public virtual ComfyWorkflowRequest Request { get; set; }
-        public virtual List<ComfyHostedFileOutput> Images { get; set; }
-    }
-
-    public partial class ComfyImageToImageWithMask
-        : IReturn<ComfyImageToImageWithMaskResponse>
-    {
-        public virtual long Seed { get; set; }
-        public virtual double CfgScale { get; set; }
-        public virtual ComfySampler Sampler { get; set; }
-        public virtual int Steps { get; set; }
-        public virtual int BatchSize { get; set; }
-        public virtual double Denoise { get; set; }
-        public virtual string Scheduler { get; set; }
-        public virtual string Model { get; set; }
-        public virtual string PositivePrompt { get; set; }
-        public virtual string NegativePrompt { get; set; }
-        public virtual ComfyMaskSource MaskChannel { get; set; }
-        public virtual Stream ImageInput { get; set; }
-        public virtual Stream MaskInput { get; set; }
-    }
-
-    public partial class ComfyImageToImageWithMaskResponse
-    {
-        public ComfyImageToImageWithMaskResponse()
-        {
-            Images = new List<ComfyHostedFileOutput>{};
-        }
-
-        public virtual string PromptId { get; set; }
-        public virtual ComfyWorkflowRequest Request { get; set; }
-        public virtual List<ComfyHostedFileOutput> Images { get; set; }
-    }
-
-    public partial class ComfyImageToText
-        : IReturn<ComfyImageToTextResponse>
-    {
-        public virtual Stream ImageInput { get; set; }
-    }
-
-    public partial class ComfyImageToTextResponse
-    {
-        public virtual string PromptId { get; set; }
-        public virtual ComfyWorkflowRequest Request { get; set; }
-        public virtual ComfyTextOutput TextOutput { get; set; }
-    }
-
-    public partial class ComfySpeechToText
-        : IReturn<ComfySpeechToTextResponse>
-    {
-        public virtual string Model { get; set; }
-        public virtual Stream SpeechInput { get; set; }
-    }
-
-    public partial class ComfySpeechToTextResponse
-    {
-        public virtual string PromptId { get; set; }
-        public virtual ComfyWorkflowRequest Request { get; set; }
-        public virtual ComfyTextOutput TextOutput { get; set; }
-    }
-
-    public partial class ComfyTextToAudio
-        : IReturn<ComfyTextToAudioResponse>
-    {
-        public virtual string Clip { get; set; }
-        public virtual string Model { get; set; }
-        public virtual int? Steps { get; set; }
-        public virtual double? CfgScale { get; set; }
-        public virtual int? Seed { get; set; }
-        public virtual ComfySampler? Sampler { get; set; }
-        public virtual string Scheduler { get; set; }
-        public virtual string PositivePrompt { get; set; }
-        public virtual string NegativePrompt { get; set; }
-        public virtual double? SampleLength { get; set; }
-    }
-
-    public partial class ComfyTextToAudioResponse
-    {
-        public ComfyTextToAudioResponse()
-        {
-            Sounds = new List<ComfyHostedFileOutput>{};
-        }
-
-        public virtual string PromptId { get; set; }
-        public virtual ComfyWorkflowRequest Request { get; set; }
-        public virtual List<ComfyHostedFileOutput> Sounds { get; set; }
-    }
-
-    public partial class ComfyTextToImage
-        : IReturn<ComfyTextToImageResponse>
-    {
-        public virtual long Seed { get; set; }
-        public virtual double CfgScale { get; set; }
-        public virtual int Height { get; set; }
-        public virtual int Width { get; set; }
-        public virtual ComfySampler Sampler { get; set; }
-        public virtual int BatchSize { get; set; }
-        public virtual int Steps { get; set; }
-        public virtual string Model { get; set; }
-        public virtual string PositivePrompt { get; set; }
-        public virtual string NegativePrompt { get; set; }
-        public virtual string Scheduler { get; set; }
-    }
-
-    public partial class ComfyTextToImageResponse
-    {
-        public ComfyTextToImageResponse()
-        {
-            Images = new List<ComfyHostedFileOutput>{};
-        }
-
-        public virtual string PromptId { get; set; }
-        public virtual ComfyWorkflowRequest Request { get; set; }
-        public virtual List<ComfyHostedFileOutput> Images { get; set; }
-    }
-
-    public partial class ComfyTextToSpeech
-        : IReturn<ComfyTextToSpeechResponse>
-    {
-        public virtual string PositivePrompt { get; set; }
-        public virtual string Model { get; set; }
-    }
-
-    public partial class ComfyTextToSpeechResponse
-    {
-        public ComfyTextToSpeechResponse()
-        {
-            Speech = new List<ComfyHostedFileOutput>{};
-        }
-
-        public virtual string PromptId { get; set; }
-        public virtual ComfyWorkflowRequest Request { get; set; }
-        public virtual List<ComfyHostedFileOutput> Speech { get; set; }
-    }
-
-    public partial class ConfigureAndDownloadModel
-        : IReturn<ComfyAgentDownloadStatus>
-    {
-        public virtual string Name { get; set; }
-        public virtual string Filename { get; set; }
-        public virtual string DownloadUrl { get; set; }
-        public virtual double? CfgScale { get; set; }
-        public virtual string Scheduler { get; set; }
-        public virtual ComfySampler? Sampler { get; set; }
-        public virtual int? Width { get; set; }
-        public virtual int? Height { get; set; }
-        public virtual int? Steps { get; set; }
-        public virtual string NegativePrompt { get; set; }
     }
 
     public partial class CreateApiKey
@@ -631,6 +436,39 @@ namespace AiServer.ServiceModel
         public virtual ResponseStatus ResponseStatus { get; set; }
     }
 
+    public partial class CreateDiffusionApiProvider
+        : IReturn<IdResponse>, ICreateDb<DiffusionApiProvider>
+    {
+        public virtual string Name { get; set; }
+        public virtual string ApiKey { get; set; }
+        public virtual string ApiKeyHeader { get; set; }
+        public virtual string ApiBaseUrl { get; set; }
+        public virtual string HeartbeatUrl { get; set; }
+        public virtual int Concurrency { get; set; }
+        public virtual int Priority { get; set; }
+        public virtual bool Enabled { get; set; }
+        public virtual DateTime? OfflineDate { get; set; }
+        public virtual List<string> Models { get; set; }
+        public virtual string Type { get; set; }
+    }
+
+    [Route("/diffusion/generate", "POST")]
+    public partial class CreateDiffusionGeneration
+        : IReturn<CreateDiffusionGenerationResponse>
+    {
+        public virtual string Provider { get; set; }
+        public virtual DiffusionImageGeneration Request { get; set; }
+        public virtual Object Context { get; set; }
+        public virtual string ReplyTo { get; set; }
+        public virtual string RefId { get; set; }
+    }
+
+    public partial class CreateDiffusionGenerationResponse
+    {
+        public virtual long Id { get; set; }
+        public virtual string RefId { get; set; }
+    }
+
     public partial class CreateOpenAiChat
         : IReturn<CreateOpenAiChatResponse>
     {
@@ -684,6 +522,41 @@ namespace AiServer.ServiceModel
         : IReturn<EmptyResponse>, IDeleteDb<ComfyApiProviderModel>
     {
         public virtual int Id { get; set; }
+    }
+
+    public partial class DeleteDiffusionApiProvider
+        : IReturn<IdResponse>, IDeleteDb<DiffusionApiProvider>
+    {
+        public virtual int? Id { get; set; }
+        public virtual string Name { get; set; }
+    }
+
+    public partial class DiffusionApiProviderOutput
+    {
+        public virtual string FileName { get; set; }
+        public virtual string Url { get; set; }
+    }
+
+    public partial class DiffusionGenerationResponse
+    {
+        public DiffusionGenerationResponse()
+        {
+            Outputs = new List<DiffusionApiProviderOutput>{};
+        }
+
+        public virtual List<DiffusionApiProviderOutput> Outputs { get; set; }
+    }
+
+    public partial class DiffusionImageGeneration
+    {
+        public virtual string Model { get; set; }
+        public virtual int Width { get; set; }
+        public virtual int Height { get; set; }
+        public virtual int Images { get; set; }
+        public virtual long? Seed { get; set; }
+        public virtual string PositivePrompt { get; set; }
+        public virtual string NegativePrompt { get; set; }
+        public virtual int Steps { get; set; }
     }
 
     [Route("/comfy/{Year}/{Month}/{Day}/{Filename}")]
@@ -752,6 +625,27 @@ namespace AiServer.ServiceModel
         public virtual List<AiServerHostedComfyFile> Outputs { get; set; }
         public virtual ComfyWorkflowStatus Result { get; set; }
         public virtual ResponseStatus ResponseStatus { get; set; }
+    }
+
+    [Route("/diffusion/{Id}", "GET")]
+    [Route("/diffusion/ref/{RefId}", "GET")]
+    public partial class GetDiffusionGeneration
+        : IReturn<GetDiffusionGenerationResponse>
+    {
+        public virtual int? Id { get; set; }
+        public virtual string RefId { get; set; }
+    }
+
+    public partial class GetDiffusionGenerationResponse
+    {
+        public GetDiffusionGenerationResponse()
+        {
+            Outputs = new List<AiServerHostedDiffusionFile>{};
+        }
+
+        public virtual DiffusionImageGeneration Request { get; set; }
+        public virtual DiffusionGenerationResponse Result { get; set; }
+        public virtual List<AiServerHostedDiffusionFile> Outputs { get; set; }
     }
 
     [Route("/icons/models/{Model}", "GET")]
@@ -1203,6 +1097,13 @@ namespace AiServer.ServiceModel
         public virtual string RefId { get; set; }
     }
 
+    public partial class QueryDiffusionApiProviders
+        : QueryDb<DiffusionApiProvider>, IReturn<QueryResponse<DiffusionApiProvider>>
+    {
+        public virtual int? Id { get; set; }
+        public virtual string Name { get; set; }
+    }
+
     public partial class QueryFailedChatTasks
         : QueryDb<FailedJob>, IReturn<QueryResponse<FailedJob>>
     {
@@ -1220,50 +1121,6 @@ namespace AiServer.ServiceModel
     {
         public virtual int? Id { get; set; }
         public virtual string RefId { get; set; }
-    }
-
-    public partial class QueueComfyWorkflow
-        : IReturn<QueueComfyWorkflowResponse>
-    {
-        public virtual string Model { get; set; }
-        public virtual int? Steps { get; set; }
-        public virtual int? BatchSize { get; set; }
-        public virtual int? Seed { get; set; }
-        public virtual string PositivePrompt { get; set; }
-        public virtual string NegativePrompt { get; set; }
-        public virtual Stream ImageInput { get; set; }
-        public virtual Stream SpeechInput { get; set; }
-        public virtual Stream MaskInput { get; set; }
-        public virtual ComfySampler? Sampler { get; set; }
-        public virtual string Scheduler { get; set; }
-        public virtual int? CfgScale { get; set; }
-        public virtual double? Denoise { get; set; }
-        public virtual string UpscaleModel { get; set; }
-        public virtual int? Width { get; set; }
-        public virtual int? Height { get; set; }
-        public virtual string Clip { get; set; }
-        public virtual double? SampleLength { get; set; }
-        public virtual ComfyTaskType TaskType { get; set; }
-        public virtual string RefId { get; set; }
-        public virtual string Provider { get; set; }
-        public virtual string ReplyTo { get; set; }
-        public virtual string Tag { get; set; }
-    }
-
-    public partial class QueueComfyWorkflowResponse
-    {
-        public QueueComfyWorkflowResponse()
-        {
-            FileOutputs = new List<ComfyHostedFileOutput>{};
-            TextOutputs = new List<ComfyTextOutput>{};
-        }
-
-        public virtual ComfyWorkflowRequest Request { get; set; }
-        public virtual ComfyWorkflowStatus Status { get; set; }
-        public virtual ComfyWorkflowResponse WorkflowResponse { get; set; }
-        public virtual string PromptId { get; set; }
-        public virtual List<ComfyHostedFileOutput> FileOutputs { get; set; }
-        public virtual List<ComfyTextOutput> TextOutputs { get; set; }
     }
 
     public partial class ResetActiveComfyProviders
@@ -1441,6 +1298,20 @@ namespace AiServer.ServiceModel
         public virtual int ComfyApiProviderId { get; set; }
     }
 
+    public partial class UpdateDiffusionApiProvider
+        : IReturn<DiffusionApiProvider>, IPatchDb<DiffusionApiProvider>
+    {
+        public virtual int Id { get; set; }
+        public virtual string ApiKey { get; set; }
+        public virtual string ApiKeyHeader { get; set; }
+        public virtual string ApiBaseUrl { get; set; }
+        public virtual string HeartbeatUrl { get; set; }
+        public virtual int? Concurrency { get; set; }
+        public virtual int? Priority { get; set; }
+        public virtual bool? Enabled { get; set; }
+        public virtual List<string> Models { get; set; }
+    }
+
     public partial class WaitForOpenAiChat
         : IReturn<GetOpenAiChatResponse>, IGet
     {
@@ -1479,6 +1350,7 @@ namespace AiServer.ServiceModel.Types
         [References(typeof(AiServer.ServiceModel.Types.ComfyApiModel))]
         public virtual int ComfyApiModelId { get; set; }
 
+        public virtual ComfyApiModel ComfyApiModel { get; set; }
         public virtual double? CfgScale { get; set; }
         public virtual string Scheduler { get; set; }
         public virtual ComfySampler? Sampler { get; set; }
@@ -1557,12 +1429,6 @@ namespace AiServer.ServiceModel.Types
         public virtual ComfyWorkflowStatus Status { get; set; }
         public virtual ComfyTaskType TaskType { get; set; }
         public virtual string WorkflowTemplate { get; set; }
-    }
-
-    public partial class ComfyHostedFileOutput
-    {
-        public virtual string Url { get; set; }
-        public virtual string FileName { get; set; }
     }
 
     public enum ComfyMaskSource
@@ -1694,6 +1560,28 @@ namespace AiServer.ServiceModel.Types
         public virtual string Error { get; set; }
         public virtual bool Completed { get; set; }
         public virtual List<ComfyOutput> Outputs { get; set; }
+    }
+
+    public partial class DiffusionApiProvider
+    {
+        public DiffusionApiProvider()
+        {
+            Models = new List<string>{};
+        }
+
+        public virtual int Id { get; set; }
+        public virtual string Name { get; set; }
+        public virtual string ApiKey { get; set; }
+        public virtual string ApiKeyHeader { get; set; }
+        public virtual string ApiBaseUrl { get; set; }
+        public virtual string HeartbeatUrl { get; set; }
+        public virtual int Concurrency { get; set; }
+        public virtual int Priority { get; set; }
+        public virtual bool Enabled { get; set; }
+        public virtual DateTime? OfflineDate { get; set; }
+        public virtual DateTime CreatedDate { get; set; }
+        public virtual List<string> Models { get; set; }
+        public virtual string Type { get; set; }
     }
 
     public partial class NodeError
