@@ -222,7 +222,7 @@ public class CreativeService(
         }
         
         if(creative == null)
-            throw new HttpError(HttpStatusCode.BadRequest,"Request timed out waiting for Creative");
+            throw new HttpError(HttpStatusCode.BadRequest,"Request timed out waiting for Creative. Your Creative might be delayed, please check back later.");
         
         PublishMessage(new BackgroundTasks { NewCreative = creative });
 
