@@ -366,7 +366,7 @@ export default {
         const instance = getCurrentInstance()
         const qs = queryString(location.search)
         const models = ref([
-            { name: "Realistic", imgUrl: "https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/0d074c63-1ab6-4e58-9141-7681ec5be94c/width=450/17898822.jpeg" },
+            { name: "SDXL", imgUrl: "https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/0d074c63-1ab6-4e58-9141-7681ec5be94c/width=450/17898822.jpeg" },
             { name: "Flux", imgUrl: "/img/flux-model.jpg" }
         ]);
 
