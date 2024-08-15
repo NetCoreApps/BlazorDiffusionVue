@@ -13,6 +13,7 @@ public class ConfigureAuth : IHostingStartup
             services.AddPlugin(new AuthFeature(IdentityAuth.For<AppUser,int>(options => {
                 options.CredentialsAuth();
                 options.SessionFactory = () => new CustomUserSession();
+                options.AdminUsersFeature();
                 if (context.HostingEnvironment.IsDevelopment())
                 {
                     options.JwtAuth();
