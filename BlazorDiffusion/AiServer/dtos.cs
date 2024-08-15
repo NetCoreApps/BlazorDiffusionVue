@@ -1,5 +1,5 @@
 /* Options:
-Date: 2024-08-09 16:24:29
+Date: 2024-08-15 15:56:53
 Version: 8.31
 Tip: To override a DTO option, remove "//" prefix before updating
 BaseUrl: https://localhost:5005
@@ -32,13 +32,24 @@ using System.Runtime.Serialization;
 using ServiceStack;
 using ServiceStack.DataAnnotations;
 using System.IO;
-using AiServer.ServiceModel.Types;
 using AiServer.ServiceModel;
+using AiServer.ServiceModel.Types;
 using ServiceStack.Jobs;
 using AiServer.ServiceInterface;
 
 namespace AiServer.ServiceInterface
 {
+    [Route("/download/{Provider}/{Year}/{Month}/{Day}/{Filename}")]
+    public partial class DownloadDiffusionFile
+        : IReturn<Stream>
+    {
+        public virtual string Provider { get; set; }
+        public virtual int? Year { get; set; }
+        public virtual int? Month { get; set; }
+        public virtual int? Day { get; set; }
+        public virtual string FileName { get; set; }
+    }
+
     public partial class PopulateChatSummary
         : IReturn<StringsResponse>, IGet
     {
@@ -51,18 +62,9 @@ namespace AiServer.ServiceModel
     ///<summary>
     ///Active Worker Models available in AI Server
     ///</summary>
-    public partial class ActiveApiModels
+    public partial class ActiveAiModels
         : IReturn<StringsResponse>, IGet
     {
-    }
-
-    public partial class AddComfyProviderModel
-        : IReturn<IdResponse>, IPost
-    {
-        public virtual int ComfyApiProviderId { get; set; }
-        public virtual int ComfyApiModelId { get; set; }
-        public virtual string ComfyApiModelName { get; set; }
-        public virtual string ComfyApiProviderName { get; set; }
     }
 
     public partial class AdminAddModel
@@ -75,7 +77,7 @@ namespace AiServer.ServiceModel
         }
 
         [Validate("NotNull")]
-        public virtual ApiModel Model { get; set; }
+        public virtual AiModel Model { get; set; }
 
         public virtual Dictionary<string, Property> ApiTypes { get; set; }
         public virtual Dictionary<string, ApiProviderModel> ApiProviders { get; set; }
@@ -96,52 +98,63 @@ namespace AiServer.ServiceModel
         public virtual List<PageStats> PageStats { get; set; }
     }
 
+    public partial class AiModel
+    {
+        public AiModel()
+        {
+            Tags = new List<string>{};
+        }
+
+        public virtual int Id { get; set; }
+        public virtual string Name { get; set; }
+        public virtual List<string> Tags { get; set; }
+        public virtual string Latest { get; set; }
+        public virtual string Website { get; set; }
+        public virtual string Description { get; set; }
+        public virtual string Icon { get; set; }
+    }
+
+    public enum AiProvider
+    {
+        OpenAiProvider,
+        GoogleAiProvider,
+    }
+
     public partial class AiServerHostedDiffusionFile
     {
         public virtual string FileName { get; set; }
         public virtual string Url { get; set; }
     }
 
-    public partial class ApiModel
-    {
-        public virtual int Id { get; set; }
-        public virtual string Name { get; set; }
-        public virtual string Parameters { get; set; }
-        public virtual int? ContextSize { get; set; }
-        public virtual string Website { get; set; }
-        public virtual string Developer { get; set; }
-        public virtual string Notes { get; set; }
-    }
-
     public partial class ApiProvider
     {
         public ApiProvider()
         {
-            TaskPaths = new Dictionary<TaskType, string>{};
             Models = new List<ApiProviderModel>{};
+            SelectedModels = new List<string>{};
         }
 
         public virtual int Id { get; set; }
         public virtual string Name { get; set; }
+        public virtual string ApiBaseUrl { get; set; }
         public virtual int ApiTypeId { get; set; }
+        public virtual string ApiKeyVar { get; set; }
         public virtual string ApiKey { get; set; }
         public virtual string ApiKeyHeader { get; set; }
-        public virtual string ApiBaseUrl { get; set; }
         public virtual string HeartbeatUrl { get; set; }
-        public virtual Dictionary<TaskType, string> TaskPaths { get; set; }
         public virtual int Concurrency { get; set; }
         public virtual int Priority { get; set; }
         public virtual bool Enabled { get; set; }
         public virtual DateTime? OfflineDate { get; set; }
         public virtual DateTime CreatedDate { get; set; }
-        public virtual ApiType ApiType { get; set; }
         public virtual List<ApiProviderModel> Models { get; set; }
+        public virtual ApiType ApiType { get; set; }
+        [Ignore]
+        public virtual List<string> SelectedModels { get; set; }
     }
 
     public partial class ApiProviderModel
     {
-        public virtual int Id { get; set; }
-        public virtual int ApiProviderId { get; set; }
         public virtual string Model { get; set; }
         public virtual string ApiModel { get; set; }
     }
@@ -150,28 +163,20 @@ namespace AiServer.ServiceModel
     {
         public ApiType()
         {
-            TaskPaths = new Dictionary<TaskType, string>{};
             ApiModels = new Dictionary<string, string>{};
         }
 
         public virtual int Id { get; set; }
+        public virtual AiProvider Provider { get; set; }
         public virtual string Name { get; set; }
         public virtual string Website { get; set; }
         public virtual string ApiBaseUrl { get; set; }
         public virtual string HeartbeatUrl { get; set; }
-        public virtual string OpenAiProvider { get; set; }
-        public virtual Dictionary<TaskType, string> TaskPaths { get; set; }
+        public virtual string Icon { get; set; }
         public virtual Dictionary<string, string> ApiModels { get; set; }
     }
 
     public partial class ChangeApiProviderStatus
-        : IReturn<StringResponse>, IPost
-    {
-        public virtual string Provider { get; set; }
-        public virtual bool Online { get; set; }
-    }
-
-    public partial class ChangeComfyApiProviderStatus
         : IReturn<StringResponse>, IPost
     {
         public virtual string Provider { get; set; }
@@ -235,12 +240,6 @@ namespace AiServer.ServiceModel
         public virtual string Role { get; set; }
     }
 
-    public partial class ComfyAgentDownloadStatus
-    {
-        public virtual string Name { get; set; }
-        public virtual int? Progress { get; set; }
-    }
-
     public partial class CreateApiKey
         : IReturn<CreateApiKeyResponse>, IPost
     {
@@ -279,30 +278,42 @@ namespace AiServer.ServiceModel
     ///Different Models available for the API
     ///</summary>
     public partial class CreateApiModel
-        : IReturn<IdResponse>, ICreateDb<ApiModel>
+        : IReturn<IdResponse>, ICreateDb<AiModel>
     {
         public virtual string Name { get; set; }
-        public virtual string Parameters { get; set; }
         public virtual string Website { get; set; }
-        public virtual int? ContextSize { get; set; }
-        public virtual string Developer { get; set; }
-        public virtual string Notes { get; set; }
+        public virtual List<string> Tags { get; set; }
+        public virtual string Latest { get; set; }
+        public virtual string Description { get; set; }
+        public virtual string Icon { get; set; }
     }
 
     ///<summary>
-    ///Create an API Provider that can process AI Tasks
+    ///Add an API Provider to process AI Requests
     ///</summary>
     public partial class CreateApiProvider
         : IReturn<IdResponse>, ICreateDb<ApiProvider>
     {
         ///<summary>
+        ///The Type of this API Provider
+        ///</summary>
+        [Validate("GreaterThan(0)")]
+        public virtual int ApiTypeId { get; set; }
+
+        ///<summary>
+        ///The Base URL for the API Provider
+        ///</summary>
+        public virtual string ApiBaseUrl { get; set; }
+        ///<summary>
         ///The unique name for this API Provider
         ///</summary>
+        [Validate("NotEmpty")]
         public virtual string Name { get; set; }
+
         ///<summary>
-        ///The behavior for this API Provider
+        ///The API Key to use for this Provider
         ///</summary>
-        public virtual int ApiTypeId { get; set; }
+        public virtual string ApiKeyVar { get; set; }
         ///<summary>
         ///The API Key to use for this Provider
         ///</summary>
@@ -312,15 +323,11 @@ namespace AiServer.ServiceModel
         ///</summary>
         public virtual string ApiKeyHeader { get; set; }
         ///<summary>
-        ///The Base URL for the API Provider
-        ///</summary>
-        public virtual string ApiBaseUrl { get; set; }
-        ///<summary>
         ///The URL to check if the API Provider is still online
         ///</summary>
         public virtual string HeartbeatUrl { get; set; }
         ///<summary>
-        ///Override API Paths for different AI Tasks
+        ///Override API Paths for different AI Requests
         ///</summary>
         public virtual Dictionary<TaskType, string> TaskPaths { get; set; }
         ///<summary>
@@ -336,120 +343,59 @@ namespace AiServer.ServiceModel
         ///</summary>
         public virtual bool Enabled { get; set; }
         ///<summary>
-        ///The models this API Provider can process
+        ///The models this API Provider should process
         ///</summary>
         public virtual List<ApiProviderModel> Models { get; set; }
-    }
-
-    ///<summary>
-    ///Register a Model supported by an API Provider
-    ///</summary>
-    public partial class CreateApiProviderModel
-        : IReturn<IdResponse>, ICreateDb<ApiProviderModel>
-    {
         ///<summary>
-        ///The ApiProvider Id
+        ///The selected models this API Provider should process
         ///</summary>
-        public virtual int ApiProviderId { get; set; }
-        ///<summary>
-        ///Supported ApiModel Name
-        ///</summary>
-        public virtual string Model { get; set; }
-        ///<summary>
-        ///Model to use when sending requests to the API Provider
-        ///</summary>
-        public virtual string ApiModel { get; set; }
-    }
-
-    ///<summary>
-    ///Create a Comfy API Model that can be used by Comfy API Providers
-    ///</summary>
-    public partial class CreateComfyApiModel
-        : IReturn<IdResponse>, ICreateDb<ComfyApiModel>
-    {
-        public virtual string Name { get; set; }
-        public virtual string Description { get; set; }
-        public virtual string Tags { get; set; }
-        public virtual string Filename { get; set; }
-        public virtual string DownloadUrl { get; set; }
-        public virtual string IconUrl { get; set; }
-        public virtual string Url { get; set; }
-        public virtual ComfyApiModelSettings ModelSettings { get; set; }
-    }
-
-    public partial class CreateComfyApiModelSettings
-        : IReturn<IdResponse>, ICreateDb<ComfyApiModelSettings>
-    {
-        public virtual int ComfyApiModelId { get; set; }
-        public virtual double? CfgScale { get; set; }
-        public virtual string Scheduler { get; set; }
-        public virtual ComfySampler? Sampler { get; set; }
-        public virtual int? Width { get; set; }
-        public virtual int? Height { get; set; }
-        public virtual int? Steps { get; set; }
-        public virtual string NegativePrompt { get; set; }
-    }
-
-    ///<summary>
-    ///Create a Comfy API Provider that can process Comfy Workflow Tasks
-    ///</summary>
-    public partial class CreateComfyApiProvider
-        : IReturn<IdResponse>, ICreateDb<ComfyApiProvider>
-    {
-        public virtual string Name { get; set; }
-        public virtual string ApiKey { get; set; }
-        public virtual string ApiKeyHeader { get; set; }
-        public virtual string ApiBaseUrl { get; set; }
-        public virtual string HeartbeatUrl { get; set; }
-        public virtual Dictionary<ComfyTaskType, string> TaskWorkflows { get; set; }
-        public virtual int Concurrency { get; set; }
-        public virtual int Priority { get; set; }
-        public virtual bool Enabled { get; set; }
-        public virtual List<ComfyApiProviderModel> Models { get; set; }
-    }
-
-    ///<summary>
-    ///Update a Comfy API Model that can be used by Comfy API Providers
-    ///</summary>
-    public partial class CreateComfyApiProviderModel
-        : IReturn<IdResponse>, ICreateDb<ComfyApiProviderModel>
-    {
-        public virtual int ComfyApiProviderId { get; set; }
-        public virtual int ComfyApiModelId { get; set; }
-    }
-
-    public partial class CreateComfyGeneration
-        : IReturn<CreateComfyGenerationResponse>, ICreateDb<ComfyGenerationTask>
-    {
-        public virtual string RefId { get; set; }
-        public virtual string Provider { get; set; }
-        public virtual string ReplyTo { get; set; }
-        public virtual string Tag { get; set; }
-        public virtual ComfyWorkflowRequest Request { get; set; }
-        public virtual Object Context { get; set; }
-    }
-
-    public partial class CreateComfyGenerationResponse
-    {
-        public virtual long Id { get; set; }
-        public virtual string RefId { get; set; }
-        public virtual ResponseStatus ResponseStatus { get; set; }
+        public virtual List<string> SelectedModels { get; set; }
     }
 
     public partial class CreateDiffusionApiProvider
         : IReturn<IdResponse>, ICreateDb<DiffusionApiProvider>
     {
+        ///<summary>
+        ///The name of the API Provider
+        ///</summary>
         public virtual string Name { get; set; }
+        ///<summary>
+        ///The API Key to use for this Provider
+        ///</summary>
         public virtual string ApiKey { get; set; }
+        ///<summary>
+        ///Send the API Key in the Header instead of Authorization Bearer
+        ///</summary>
         public virtual string ApiKeyHeader { get; set; }
+        ///<summary>
+        ///Base URL for the Diffusion Provider
+        ///</summary>
         public virtual string ApiBaseUrl { get; set; }
+        ///<summary>
+        ///Url to check if the API is online
+        ///</summary>
         public virtual string HeartbeatUrl { get; set; }
+        ///<summary>
+        ///How many requests should be made concurrently
+        ///</summary>
         public virtual int Concurrency { get; set; }
+        ///<summary>
+        ///What priority to give this Provider to use for processing models
+        ///</summary>
         public virtual int Priority { get; set; }
+        ///<summary>
+        ///Whether the Provider is enabled
+        ///</summary>
         public virtual bool Enabled { get; set; }
+        ///<summary>
+        ///The date the Provider was last online
+        ///</summary>
         public virtual DateTime? OfflineDate { get; set; }
+        ///<summary>
+        ///Models this API Provider should process
+        ///</summary>
         public virtual List<string> Models { get; set; }
-        public virtual string Type { get; set; }
+        public virtual int? DiffusionApiTypeId { get; set; }
     }
 
     [Route("/diffusion/generate", "POST")]
@@ -467,6 +413,26 @@ namespace AiServer.ServiceModel
     {
         public virtual long Id { get; set; }
         public virtual string RefId { get; set; }
+    }
+
+    public partial class CreateDiffusionModelSettings
+        : IReturn<IdResponse>, ICreateDb<DiffusionProviderModelSettings>
+    {
+        [Required]
+        public virtual string Model { get; set; }
+
+        [Required]
+        public virtual string Provider { get; set; }
+
+        public virtual double? Quality { get; set; }
+        public virtual string AspectRatio { get; set; }
+        public virtual double? CfgScale { get; set; }
+        public virtual string Scheduler { get; set; }
+        public virtual ComfySampler? Sampler { get; set; }
+        public virtual int? Width { get; set; }
+        public virtual int? Height { get; set; }
+        public virtual int? Steps { get; set; }
+        public virtual string NegativePrompt { get; set; }
     }
 
     public partial class CreateOpenAiChat
@@ -487,39 +453,10 @@ namespace AiServer.ServiceModel
     }
 
     ///<summary>
-    ///Delete a Model supported by the API Provider
+    ///Delete API Provider
     ///</summary>
-    public partial class DeleteApiProviderModel
-        : IReturn<IdResponse>, IDeleteDb<ApiProviderModel>
-    {
-        ///<summary>
-        ///The ApiProviderModel Id
-        ///</summary>
-        public virtual int Id { get; set; }
-    }
-
-    public partial class DeleteComfyApiModel
-        : IReturn<IdResponse>, IDeleteDb<ComfyApiModel>
-    {
-        public virtual int? Id { get; set; }
-        public virtual string Name { get; set; }
-    }
-
-    public partial class DeleteComfyApiModelSettings
-        : IReturn<EmptyResponse>, IDeleteDb<ComfyApiModelSettings>
-    {
-        public virtual int Id { get; set; }
-    }
-
-    public partial class DeleteComfyApiProvider
-        : IReturn<IdResponse>, IDeleteDb<ComfyApiProvider>
-    {
-        public virtual int? Id { get; set; }
-        public virtual string Name { get; set; }
-    }
-
-    public partial class DeleteComfyApiProviderModel
-        : IReturn<EmptyResponse>, IDeleteDb<ComfyApiProviderModel>
+    public partial class DeleteApiProvider
+        : IReturnVoid, IDeleteDb<ApiProvider>
     {
         public virtual int Id { get; set; }
     }
@@ -545,39 +482,36 @@ namespace AiServer.ServiceModel
         }
 
         public virtual List<DiffusionApiProviderOutput> Outputs { get; set; }
+        public virtual string Error { get; set; }
     }
 
     public partial class DiffusionImageGeneration
     {
         public virtual string Model { get; set; }
-        public virtual int Width { get; set; }
-        public virtual int Height { get; set; }
-        public virtual int Images { get; set; }
-        public virtual long? Seed { get; set; }
+        public virtual int? Steps { get; set; }
+        public virtual int BatchSize { get; set; }
+        public virtual int? Seed { get; set; }
         public virtual string PositivePrompt { get; set; }
         public virtual string NegativePrompt { get; set; }
-        public virtual int Steps { get; set; }
-    }
-
-    [Route("/comfy/{Year}/{Month}/{Day}/{Filename}")]
-    public partial class DownloadComfyFile
-        : IReturn<Stream>
-    {
-        public virtual int? Year { get; set; }
-        public virtual int? Month { get; set; }
-        public virtual int? Day { get; set; }
-        public virtual string FileName { get; set; }
-    }
-
-    public partial class DownloadComfyProviderModel
-        : IReturn<DownloadComfyProviderModelResponse>
-    {
-        public virtual int? ComfyApiProviderModelId { get; set; }
-    }
-
-    public partial class DownloadComfyProviderModelResponse
-    {
-        public virtual ComfyAgentDownloadStatus DownloadStatus { get; set; }
+        public virtual ComfyFileInput Image { get; set; }
+        public virtual ComfyFileInput Speech { get; set; }
+        public virtual ComfyFileInput Mask { get; set; }
+        public virtual Stream ImageInput { get; set; }
+        public virtual Stream SpeechInput { get; set; }
+        public virtual Stream MaskInput { get; set; }
+        public virtual ComfySampler? Sampler { get; set; }
+        public virtual string Scheduler { get; set; }
+        public virtual double? CfgScale { get; set; }
+        public virtual double? Denoise { get; set; }
+        public virtual string UpscaleModel { get; set; }
+        public virtual int? Width { get; set; }
+        public virtual int? Height { get; set; }
+        public virtual ComfyTaskType? TaskType { get; set; }
+        public virtual string Clip { get; set; }
+        public virtual double? SampleLength { get; set; }
+        public virtual ComfyMaskSource MaskChannel { get; set; }
+        public virtual string AspectRatio { get; set; }
+        public virtual double? Quality { get; set; }
     }
 
     public partial class FireComfyPeriodicTask
@@ -607,23 +541,21 @@ namespace AiServer.ServiceModel
         public virtual ResponseStatus ResponseStatus { get; set; }
     }
 
-    public partial class GetComfyGeneration
-        : IReturn<GetComfyGenerationResponse>
+    public partial class GetComfyModels
+        : IReturn<GetComfyModelsResponse>
     {
-        public virtual int? Id { get; set; }
-        public virtual string RefId { get; set; }
+        public virtual string ApiBaseUrl { get; set; }
+        public virtual string ApiKey { get; set; }
     }
 
-    public partial class GetComfyGenerationResponse
+    public partial class GetComfyModelsResponse
     {
-        public GetComfyGenerationResponse()
+        public GetComfyModelsResponse()
         {
-            Outputs = new List<AiServerHostedComfyFile>{};
+            Results = new List<string>{};
         }
 
-        public virtual CreateComfyGeneration Request { get; set; }
-        public virtual List<AiServerHostedComfyFile> Outputs { get; set; }
-        public virtual ComfyWorkflowStatus Result { get; set; }
+        public virtual List<string> Results { get; set; }
         public virtual ResponseStatus ResponseStatus { get; set; }
     }
 
@@ -653,6 +585,24 @@ namespace AiServer.ServiceModel
         : IReturn<byte[]>, IGet
     {
         public virtual string Model { get; set; }
+    }
+
+    public partial class GetOllamaModels
+        : IReturn<GetOllamaModelsResponse>, IGet
+    {
+        [Validate("NotEmpty")]
+        public virtual string ApiBaseUrl { get; set; }
+    }
+
+    public partial class GetOllamaModelsResponse
+    {
+        public GetOllamaModelsResponse()
+        {
+            Results = new List<OllamaModel>{};
+        }
+
+        public virtual List<OllamaModel> Results { get; set; }
+        public virtual ResponseStatus ResponseStatus { get; set; }
     }
 
     public partial class GetOpenAiChat
@@ -717,18 +667,53 @@ namespace AiServer.ServiceModel
         public virtual string Result { get; set; }
     }
 
-    public partial class ImportCivitAiModel
-        : IReturn<ImportCivitAiModelResponse>
+    [DataContract]
+    public partial class OllamaModel
     {
-        public virtual string Provider { get; set; }
-        public virtual string ModelUrl { get; set; }
-        public virtual ComfyApiModelSettings Settings { get; set; }
+        [DataMember(Name="name")]
+        public virtual string Name { get; set; }
+
+        [DataMember(Name="model")]
+        public virtual string Model { get; set; }
+
+        [DataMember(Name="modified_at")]
+        public virtual DateTime ModifiedAt { get; set; }
+
+        [DataMember(Name="size")]
+        public virtual long Size { get; set; }
+
+        [DataMember(Name="digest")]
+        public virtual string Digest { get; set; }
+
+        [DataMember(Name="details")]
+        public virtual OllamaModelDetails Details { get; set; }
     }
 
-    public partial class ImportCivitAiModelResponse
+    [DataContract]
+    public partial class OllamaModelDetails
     {
-        public virtual ComfyApiModel Model { get; set; }
-        public virtual ComfyApiProvider Provider { get; set; }
+        public OllamaModelDetails()
+        {
+            Families = new List<string>{};
+        }
+
+        [DataMember(Name="parent_model")]
+        public virtual string ParentModel { get; set; }
+
+        [DataMember(Name="format")]
+        public virtual string Format { get; set; }
+
+        [DataMember(Name="family")]
+        public virtual string Family { get; set; }
+
+        [DataMember(Name="families")]
+        public virtual List<string> Families { get; set; }
+
+        [DataMember(Name="parameter_size")]
+        public virtual string ParameterSize { get; set; }
+
+        [DataMember(Name="quantization_level")]
+        public virtual string QuantizationLevel { get; set; }
     }
 
     ///<summary>
@@ -998,27 +983,31 @@ namespace AiServer.ServiceModel
         public virtual int Total { get; set; }
     }
 
+    public partial class PatchDiffusionModelSettings
+        : IPatchDb<DiffusionProviderModelSettings>
+    {
+        public virtual string Id { get; set; }
+        public virtual double? Quality { get; set; }
+        public virtual string AspectRatio { get; set; }
+        public virtual double? CfgScale { get; set; }
+        public virtual string Scheduler { get; set; }
+        public virtual ComfySampler? Sampler { get; set; }
+        public virtual int? Width { get; set; }
+        public virtual int? Height { get; set; }
+        public virtual int? Steps { get; set; }
+        public virtual string NegativePrompt { get; set; }
+    }
+
     ///<summary>
     ///Different Models available in AI Server
     ///</summary>
     public partial class QueryApiModels
-        : QueryDb<ApiModel>, IReturn<QueryResponse<ApiModel>>
+        : QueryDb<AiModel>, IReturn<QueryResponse<AiModel>>
     {
     }
 
     ///<summary>
-    ///View and API Provider Models
-    ///</summary>
-    public partial class QueryApiProviderModels
-        : QueryDb<ApiProviderModel>, IReturn<QueryResponse<ApiProviderModel>>
-    {
-        public virtual int? ApiProviderId { get; set; }
-        public virtual string Model { get; set; }
-        public virtual string ApiModel { get; set; }
-    }
-
-    ///<summary>
-    ///API Providers that can process AI Tasks
+    ///API Providers
     ///</summary>
     public partial class QueryApiProviders
         : QueryDb<ApiProvider>, IReturn<QueryResponse<ApiProvider>>
@@ -1029,7 +1018,7 @@ namespace AiServer.ServiceModel
     ///<summary>
     ///The Type and behavior of different API Providers
     ///</summary>
-    public partial class QueryApiType
+    public partial class QueryApiTypes
         : QueryDb<ApiType>, IReturn<QueryResponse<ApiType>>
     {
     }
@@ -1041,58 +1030,10 @@ namespace AiServer.ServiceModel
         public virtual string RefId { get; set; }
     }
 
-    public partial class QueryComfyApiModels
-        : QueryDb<ComfyApiModel>, IReturn<QueryResponse<ComfyApiModel>>
-    {
-        public virtual string Name { get; set; }
-    }
-
-    public partial class QueryComfyApiModelSettings
-        : QueryDb<ComfyApiModelSettings>, IReturn<QueryResponse<ComfyApiModelSettings>>
-    {
-        public virtual int? ComfyApiModelId { get; set; }
-    }
-
-    public partial class QueryComfyApiProviderModels
-        : QueryDb<ComfyApiProviderModel>, IReturn<QueryResponse<ComfyApiProviderModel>>
-    {
-        public virtual int? ComfyApiProviderId { get; set; }
-        public virtual int? ComfyApiModelId { get; set; }
-    }
-
-    public partial class QueryComfyApiProviders
-        : QueryDb<ComfyApiProvider>, IReturn<QueryResponse<ComfyApiProvider>>
-    {
-        public virtual string Name { get; set; }
-    }
-
-    public partial class QueryComfyGenerationTasks
-        : QueryDb<ComfyGenerationTask>, IReturn<QueryResponse<ComfyGenerationTask>>
-    {
-        public virtual string RefId { get; set; }
-        public virtual string Provider { get; set; }
-        public virtual ComfyWorkflowStatus Status { get; set; }
-    }
-
-    public partial class QueryComfySummary
-        : QueryDb<ComfySummary>, IReturn<QueryResponse<ComfySummary>>
-    {
-        public virtual string RefId { get; set; }
-        public virtual string Provider { get; set; }
-    }
-
     public partial class QueryCompletedChatTasks
         : QueryDb<CompletedJob>, IReturn<QueryResponse<CompletedJob>>
     {
         public virtual DateTime? Db { get; set; }
-        public virtual int? Id { get; set; }
-        public virtual string RefId { get; set; }
-    }
-
-    public partial class QueryCompletedComfyTasks
-        : QueryDb<ComfyGenerationCompleted>, IReturn<QueryResponse<ComfyGenerationCompleted>>
-    {
-        public virtual string Db { get; set; }
         public virtual int? Id { get; set; }
         public virtual string RefId { get; set; }
     }
@@ -1104,16 +1045,16 @@ namespace AiServer.ServiceModel
         public virtual string Name { get; set; }
     }
 
+    public partial class QueryDiffusionModelSettings
+        : QueryDb<DiffusionProviderModelSettings>, IReturn<QueryResponse<DiffusionProviderModelSettings>>
+    {
+        public virtual string Id { get; set; }
+    }
+
     public partial class QueryFailedChatTasks
         : QueryDb<FailedJob>, IReturn<QueryResponse<FailedJob>>
     {
         public virtual DateTime? Db { get; set; }
-    }
-
-    public partial class QueryFailedComfyTasks
-        : QueryDb<ComfyGenerationFailed>, IReturn<QueryResponse<ComfyGenerationFailed>>
-    {
-        public virtual string Db { get; set; }
     }
 
     public partial class QueryJobSummary
@@ -1121,10 +1062,6 @@ namespace AiServer.ServiceModel
     {
         public virtual int? Id { get; set; }
         public virtual string RefId { get; set; }
-    }
-
-    public partial class ResetActiveComfyProviders
-    {
     }
 
     public enum ResponseFormat
@@ -1172,29 +1109,6 @@ namespace AiServer.ServiceModel
         public virtual double TokensPerSecond { get; set; }
     }
 
-    public partial class TaskBase
-    {
-        public virtual long Id { get; set; }
-        public virtual string Model { get; set; }
-        public virtual string Provider { get; set; }
-        public virtual string RefId { get; set; }
-        public virtual string Tag { get; set; }
-        public virtual string ReplyTo { get; set; }
-        public virtual DateTime CreatedDate { get; set; }
-        public virtual string CreatedBy { get; set; }
-        public virtual string Worker { get; set; }
-        public virtual string WorkerIp { get; set; }
-        public virtual string RequestId { get; set; }
-        public virtual DateTime? StartedDate { get; set; }
-        public virtual DateTime? CompletedDate { get; set; }
-        public virtual int DurationMs { get; set; }
-        public virtual int? RetryLimit { get; set; }
-        public virtual int Retries { get; set; }
-        public virtual DateTime? NotificationDate { get; set; }
-        public virtual string ErrorCode { get; set; }
-        public virtual ResponseStatus Error { get; set; }
-    }
-
     public enum TaskType
     {
         OpenAiChat = 1,
@@ -1226,89 +1140,110 @@ namespace AiServer.ServiceModel
         public virtual string Function { get; set; }
     }
 
+    public partial class UpdateApiModel
+        : IReturn<IdResponse>, IPatchDb<AiModel>
+    {
+        public virtual string Name { get; set; }
+        public virtual string Website { get; set; }
+        public virtual List<string> Tags { get; set; }
+        public virtual string Latest { get; set; }
+        public virtual string Description { get; set; }
+        public virtual string Icon { get; set; }
+    }
+
     public partial class UpdateApiProvider
         : IReturn<IdResponse>, IPatchDb<ApiProvider>
     {
         public virtual int Id { get; set; }
-        public virtual string ApiKey { get; set; }
+        ///<summary>
+        ///The Type of this API Provider
+        ///</summary>
+        public virtual int? ApiTypeId { get; set; }
+        ///<summary>
+        ///The Base URL for the API Provider
+        ///</summary>
         public virtual string ApiBaseUrl { get; set; }
-        public virtual string HeartbeatUrl { get; set; }
-        public virtual int? Concurrency { get; set; }
-        public virtual int? Priority { get; set; }
-        public virtual bool? Enabled { get; set; }
-    }
-
-    ///<summary>
-    ///Update the Model supported by the API Provider
-    ///</summary>
-    public partial class UpdateApiProviderModel
-        : IReturn<IdResponse>, IPatchDb<ApiProviderModel>
-    {
         ///<summary>
-        ///The ApiProviderModel Id
+        ///The unique name for this API Provider
         ///</summary>
-        public virtual int Id { get; set; }
-        ///<summary>
-        ///The ApiProvider Id
-        ///</summary>
-        public virtual int? ApiProviderId { get; set; }
-        ///<summary>
-        ///Supported ApiModel Name
-        ///</summary>
-        public virtual string Model { get; set; }
-        ///<summary>
-        ///Model to use when sending requests to the API Provider
-        ///</summary>
-        public virtual string ApiModel { get; set; }
-    }
-
-    public partial class UpdateComfyApiModelSettings
-        : IReturn<EmptyResponse>, IUpdateDb<ComfyApiModelSettings>
-    {
-        public virtual int Id { get; set; }
-        public virtual double? CfgScale { get; set; }
-        public virtual string Scheduler { get; set; }
-        public virtual ComfySampler? Sampler { get; set; }
-        public virtual int? Width { get; set; }
-        public virtual int? Height { get; set; }
-        public virtual int? Steps { get; set; }
-        public virtual string NegativePrompt { get; set; }
-    }
-
-    public partial class UpdateComfyApiProvider
-        : IReturn<IdResponse>, IUpdateDb<ComfyApiProvider>
-    {
-        public virtual int Id { get; set; }
         public virtual string Name { get; set; }
+        ///<summary>
+        ///The API Key to use for this Provider
+        ///</summary>
+        public virtual string ApiKeyVar { get; set; }
+        ///<summary>
+        ///The API Key to use for this Provider
+        ///</summary>
         public virtual string ApiKey { get; set; }
+        ///<summary>
+        ///Send the API Key in the Header instead of Authorization Bearer
+        ///</summary>
         public virtual string ApiKeyHeader { get; set; }
-        public virtual string ApiBaseUrl { get; set; }
+        ///<summary>
+        ///The URL to check if the API Provider is still online
+        ///</summary>
         public virtual string HeartbeatUrl { get; set; }
-        public virtual Dictionary<ComfyTaskType, string> TaskPaths { get; set; }
+        ///<summary>
+        ///Override API Paths for different AI Requests
+        ///</summary>
+        public virtual Dictionary<TaskType, string> TaskPaths { get; set; }
+        ///<summary>
+        ///How many requests should be made concurrently
+        ///</summary>
         public virtual int? Concurrency { get; set; }
+        ///<summary>
+        ///What priority to give this Provider to use for processing models
+        ///</summary>
         public virtual int? Priority { get; set; }
+        ///<summary>
+        ///Whether the Provider is enabled
+        ///</summary>
         public virtual bool? Enabled { get; set; }
-    }
-
-    public partial class UpdateComfyApiProviderModel
-        : IReturn<EmptyResponse>, IUpdateDb<ComfyApiProviderModel>
-    {
-        public virtual int Id { get; set; }
-        public virtual int ComfyApiModelId { get; set; }
-        public virtual int ComfyApiProviderId { get; set; }
+        ///<summary>
+        ///The models this API Provider should process
+        ///</summary>
+        public virtual List<ApiProviderModel> Models { get; set; }
+        ///<summary>
+        ///The selected models this API Provider should process
+        ///</summary>
+        public virtual List<string> SelectedModels { get; set; }
     }
 
     public partial class UpdateDiffusionApiProvider
-        : IReturn<DiffusionApiProvider>, IPatchDb<DiffusionApiProvider>
+        : IReturn<IdResponse>, IPatchDb<DiffusionApiProvider>
     {
         public virtual int Id { get; set; }
+        ///<summary>
+        ///The API Key to use for this Provider
+        ///</summary>
         public virtual string ApiKey { get; set; }
+        ///<summary>
+        ///Send the API Key in the Header instead of Authorization Bearer
+        ///</summary>
         public virtual string ApiKeyHeader { get; set; }
+        ///<summary>
+        ///Override Base URL for the Diffusion Provider
+        ///</summary>
         public virtual string ApiBaseUrl { get; set; }
+        ///<summary>
+        ///Url to check if the API is online
+        ///</summary>
         public virtual string HeartbeatUrl { get; set; }
+        ///<summary>
+        ///How many requests should be made concurrently
+        ///</summary>
         public virtual int? Concurrency { get; set; }
+        ///<summary>
+        ///What priority to give this Provider to use for processing models
+        ///</summary>
         public virtual int? Priority { get; set; }
+        ///<summary>
+        ///Whether the Provider is enabled
+        ///</summary>
         public virtual bool? Enabled { get; set; }
+        ///<summary>
+        ///The models this API Provider should process
+        ///</summary>
         public virtual List<string> Models { get; set; }
     }
 
@@ -1323,112 +1258,11 @@ namespace AiServer.ServiceModel
 
 namespace AiServer.ServiceModel.Types
 {
-    public partial class AiServerHostedComfyFile
-    {
-        public virtual string Url { get; set; }
-        public virtual string FileName { get; set; }
-        public virtual string ContentType { get; set; }
-    }
-
-    public partial class ComfyApiModel
-    {
-        public virtual int Id { get; set; }
-        public virtual string Name { get; set; }
-        public virtual string Description { get; set; }
-        public virtual string Tags { get; set; }
-        public virtual string Filename { get; set; }
-        public virtual string DownloadUrl { get; set; }
-        public virtual string IconUrl { get; set; }
-        public virtual string Url { get; set; }
-        public virtual DateTime CreatedDate { get; set; }
-        public virtual ComfyApiModelSettings ModelSettings { get; set; }
-    }
-
-    public partial class ComfyApiModelSettings
-    {
-        public virtual int Id { get; set; }
-        [References(typeof(AiServer.ServiceModel.Types.ComfyApiModel))]
-        public virtual int ComfyApiModelId { get; set; }
-
-        public virtual ComfyApiModel ComfyApiModel { get; set; }
-        public virtual double? CfgScale { get; set; }
-        public virtual string Scheduler { get; set; }
-        public virtual ComfySampler? Sampler { get; set; }
-        public virtual int? Width { get; set; }
-        public virtual int? Height { get; set; }
-        public virtual int? Steps { get; set; }
-        public virtual string NegativePrompt { get; set; }
-    }
-
-    public partial class ComfyApiProvider
-    {
-        public ComfyApiProvider()
-        {
-            TaskWorkflows = new Dictionary<ComfyTaskType, string>{};
-            Models = new List<ComfyApiProviderModel>{};
-        }
-
-        public virtual int Id { get; set; }
-        public virtual string Name { get; set; }
-        public virtual string ApiKey { get; set; }
-        public virtual string ApiKeyHeader { get; set; }
-        public virtual string ApiBaseUrl { get; set; }
-        public virtual string HeartbeatUrl { get; set; }
-        public virtual Dictionary<ComfyTaskType, string> TaskWorkflows { get; set; }
-        public virtual int Concurrency { get; set; }
-        public virtual int Priority { get; set; }
-        public virtual bool Enabled { get; set; }
-        public virtual DateTime? OfflineDate { get; set; }
-        public virtual DateTime CreatedDate { get; set; }
-        public virtual List<ComfyApiProviderModel> Models { get; set; }
-    }
-
-    public partial class ComfyApiProviderModel
-    {
-        public virtual int Id { get; set; }
-        [References(typeof(AiServer.ServiceModel.Types.ComfyApiProvider))]
-        public virtual int ComfyApiProviderId { get; set; }
-
-        [References(typeof(AiServer.ServiceModel.Types.ComfyApiModel))]
-        public virtual int ComfyApiModelId { get; set; }
-
-        public virtual ComfyApiProvider ComfyApiProvider { get; set; }
-        public virtual ComfyApiModel ComfyApiModel { get; set; }
-    }
-
     public partial class ComfyFileInput
     {
         public virtual string Name { get; set; }
         public virtual string Type { get; set; }
         public virtual string Subfolder { get; set; }
-    }
-
-    public partial class ComfyFileOutput
-    {
-        public virtual string Filename { get; set; }
-        public virtual string Type { get; set; }
-        public virtual string Subfolder { get; set; }
-    }
-
-    public partial class ComfyGenerationCompleted
-        : ComfyGenerationTask
-    {
-    }
-
-    public partial class ComfyGenerationFailed
-        : ComfyGenerationTask
-    {
-        public virtual DateTime FailedDate { get; set; }
-    }
-
-    public partial class ComfyGenerationTask
-        : TaskBase
-    {
-        public virtual ComfyWorkflowRequest Request { get; set; }
-        public virtual ComfyWorkflowResponse Response { get; set; }
-        public virtual ComfyWorkflowStatus Status { get; set; }
-        public virtual ComfyTaskType TaskType { get; set; }
-        public virtual string WorkflowTemplate { get; set; }
     }
 
     public enum ComfyMaskSource
@@ -1437,18 +1271,6 @@ namespace AiServer.ServiceModel.Types
         blue,
         green,
         alpha,
-    }
-
-    public partial class ComfyOutput
-    {
-        public ComfyOutput()
-        {
-            Files = new List<ComfyFileOutput>{};
-            Texts = new List<ComfyTextOutput>{};
-        }
-
-        public virtual List<ComfyFileOutput> Files { get; set; }
-        public virtual List<ComfyTextOutput> Texts { get; set; }
     }
 
     public enum ComfySampler
@@ -1479,20 +1301,6 @@ namespace AiServer.ServiceModel.Types
         uni_pc_bh2,
     }
 
-    public partial class ComfySummary
-    {
-        public virtual long Id { get; set; }
-        public virtual ComfyTaskType Type { get; set; }
-        public virtual string Model { get; set; }
-        public virtual string Provider { get; set; }
-        public virtual string RefId { get; set; }
-        public virtual string PromptId { get; set; }
-        public virtual string Tag { get; set; }
-        public virtual int DurationMs { get; set; }
-        public virtual DateTime CreatedDate { get; set; }
-        public virtual long JobId { get; set; }
-    }
-
     public enum ComfyTaskType
     {
         TextToImage = 1,
@@ -1505,72 +1313,20 @@ namespace AiServer.ServiceModel.Types
         SpeechToText = 8,
     }
 
-    public partial class ComfyTextOutput
-    {
-        public virtual string Text { get; set; }
-    }
-
-    public partial class ComfyWorkflowRequest
-    {
-        public virtual string Model { get; set; }
-        public virtual int? Steps { get; set; }
-        public virtual int BatchSize { get; set; }
-        public virtual int? Seed { get; set; }
-        public virtual string PositivePrompt { get; set; }
-        public virtual string NegativePrompt { get; set; }
-        public virtual ComfyFileInput Image { get; set; }
-        public virtual ComfyFileInput Speech { get; set; }
-        public virtual ComfyFileInput Mask { get; set; }
-        public virtual Stream ImageInput { get; set; }
-        public virtual Stream SpeechInput { get; set; }
-        public virtual Stream MaskInput { get; set; }
-        public virtual ComfySampler? Sampler { get; set; }
-        public virtual string Scheduler { get; set; }
-        public virtual double? CfgScale { get; set; }
-        public virtual double? Denoise { get; set; }
-        public virtual string UpscaleModel { get; set; }
-        public virtual int? Width { get; set; }
-        public virtual int? Height { get; set; }
-        public virtual ComfyTaskType TaskType { get; set; }
-        public virtual string Clip { get; set; }
-        public virtual double? SampleLength { get; set; }
-        public virtual ComfyMaskSource MaskChannel { get; set; }
-    }
-
-    public partial class ComfyWorkflowResponse
-    {
-        public ComfyWorkflowResponse()
-        {
-            NodeErrors = new List<NodeError>{};
-        }
-
-        public virtual string PromptId { get; set; }
-        public virtual int Number { get; set; }
-        public virtual List<NodeError> NodeErrors { get; set; }
-    }
-
-    public partial class ComfyWorkflowStatus
-    {
-        public ComfyWorkflowStatus()
-        {
-            Outputs = new List<ComfyOutput>{};
-        }
-
-        public virtual string StatusMessage { get; set; }
-        public virtual string Error { get; set; }
-        public virtual bool Completed { get; set; }
-        public virtual List<ComfyOutput> Outputs { get; set; }
-    }
-
     public partial class DiffusionApiProvider
     {
         public DiffusionApiProvider()
         {
             Models = new List<string>{};
+            ModelSettings = new Dictionary<string, DiffusionProviderModelSettings>{};
         }
 
         public virtual int Id { get; set; }
         public virtual string Name { get; set; }
+        [References(typeof(AiServer.ServiceModel.Types.DiffusionApiType))]
+        public virtual int DiffusionApiTypeId { get; set; }
+
+        public virtual string ApiKeyVar { get; set; }
         public virtual string ApiKey { get; set; }
         public virtual string ApiKeyHeader { get; set; }
         public virtual string ApiBaseUrl { get; set; }
@@ -1581,11 +1337,53 @@ namespace AiServer.ServiceModel.Types
         public virtual DateTime? OfflineDate { get; set; }
         public virtual DateTime CreatedDate { get; set; }
         public virtual List<string> Models { get; set; }
-        public virtual string Type { get; set; }
+        public virtual Dictionary<string, DiffusionProviderModelSettings> ModelSettings { get; set; }
+        public virtual string Img2ImgUpscaleModels { get; set; }
+        public virtual string Txt2SphModels { get; set; }
+        public virtual string Sph2TxtModels { get; set; }
+        public virtual string Img2TxtModels { get; set; }
+        public virtual string Txt2AudModels { get; set; }
+        public virtual DiffusionApiType Type { get; set; }
     }
 
-    public partial class NodeError
+    public partial class DiffusionApiType
     {
+        public DiffusionApiType()
+        {
+            ApiModels = new Dictionary<string, string>{};
+        }
+
+        public virtual int Id { get; set; }
+        public virtual DiffusionProvider Provider { get; set; }
+        public virtual string ApiBaseUrl { get; set; }
+        public virtual string ApiKeyHeader { get; set; }
+        public virtual string Name { get; set; }
+        public virtual string Website { get; set; }
+        public virtual string Icon { get; set; }
+        public virtual Dictionary<string, string> ApiModels { get; set; }
+    }
+
+    public enum DiffusionProvider
+    {
+        ReplicateDiffusionProvider,
+        ComfyDiffusionProvider,
+        DalleDiffusionProvider,
+    }
+
+    public partial class DiffusionProviderModelSettings
+    {
+        [Ignore]
+        public virtual string Id { get; set; }
+
+        public virtual double? Quality { get; set; }
+        public virtual string AspectRatio { get; set; }
+        public virtual double? CfgScale { get; set; }
+        public virtual string Scheduler { get; set; }
+        public virtual ComfySampler? Sampler { get; set; }
+        public virtual int? Width { get; set; }
+        public virtual int? Height { get; set; }
+        public virtual int? Steps { get; set; }
+        public virtual string NegativePrompt { get; set; }
     }
 
     public enum PeriodicFrequency
@@ -1594,6 +1392,11 @@ namespace AiServer.ServiceModel.Types
         Hourly,
         Daily,
         Monthly,
+    }
+
+    public partial class QueryDiffusionApiTypes
+        : QueryDb<DiffusionApiType>, IReturn<QueryResponse<DiffusionApiType>>
+    {
     }
 
 }

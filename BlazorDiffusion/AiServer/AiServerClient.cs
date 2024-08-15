@@ -170,10 +170,11 @@ public static class StableDiffusionClientExtensions
                 Height = request.Height,
                 Width = request.Width,
                 Seed = (int?)request.Seed ?? Random.Shared.Next(),
-                Images = request.Images,
+                BatchSize = request.Images,
                 PositivePrompt = request.Prompt,
                 NegativePrompt = $"(nsfw),(nude),(explicit),(gore),(violence),(blood)",
-                Model = request.Engine
+                Model = request.Engine,
+                TaskType = ComfyTaskType.TextToImage
             }
         };
     }
