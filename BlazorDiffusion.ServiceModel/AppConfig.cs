@@ -25,8 +25,8 @@ public class AppConfig
 
     public Dictionary<string, string> AvailableModelMappings { get; set; } = new()
     {
-        { "SDXL", "jibMixRealisticXL_v140CrystalClarity.safetensors" },
-        { "Flux", "black-forest-labs/flux-schnell"}
+        { "SDXL", "jib-mix-realistic-v14" },
+        { "Flux", "flux-schnell"}
     };
     public HashSet<string> BanWords { get; set; } = new(StringComparer.OrdinalIgnoreCase)
     {
