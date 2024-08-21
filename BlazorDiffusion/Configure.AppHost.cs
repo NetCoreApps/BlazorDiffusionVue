@@ -95,7 +95,11 @@ public class AppHost() : AppHostBase("Blazor Diffusion"), IHostingStartup
                 transformFile: ImageUtils.TransformAvatarAsync)
             ));
         
+        #if DEBUG
+            var aiServerClient = new JsonApiClient("https://localhost:5005/");
+        #else
             var aiServerClient = new JsonApiClient("https://openai.servicestack.net/");
+        #endif
             // If development, ignore SSL
             if (context.HostingEnvironment.IsDevelopment())
             {
