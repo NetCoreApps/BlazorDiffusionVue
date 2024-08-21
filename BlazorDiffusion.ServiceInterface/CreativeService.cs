@@ -69,7 +69,9 @@ public class CreativeService(
     public async Task<object> Post(CreateCreativeCallback request)
     {
         // Deserialize base64 json string to CreateCreative
-        var createCreative = Encoding.UTF8.GetString(Convert.FromBase64String(request.State)).FromJson<CreateCreative>();
+        var bytes = Convert.FromBase64String(request.State);
+        var json = Encoding.UTF8.GetString(bytes);
+        var createCreative = json.FromJson<CreateCreative>();
         
         var modifiers = await Db.SelectAsync<Modifier>(x => Sql.In(x.Id, createCreative.ModifierIds));
         var artists = createCreative.ArtistIds.Count == 0 ? new List<Artist>() :
@@ -141,7 +143,7 @@ public class CreativeService(
         var queueReq = new QueueImageGeneration
         {
             ImageGeneration = imageGenerationRequest,
-            State = request.ToJson().ToUtf8Bytes().ToBase64UrlSafe()
+            State = Convert.ToBase64String(request.ToJson().ToUtf8Bytes())
         };
         var queueImageGenerationResponse = await stableDiffusion.QueueGenerateImageAsync(queueReq);
         Db.Insert(new CreativeQueue
@@ -196,7 +198,7 @@ public class CreativeService(
         var queueReq = new QueueImageGeneration
         {
             ImageGeneration = imageGenerationRequest,
-            State = request.ToJson().ToUtf8Bytes().ToBase64UrlSafe()
+            State = Convert.ToBase64String(request.ToJson().ToUtf8Bytes())
         };
         var imageGenerationResponse = await stableDiffusion.QueueGenerateImageAsync(queueReq);
         Db.Insert(new CreativeQueue
