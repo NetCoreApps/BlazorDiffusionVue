@@ -1,5 +1,5 @@
 /* Options:
-Date: 2024-08-15 15:56:53
+Date: 2024-08-21 10:25:52
 Version: 8.31
 Tip: To override a DTO option, remove "//" prefix before updating
 BaseUrl: https://localhost:5005
@@ -404,7 +404,7 @@ namespace AiServer.ServiceModel
     {
         public virtual string Provider { get; set; }
         public virtual DiffusionImageGeneration Request { get; set; }
-        public virtual Object Context { get; set; }
+        public virtual string State { get; set; }
         public virtual string ReplyTo { get; set; }
         public virtual string RefId { get; set; }
     }
@@ -413,26 +413,6 @@ namespace AiServer.ServiceModel
     {
         public virtual long Id { get; set; }
         public virtual string RefId { get; set; }
-    }
-
-    public partial class CreateDiffusionModelSettings
-        : IReturn<IdResponse>, ICreateDb<DiffusionProviderModelSettings>
-    {
-        [Required]
-        public virtual string Model { get; set; }
-
-        [Required]
-        public virtual string Provider { get; set; }
-
-        public virtual double? Quality { get; set; }
-        public virtual string AspectRatio { get; set; }
-        public virtual double? CfgScale { get; set; }
-        public virtual string Scheduler { get; set; }
-        public virtual ComfySampler? Sampler { get; set; }
-        public virtual int? Width { get; set; }
-        public virtual int? Height { get; set; }
-        public virtual int? Steps { get; set; }
-        public virtual string NegativePrompt { get; set; }
     }
 
     public partial class CreateOpenAiChat
@@ -512,17 +492,6 @@ namespace AiServer.ServiceModel
         public virtual ComfyMaskSource MaskChannel { get; set; }
         public virtual string AspectRatio { get; set; }
         public virtual double? Quality { get; set; }
-    }
-
-    public partial class FireComfyPeriodicTask
-    {
-        public virtual PeriodicFrequency Frequency { get; set; }
-    }
-
-    public partial class FirePeriodicTask
-        : IReturn<EmptyResponse>, IPost
-    {
-        public virtual PeriodicFrequency Frequency { get; set; }
     }
 
     public partial class GetActiveProviders
@@ -614,7 +583,7 @@ namespace AiServer.ServiceModel
 
     public partial class GetOpenAiChatResponse
     {
-        public virtual BackgroundJob Result { get; set; }
+        public virtual BackgroundJobBase Result { get; set; }
         public virtual ResponseStatus ResponseStatus { get; set; }
     }
 
@@ -983,21 +952,6 @@ namespace AiServer.ServiceModel
         public virtual int Total { get; set; }
     }
 
-    public partial class PatchDiffusionModelSettings
-        : IPatchDb<DiffusionProviderModelSettings>
-    {
-        public virtual string Id { get; set; }
-        public virtual double? Quality { get; set; }
-        public virtual string AspectRatio { get; set; }
-        public virtual double? CfgScale { get; set; }
-        public virtual string Scheduler { get; set; }
-        public virtual ComfySampler? Sampler { get; set; }
-        public virtual int? Width { get; set; }
-        public virtual int? Height { get; set; }
-        public virtual int? Steps { get; set; }
-        public virtual string NegativePrompt { get; set; }
-    }
-
     ///<summary>
     ///Different Models available in AI Server
     ///</summary>
@@ -1064,39 +1018,59 @@ namespace AiServer.ServiceModel
         public virtual string RefId { get; set; }
     }
 
+    public partial class QueueFailedJobs
+        : IReturn<QueueFailedJobsResponse>
+    {
+        public virtual DateTime? Month { get; set; }
+    }
+
+    public partial class QueueFailedJobsResponse
+    {
+        public QueueFailedJobsResponse()
+        {
+            Results = new List<FailedJob>{};
+        }
+
+        public virtual List<FailedJob> Results { get; set; }
+        public virtual ResponseStatus ResponseStatus { get; set; }
+    }
+
+    public partial class Reload
+        : IReturn<EmptyResponse>, IPost
+    {
+    }
+
+    public partial class RequeFailedJobs
+        : IReturn<RequeFailedJobsResponse>
+    {
+        public RequeFailedJobs()
+        {
+            Ids = new List<long>{};
+        }
+
+        public virtual List<long> Ids { get; set; }
+        public virtual bool? All { get; set; }
+    }
+
+    public partial class RequeFailedJobsResponse
+    {
+        public RequeFailedJobsResponse()
+        {
+            Results = new List<long>{};
+            Errors = new Dictionary<long, string>{};
+        }
+
+        public virtual List<long> Results { get; set; }
+        public virtual Dictionary<long, string> Errors { get; set; }
+        public virtual ResponseStatus ResponseStatus { get; set; }
+    }
+
     public enum ResponseFormat
     {
         [EnumMember(Value="text")]
         Text,
         [EnumMember(Value="json_object")]
         JsonObject,
-    }
-
-    public partial class RestartComfyWorkers
-    {
-    }
-
-    public partial class RestartWorkers
-        : IReturn<EmptyResponse>, IPost
-    {
-    }
-
-    public partial class StartComfyWorkers
-    {
-    }
-
-    public partial class StartWorkers
-        : IReturn<EmptyResponse>, IPost
-    {
-    }
-
-    public partial class StopComfyWorkers
-    {
-    }
-
-    public partial class StopWorkers
-        : IReturn<EmptyResponse>, IPost
-    {
     }
 
     public partial class SummaryStats
@@ -1386,14 +1360,6 @@ namespace AiServer.ServiceModel.Types
         public virtual string NegativePrompt { get; set; }
     }
 
-    public enum PeriodicFrequency
-    {
-        Minute,
-        Hourly,
-        Daily,
-        Monthly,
-    }
-
     public partial class QueryDiffusionApiTypes
         : QueryDb<DiffusionApiType>, IReturn<QueryResponse<DiffusionApiType>>
     {
@@ -1404,9 +1370,15 @@ namespace AiServer.ServiceModel.Types
 namespace ServiceStack.Jobs
 {
     public partial class BackgroundJob
+        : BackgroundJobBase
+    {
+        public virtual long Id { get; set; }
+    }
+
+    public partial class BackgroundJobBase
         : IMeta
     {
-        public BackgroundJob()
+        public BackgroundJobBase()
         {
             Args = new Dictionary<string, string>{};
             Meta = new Dictionary<string, string>{};
@@ -1418,6 +1390,7 @@ namespace ServiceStack.Jobs
         public virtual string Worker { get; set; }
         public virtual string Tag { get; set; }
         public virtual string Callback { get; set; }
+        public virtual long? DependsOn { get; set; }
         public virtual DateTime? RunAfter { get; set; }
         public virtual DateTime CreatedDate { get; set; }
         public virtual string CreatedBy { get; set; }
@@ -1426,17 +1399,17 @@ namespace ServiceStack.Jobs
         public virtual string Command { get; set; }
         public virtual string Request { get; set; }
         public virtual string RequestBody { get; set; }
-        public virtual string RequestUserId { get; set; }
+        public virtual string UserId { get; set; }
         public virtual string Response { get; set; }
         public virtual string ResponseBody { get; set; }
         public virtual BackgroundJobState State { get; set; }
         public virtual DateTime? StartedDate { get; set; }
         public virtual DateTime? CompletedDate { get; set; }
         public virtual DateTime? NotifiedDate { get; set; }
-        public virtual int DurationMs { get; set; }
-        public virtual int? TimeoutSecs { get; set; }
         public virtual int? RetryLimit { get; set; }
         public virtual int Attempts { get; set; }
+        public virtual int DurationMs { get; set; }
+        public virtual int? TimeoutSecs { get; set; }
         public virtual double? Progress { get; set; }
         public virtual string Status { get; set; }
         public virtual string Logs { get; set; }
@@ -1446,14 +1419,6 @@ namespace ServiceStack.Jobs
         public virtual ResponseStatus Error { get; set; }
         public virtual Dictionary<string, string> Args { get; set; }
         public virtual Dictionary<string, string> Meta { get; set; }
-        [Ignore]
-        public virtual bool Transient { get; set; }
-
-        [Ignore]
-        public virtual Action<Object> OnSuccess { get; set; }
-
-        [Ignore]
-        public virtual Action<Exception> OnFailed { get; set; }
     }
 
     public enum BackgroundJobState
@@ -1467,12 +1432,12 @@ namespace ServiceStack.Jobs
     }
 
     public partial class CompletedJob
-        : BackgroundJob
+        : BackgroundJobBase
     {
     }
 
     public partial class FailedJob
-        : BackgroundJob
+        : BackgroundJobBase
     {
     }
 
@@ -1485,18 +1450,17 @@ namespace ServiceStack.Jobs
         public virtual string Tag { get; set; }
         public virtual DateTime CreatedDate { get; set; }
         public virtual string CreatedBy { get; set; }
-        public virtual string RequestId { get; set; }
         public virtual string RequestType { get; set; }
+        public virtual string Command { get; set; }
         public virtual string Request { get; set; }
         public virtual string Response { get; set; }
-        public virtual string RequestUserId { get; set; }
+        public virtual string UserId { get; set; }
         public virtual string Callback { get; set; }
         public virtual DateTime? StartedDate { get; set; }
         public virtual DateTime? CompletedDate { get; set; }
-        public virtual BackgroundJobState Status { get; set; }
+        public virtual BackgroundJobState State { get; set; }
         public virtual int DurationMs { get; set; }
-        public virtual int? RetryLimit { get; set; }
-        public virtual int Retries { get; set; }
+        public virtual int Attempts { get; set; }
         public virtual string ErrorCode { get; set; }
         public virtual string ErrorMessage { get; set; }
     }

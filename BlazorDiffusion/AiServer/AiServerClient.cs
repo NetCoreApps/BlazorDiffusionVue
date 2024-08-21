@@ -26,7 +26,7 @@ public class AiServerClient: IStableDiffusionClient
     public async Task<QueueImageGenerationResponse> QueueGenerateImageAsync(QueueImageGeneration request)
     {
         var req = request.ImageGeneration.ToComfy();
-        req.Context = request.Context;
+        req.State = request.State;
         req.ReplyTo = (!string.IsNullOrEmpty(ReplyToAuthSecret) ? ReplyToAuthSecret + "@" : "")
                       + ReplyToUrl.CombineWith(req.RefId);
         var apiRes = await Client.ApiAsync(req);

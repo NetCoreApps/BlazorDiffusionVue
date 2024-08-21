@@ -4,6 +4,7 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 using BlazorDiffusion.ServiceModel;
 using Microsoft.AspNetCore.Identity;
@@ -13,10 +14,8 @@ using ServiceStack;
 using ServiceStack.Auth;
 using ServiceStack.DataAnnotations;
 using ServiceStack.IO;
-using ServiceStack.Logging;
 using ServiceStack.OrmLite;
 using ServiceStack.Text;
-using SixLabors.ImageSharp;
 
 namespace BlazorDiffusion.ServiceInterface;
 
@@ -71,7 +70,8 @@ public class CreativeService(
 
     public async Task<object> Post(CreateCreativeCallback request)
     {
-        var createCreative = request.Context;
+        // Deserialize base64 json string to CreateCreative
+        var createCreative = Encoding.UTF8.GetString(Convert.FromBase64String(request.State)).FromJson<CreateCreative>();
         
         var modifiers = await Db.SelectAsync<Modifier>(x => Sql.In(x.Id, createCreative.ModifierIds));
         var artists = createCreative.ArtistIds.Count == 0 ? new List<Artist>() :
@@ -143,7 +143,7 @@ public class CreativeService(
         var queueReq = new QueueImageGeneration
         {
             ImageGeneration = imageGenerationRequest,
-            Context = request
+            State = request.ToJson().ToUtf8Bytes().ToBase64UrlSafe()
         };
         var queueImageGenerationResponse = await stableDiffusion.QueueGenerateImageAsync(queueReq);
         Db.Insert(new CreativeQueue
@@ -198,7 +198,7 @@ public class CreativeService(
         var queueReq = new QueueImageGeneration
         {
             ImageGeneration = imageGenerationRequest,
-            Context = request
+            State = request.ToJson().ToUtf8Bytes().ToBase64UrlSafe()
         };
         var imageGenerationResponse = await stableDiffusion.QueueGenerateImageAsync(queueReq);
         Db.Insert(new CreativeQueue
@@ -594,7 +594,10 @@ public class CreateCreativeCallback : IReturn<CreateCreativeCallbackResponse>
     /// </summary>
     public string RefId { get; set; }
     
-    public CreateCreative Context { get; set; }
+    /// <summary>
+    /// CreateCreative base64 encoded JSON
+    /// </summary>
+    public string State { get; set; }
 }
 
 public class CreateCreativeCallbackResponse
@@ -692,7 +695,7 @@ public class ImageGenerationResult
 public class QueueImageGeneration : IReturn<QueueImageGenerationResponse>
 {
     public ImageGeneration ImageGeneration { get; set; }
-    public object Context { get; set; }
+    public string State { get; set; }
 }
 
 public class QueueImageGenerationResponse
