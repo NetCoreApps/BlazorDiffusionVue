@@ -157,14 +157,14 @@ export default {
             </div>
         </div>
         
-        <div class="mt-8 mb-4">
+        <div class="mb-4">
           <h3 class="text-lg font-medium mb-4 text-center">Select Model</h3>
-          <div class="flex justify-center space-x-4">
+          <div class="mx-auto grid grid-cols-2 gap-x-4 w-80">
             <div v-for="model in models" :key="model.name" 
                  @click="selectModel(model)"
-                 :class="['cursor-pointer p-2 rounded-lg transition-colors w-[110px]', 
-                          selectedModel.name === model.name ? 'bg-indigo-100 dark:bg-indigo-800' : 'hover:bg-gray-100 dark:hover:bg-gray-800']">
-              <div class="w-[100px] h-[100px] mb-2 mx-auto overflow-hidden">
+                 :class="['cursor-pointer transition-colors relative cursor-pointer overflow-hidden rounded-lg ring-1 border border-transparent focus:outline-none', 
+                          selectedModel.name === model.name ? 'bg-indigo-700 border-indigo-700 ring-indigo-700' : 'ring-gray-800 bg-gray-800 border-gray-800 hover:ring-indigo-500 hover:border-indigo-500']">
+              <div class="">
                 <img :src="model.imgUrl" :alt="model.name" class="w-full h-full object-cover">
               </div>
               <p class="text-sm text-center">{{ model.name }}</p>
@@ -366,8 +366,8 @@ export default {
         const instance = getCurrentInstance()
         const qs = queryString(location.search)
         const models = ref([
-            { name: "SDXL", imgUrl: "https://image.civitai.com/xG1nkqKTMzGDvpLrqFT7WA/0d074c63-1ab6-4e58-9141-7681ec5be94c/width=450/17898822.jpeg" },
-            { name: "Flux", imgUrl: "/img/flux-model.jpg" }
+            { name: "SDXL", imgUrl: "/img/sdxl1.webp" },
+            { name: "FLUX", imgUrl: "/img/flux1.webp" }
         ]);
 
         const selectedModel = ref(models.value[0]);
