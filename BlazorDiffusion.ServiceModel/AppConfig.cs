@@ -23,11 +23,6 @@ public class AppConfig
     public string AssetsBasePath { get; set; }
     public string FallbackAssetsBasePath { get; set; }
 
-    public Dictionary<string, string> AvailableModelMappings { get; set; } = new()
-    {
-        { "SDXL", "jib-mix-realistic-v14" },
-        { "Flux", "flux-schnell"}
-    };
     public HashSet<string> BanWords { get; set; } = new(StringComparer.OrdinalIgnoreCase)
     {
         "panties",

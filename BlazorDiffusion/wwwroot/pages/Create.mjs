@@ -159,13 +159,13 @@ export default {
         
         <div class="mb-4">
           <h3 class="text-lg font-medium mb-4 text-center">Select Model</h3>
-          <div class="mx-auto grid grid-cols-2 gap-x-4 w-80">
-            <div v-for="model in models" :key="model.name" 
+          <div class="mx-auto grid grid-cols-2 gap-4 w-80">
+            <div v-for="model in models" :key="model.id" 
                  @click="selectModel(model)"
                  :class="['cursor-pointer transition-colors relative cursor-pointer overflow-hidden rounded-lg ring-1 border border-transparent focus:outline-none', 
-                          selectedModel.name === model.name ? 'bg-indigo-700 border-indigo-700 ring-indigo-700' : 'ring-gray-800 bg-gray-800 border-gray-800 hover:ring-indigo-500 hover:border-indigo-500']">
+                          selectedModel.id === model.id ? 'bg-indigo-700 border-indigo-700 ring-indigo-700' : 'ring-gray-800 bg-gray-800 border-gray-800 hover:ring-indigo-500 hover:border-indigo-500']">
               <div class="">
-                <img :src="model.imgUrl" :alt="model.name" class="w-full h-full object-cover">
+                <img :src="model.icon" :alt="model.name" class="w-full h-full object-cover">
               </div>
               <p class="text-sm text-center">{{ model.name }}</p>
             </div>
@@ -361,14 +361,20 @@ export default {
         /** @type {Store} */
         const store = inject('store')
         const client = useClient()
-        const { user } = useAuth()
+        const { user, hasRole } = useAuth()
         const { pushState } = useUtils()
         const instance = getCurrentInstance()
         const qs = queryString(location.search)
+        const admin = true
         const models = ref([
-            { name: "SDXL", imgUrl: "/img/sdxl1.webp" },
-            { name: "FLUX", imgUrl: "/img/flux1.webp" }
-        ]);
+            { id:"jib-mix-realistic", name: "SDXL",      icon: "/img/jib-mix-realistic.webp" },
+            { id:"flux-schnell",      name: "FLUX",      icon: "/img/flux-schnell.webp" },
+            { id:"sdxl-lightning",    name: "Lightning", icon: "/img/sdxl-lightning.webp", admin },
+            { id:"dall-e-3",          name: "DALL-E 3",  icon: "/img/dall-e-3.webp",       admin },
+        ])
+        if (!hasRole('Admin')) {
+            models.value = models.value.filter(x => !x.admin)
+        }
 
         const selectedModel = ref(models.value[0]);
         
@@ -550,7 +556,7 @@ export default {
                     : 1024
             request.value.artistIds = artists.value.map(x => x.id)
             request.value.modifierIds = modifiers.value.map(x => x.id)
-            request.value.engineId = selectedModel.value.name
+            request.value.engineId = selectedModel.value.id
             loading.value = true
             api.value = await client.api(request.value)
             if (api.value.succeeded) {
