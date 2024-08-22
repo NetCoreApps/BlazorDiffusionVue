@@ -244,6 +244,8 @@ public class BackgroundMqServices(ILogger<BackgroundMqServices> log, IStableDiff
                 RefId = x.RefId,
             });
             await Db.InsertAllAsync(ftsArtifacts);
+            // If retry callbacks fire, they will fail since there is no CreativeQueue reference.
+            await Db.DeleteAsync<CreativeQueue>(x => x.RefId == creative.RefId);
             await Any(new DiskTasks { SaveCreative = request.NewCreative });
         }
 

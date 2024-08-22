@@ -82,8 +82,20 @@ public class CreativeService(
             throw HttpError.NotFound("ImageGenerationResponse not found");
         
         var creativeQueue = await Db.SingleAsync<CreativeQueue>(x => x.RefId == request.RefId);
+        Creative? creative = null;
         if (creativeQueue == null)
-            throw HttpError.NotFound("CreativeQueue not found");
+        {
+            // Already processed
+            log?.LogWarning("CreativeQueue not found for RefId (likely duplicate): {RefId}", request.RefId);
+            // Find existing Creative
+            creative = await Db.SingleAsync<Creative>(x => x.RefId == request.RefId);
+            if (creative == null)
+            {
+                log?.LogError("Creative and CreativeQueue not found for RefId: {RefId}", request.RefId);
+                throw HttpError.NotFound("Creative not found");
+            }
+            return new CreateCreativeResponse { Result = creative };
+        }
         
         var creativeId = await PersistCreative(createCreative, 
             imageGenerationResponse, 
@@ -92,7 +104,7 @@ public class CreativeService(
             creativeQueue.UserId,
             creativeQueue.RefId);
     
-        var creative = await Db.LoadSingleByIdAsync<Creative>(creativeId);
+        creative = await Db.LoadSingleByIdAsync<Creative>(creativeId);
     
         PublishMessage(new BackgroundTasks { NewCreative = creative });
     
