@@ -53,6 +53,7 @@ public class Creative : AuditBase
     public int Score { get; set; }
     [Default(0)]
     public int Rank { get; set; }
+    [Index(Unique = true)]
     public string RefId { get; set; }
     public string RequestId { get; set; }
     public string EngineId { get; set; }
