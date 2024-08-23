@@ -68,6 +68,9 @@ public class CreativeService(
 
     public async Task<object> Post(CreateCreativeCallback request)
     {
+        if (request.Outputs == null || !request.Outputs.Any())
+            throw new ArgumentException("No outputs provided");
+        
         // Deserialize base64 json string to CreateCreative
         var bytes = Convert.FromBase64String(request.State);
         var json = Encoding.UTF8.GetString(bytes);
@@ -77,9 +80,32 @@ public class CreativeService(
         var artists = createCreative.ArtistIds.Count == 0 ? new List<Artist>() :
             await Db.SelectAsync<Artist>(x => Sql.In(x.Id, createCreative.ArtistIds));
 
-        var imageGenerationResponse = await stableDiffusion.GetQueueResult(request.RefId);
-        if (imageGenerationResponse == null)
-            throw HttpError.NotFound("ImageGenerationResponse not found");
+        var now = DateTime.UtcNow;
+        var response = new ImageGenerationResponse
+        {
+            RequestId = request.RefId,
+            EngineId = "comfy",
+            Key = $"{now:yyyy/MM/dd}/{(long)now.TimeOfDay.TotalMilliseconds}",
+            Results = new(),
+        };
+        foreach(var item in request.Outputs)
+        {
+            var variant = createCreative.Height > createCreative.Width ? "height" : "width";
+            response.Results.Add(new() {
+                Prompt = createCreative.UserPrompt,
+                AnswerId = request.RefId,
+                FilePath = item.Url,
+                FileName = item.FileName,
+                Width = (int)createCreative.Width!,
+                Height = (int)createCreative.Height!,
+                FilePathSmall = $"/variants/{variant}=118".CombineWith(item.Url.RightPart("/artifacts")),
+                FilePathMedium = $"/variants/{variant}=288".CombineWith(item.Url.RightPart("/artifacts")),
+                FilePathLarge = $"/variants/{variant}=1024".CombineWith(item.Url.RightPart("/artifacts")),
+                // No longer have the bytes here, can look at updating info in bg job
+                // ContentLength = bytes.Length,
+                // ImageDetails = imageDetails,
+            });
+        }
         
         var creativeQueue = await Db.SingleAsync<CreativeQueue>(x => x.RefId == request.RefId);
         Creative? creative = null;
@@ -98,7 +124,7 @@ public class CreativeService(
         }
         
         var creativeId = await PersistCreative(createCreative, 
-            imageGenerationResponse, 
+            response, 
             modifiers, 
             artists,
             creativeQueue.UserId,
@@ -518,7 +544,7 @@ public class CreativeService(
 
         transaction.Commit();
 
-        await stableDiffusion.DeleteFolderAsync(creative);
+        // await stableDiffusion.DeleteFolderAsync(creative);
 
         using var analyticsDb = OpenDbConnection(Databases.Analytics);
         await analyticsDb.DeleteAsync<ArtifactStat>(x => artifactIds.Contains(x.ArtifactId));
@@ -604,6 +630,12 @@ public class CreateCreativeCallback : IReturn<CreateCreativeCallbackResponse>
     /// CreateCreative base64 encoded JSON
     /// </summary>
     public string State { get; set; }
+    public List<DiffusionApiProviderOutput> Outputs { get; set; }
+}
+public class DiffusionApiProviderOutput
+{
+    public string FileName { get; set; }
+    public string Url { get; set; }
 }
 
 public class CreateCreativeCallbackResponse

@@ -539,14 +539,9 @@ namespace AiServer.ServiceModel
 
     public partial class GetDiffusionGenerationResponse
     {
-        public GetDiffusionGenerationResponse()
-        {
-            Outputs = new List<AiServerHostedDiffusionFile>{};
-        }
-
         public virtual DiffusionImageGeneration Request { get; set; }
         public virtual DiffusionGenerationResponse Result { get; set; }
-        public virtual List<AiServerHostedDiffusionFile> Outputs { get; set; }
+        public virtual List<DiffusionApiProviderOutput> Outputs { get; set; }
     }
 
     [Route("/icons/models/{Model}", "GET")]

@@ -45,7 +45,9 @@ public class AppHost() : AppHostBase("Blazor Diffusion"), IHostingStartup
                 R2AccessKey = r2AccessKey,
                 ArtifactBucket = "diffusion",
                 CdnBucket = "diffusion-client",
-                AssetsBasePath = r2AccessId != null ? "https://cdn.diffusion.works" : "/uploads",
+                AssetsBasePath = r2AccessId != null 
+                    ? "https://cdn.diffusion.works" 
+                    : "/uploads",
                 FallbackAssetsBasePath = r2AccessId != null ? "https://pub-97bba6b94a944260b10a6e7d4bf98053.r2.dev" : "/uploads",
                 SyncTasksInterval = TimeSpan.FromMinutes(10),
             });
