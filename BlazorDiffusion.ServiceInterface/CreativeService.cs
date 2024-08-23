@@ -522,33 +522,33 @@ public class CreativeService(
         Updated.CreativeIds.Add(creative.Id);
     }
 
-    public async Task Delete(HardDeleteCreative request)
+    public void Delete(HardDeleteCreative request)
     {
-        var creative = await Db.SingleByIdAsync<Creative>(request.Id);
+        var creative = Db.SingleById<Creative>(request.Id);
         if (creative == null)
             throw HttpError.NotFound($"Creative {request.Id} does not exist");
 
-        var artifacts = await Db.SelectAsync<Artifact>(x => x.CreativeId == request.Id);
+        var artifacts = Db.Select<Artifact>(x => x.CreativeId == request.Id);
         var artifactIds = artifacts.Select(x => x.Id).ToSet();
 
         using var transaction = Db.OpenTransaction();
 
-        await Db.DeleteAsync<AlbumArtifact>(x => artifactIds.Contains(x.ArtifactId));
-        await Db.DeleteAsync<ArtifactReport>(x => artifactIds.Contains(x.ArtifactId));
-        await Db.DeleteAsync<ArtifactLike>(x => artifactIds.Contains(x.ArtifactId));
-        await Db.DeleteAsync<Artifact>(x => x.CreativeId == request.Id);
-        await Db.DeleteAsync<CreativeArtist>(x => x.CreativeId == request.Id);
-        await Db.DeleteAsync<CreativeModifier>(x => x.CreativeId == request.Id);
-        await Db.DeleteAsync<Creative>(x => x.Id == request.Id);
-        await Db.DeleteAsync<ArtifactFts>(x => x.CreativeId == request.Id);
+        Db.Delete<AlbumArtifact>(x => artifactIds.Contains(x.ArtifactId));
+        Db.Delete<ArtifactReport>(x => artifactIds.Contains(x.ArtifactId));
+        Db.Delete<ArtifactLike>(x => artifactIds.Contains(x.ArtifactId));
+        Db.Delete<Artifact>(x => x.CreativeId == request.Id);
+        Db.Delete<CreativeArtist>(x => x.CreativeId == request.Id);
+        Db.Delete<CreativeModifier>(x => x.CreativeId == request.Id);
+        Db.Delete<Creative>(x => x.Id == request.Id);
+        Db.Delete<ArtifactFts>(x => x.CreativeId == request.Id);
 
         transaction.Commit();
 
         // await stableDiffusion.DeleteFolderAsync(creative);
 
         using var analyticsDb = OpenDbConnection(Databases.Analytics);
-        await analyticsDb.DeleteAsync<ArtifactStat>(x => artifactIds.Contains(x.ArtifactId));
-        await analyticsDb.DeleteAsync<SearchStat>(x => x.ArtifactId != null && artifactIds.Contains(x.ArtifactId.Value));
+        analyticsDb.Delete<ArtifactStat>(x => artifactIds.Contains(x.ArtifactId));
+        analyticsDb.Delete<SearchStat>(x => x.ArtifactId != null && artifactIds.Contains(x.ArtifactId.Value));
     }
 
     public object Any(DeleteCdnFilesMq request)
