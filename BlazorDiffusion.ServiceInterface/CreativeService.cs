@@ -90,6 +90,12 @@ public class CreativeService(
         };
         foreach(var item in request.Outputs)
         {
+            if (item.Url.StartsWith("http"))
+            {
+                log.LogError("Invalid image path, expected path starting with `/artifacts` got: {url}", item.Url");
+                throw new NotSupportedException("Invalid image path returned");
+            }
+            
             var variant = createCreative.Height > createCreative.Width ? "height" : "width";
             response.Results.Add(new() {
                 Prompt = createCreative.UserPrompt,
