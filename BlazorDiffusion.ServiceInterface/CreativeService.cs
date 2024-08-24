@@ -68,8 +68,10 @@ public class CreativeService(
 
     public async Task<object> Post(CreateCreativeCallback request)
     {
+        if (request.ResponseStatus != null)
+            throw new HttpError(request.ResponseStatus, HttpStatusCode.GatewayTimeout);
         if (request.Outputs == null || !request.Outputs.Any())
-            throw new ArgumentException("No outputs provided");
+            throw new ArgumentException("No outputs were provided");
         
         // Deserialize base64 json string to CreateCreative
         var bytes = Convert.FromBase64String(request.State);
@@ -636,7 +638,8 @@ public class CreateCreativeCallback : IReturn<CreateCreativeCallbackResponse>
     /// CreateCreative base64 encoded JSON
     /// </summary>
     public string State { get; set; }
-    public List<DiffusionApiProviderOutput> Outputs { get; set; }
+    public List<DiffusionApiProviderOutput>? Outputs { get; set; }
+    public ResponseStatus? ResponseStatus { get; set; }
 }
 public class DiffusionApiProviderOutput
 {
