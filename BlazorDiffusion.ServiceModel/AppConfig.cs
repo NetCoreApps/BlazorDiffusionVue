@@ -12,7 +12,8 @@ public class AppConfig
     public static AppConfig Instance { get; private set; } = new();
     public string? GitPagesBaseUrl { get; set; }
     public string BaseUrl { get; set; }
-    public string AiServerUrl { get; set; }
+    public string AiServerBaseUrl { get; set; }
+    public string? AiServerApiKey { get; set; }
     public string ApiBaseUrl { get; set; }
     public string WwwBaseUrl { get; set; }
     public string CdnBaseUrl { get; set; }
@@ -35,6 +36,6 @@ public class AppConfig
     /// Ignore saving creatives + pre-rendering pages to avoid Hot Reload reloading page
     /// </summary>
     public bool DisableWrites { get; set; }
-    public TimeSpan SyncTasksInterval { get; set; }
+    public TimeSpan SyncTasksInterval { get; set; } = TimeSpan.FromMinutes(10);
     public static AppConfig Set(AppConfig instance) => Instance = instance;
 }

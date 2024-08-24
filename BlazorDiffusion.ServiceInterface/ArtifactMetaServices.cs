@@ -72,7 +72,7 @@ public class ArtifactServices(AppConfig appConfig) : Service
         });
 
         long? contentLength = null;
-        var url = appConfig.AiServerUrl.CombineWith(artifact.FilePathLarge);
+        var url = appConfig.AiServerBaseUrl.CombineWith(artifact.FilePathLarge);
         var imageBytes = await url.GetBytesFromUrlAsync(responseFilter:res => contentLength = res.GetContentLength());
         var headerValue = $"attachment; {HttpExt.GetDispositionFileName(artifact.FileName)}; " + 
             (contentLength != null ? $"size={contentLength}; " : "") +
