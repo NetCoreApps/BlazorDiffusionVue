@@ -29,6 +29,11 @@ public class AppHost() : AppHostBase("Blazor Diffusion"), IHostingStartup
             apiUrl = !string.IsNullOrEmpty(apiUrl)
                 ? $"https://{apiUrl}"
                 : null;
+            
+            var aiServerUrl = "https://ai-server-cdn.diffusion.works";
+            #if DEBUG
+            aiServerUrl = "https://localhost:5005";
+            #endif
 
             // set in launchSettings.json
             var r2AccessId = Environment.GetEnvironmentVariable("R2_ACCESS_KEY_ID");
@@ -38,6 +43,7 @@ public class AppHost() : AppHostBase("Blazor Diffusion"), IHostingStartup
             {
                 BaseUrl = baseUrl,
                 ApiBaseUrl = apiUrl ?? baseUrl,
+                AiServerUrl = aiServerUrl,
                 WwwBaseUrl = baseUrl,
                 CdnBaseUrl = baseUrl,
                 R2Account = "b95f38ca3a6ac31ea582cd624e6eb385",

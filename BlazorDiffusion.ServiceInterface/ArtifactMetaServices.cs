@@ -58,11 +58,7 @@ public class ArtifactServices(AppConfig appConfig) : Service
         var artifact = !string.IsNullOrEmpty(request.RefId)
             ? await Db.SingleAsync<Artifact>(x => x.RefId == request.RefId)
             : null;
-        var file = artifact?.FilePath != null
-            ? VirtualFiles.GetFile(artifact.FilePath)
-            : null;
-
-        if (file == null)
+        if (artifact?.FilePathLarge == null)
             return HttpError.NotFound("File not found");
 
         PublishMessage(new AnalyticsTasks {
@@ -72,10 +68,19 @@ public class ArtifactServices(AppConfig appConfig) : Service
                 RefId = artifact.RefId,
                 Source = nameof(DownloadArtifact),
                 Version = ServiceStack.Text.Env.VersionString,
-            }.WithRequest(Request, await GetSessionAsync())
+            }.WithRequest(Request!, await GetSessionAsync())
         });
 
-        return new HttpResult(file, asAttachment:true);
+        long? contentLength = null;
+        var url = appConfig.AiServerUrl.CombineWith(artifact.FilePathLarge);
+        var imageBytes = await url.GetBytesFromUrlAsync(responseFilter:res => contentLength = res.GetContentLength());
+        var headerValue = $"attachment; {HttpExt.GetDispositionFileName(artifact.FileName)}; " + 
+            (contentLength != null ? $"size={contentLength}; " : "") +
+            $"creation-date={artifact.CreatedDate.ToString("R").Replace(",", "")}; " +
+            $"modification-date={artifact.ModifiedDate.ToString("R").Replace(",", "")}; " +
+            $"read-date={artifact.ModifiedDate.ToString("R").Replace(",", "")}";
+        Response!.AddHeader(HttpHeaders.ContentDisposition, headerValue);
+        return imageBytes;
     }
 
     public async Task<object> Any(DownloadDirect request)
