@@ -92,7 +92,7 @@ public class CreativeService(
         {
             if (item.Url.StartsWith("http"))
             {
-                log.LogError("Invalid image path, expected path starting with `/artifacts` got: {url}", item.Url");
+                log.LogError("Invalid image path, expected path starting with `/artifacts` got: {url}", item.Url);
                 throw new NotSupportedException("Invalid image path returned");
             }
             
