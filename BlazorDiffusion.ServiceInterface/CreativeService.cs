@@ -100,7 +100,7 @@ public class CreativeService(
                 Height = (int)createCreative.Height!,
                 FilePathSmall = $"/variants/{variant}=118".CombineWith(item.Url.RightPart("/artifacts")),
                 FilePathMedium = $"/variants/{variant}=288".CombineWith(item.Url.RightPart("/artifacts")),
-                FilePathLarge = $"/variants/{variant}=1024".CombineWith(item.Url.RightPart("/artifacts")),
+                FilePathLarge = item.Url,
                 // No longer have the bytes here, can look at updating info in bg job
                 // ContentLength = bytes.Length,
                 // ImageDetails = imageDetails,
