@@ -1,6 +1,7 @@
 ﻿@if (!HttpContext.User.IsAuthenticated())
 {
-    <div>
+    <div class="flex items-center">
+        <a href="/Account/Login" class="mr-4"><span class="inline-flex items-center rounded-md bg-sky-500/10 px-2 py-1 text-xs font-medium text-sky-400 ring-1 ring-inset ring-sky-500/20">Create for FREE!</span></a>
         <a href="/Account/Login" class="signin-link cursor-pointer -mx-3 block rounded-lg px-3 py-1.5 text-base font-semibold leading-7 text-white hover:bg-gray-800">Sign in &rarr;</a>
     </div>
 }
