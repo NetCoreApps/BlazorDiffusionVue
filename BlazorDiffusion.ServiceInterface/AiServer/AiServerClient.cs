@@ -1,13 +1,18 @@
-using AiServer.ServiceInterface;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 using AiServer.ServiceModel;
 using AiServer.ServiceModel.Types;
-using BlazorDiffusion.ServiceInterface;
 using BlazorDiffusion.ServiceModel;
+using Microsoft.Extensions.Logging;
+using ServiceStack;
 using ServiceStack.IO;
 using ServiceStack.Text;
 using JsonApiClient = ServiceStack.JsonApiClient;
 
-namespace BlazorDiffusion.AiServer;
+namespace BlazorDiffusion.ServiceInterface.AiServer;
+
 public class AiServerClient: IStableDiffusionClient
 {
     public JsonApiClient Client { get; set; }

@@ -36,13 +36,6 @@
     </ItemGroup>
     
     <ItemGroup>
-        <PackageReference Include="Google.Protobuf" Version="3.*" />
-        <PackageReference Include="Grpc.Core" Version="2.*" />
-        <PackageReference Include="Grpc.Net.Client" Version="2.*" />
-        <PackageReference Include="Grpc.Tools" Version="2.*">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-        </PackageReference>
         <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="8.*" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.Facebook" Version="8.*" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="8.*" />
@@ -57,15 +50,6 @@
     <Target Name="tailwind" BeforeTargets="Publish">
         <Exec Command="npm run ui:build" WorkingDirectory="./" />
     </Target>
-
-    
-    <ItemGroup>
-        <Protobuf Include="proto\dashboard.proto" GrpcServices="None" />
-        <Protobuf Include="proto\engines.proto" GrpcServices="None" />
-        <Protobuf Include="proto\generation.proto" GrpcServices="Client" ProtoRoot="proto\" />
-        <Protobuf Include="proto\project.proto" GrpcServices="None" />
-        <Protobuf Include="proto\tensors.proto" GrpcServices="None" />
-    </ItemGroup>
 
     <Target Name="CreateAppDataFolderBuild" AfterTargets="AfterBuild">
         <MakeDir Directories="$(BuildDir)App_Data" Condition="!Exists('$(BuildDir)App_Data')" />

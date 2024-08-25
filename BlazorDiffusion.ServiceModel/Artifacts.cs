@@ -338,17 +338,6 @@ public class DownloadArtifact : IGet, IReturn<byte[]>
 }
 
 [Tag(Tag.Artifacts)]
-[ValidateIsAuthenticated]
-[Route("/download/direct/{RefId}")]
-public class DownloadDirect
-{
-    public string RefId { get; set; }
-    public string? EncryptionMethod { get; set; }
-    public string? AccessId { get; set; }
-    public string? AccessKey { get; set; }
-}
-
-[Tag(Tag.Artifacts)]
 public class FindSimilarArtifacts
 {
     public string ArtifactId { get; set; }

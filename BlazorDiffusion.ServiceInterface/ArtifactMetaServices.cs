@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Threading.Tasks;
-using Amazon.S3;
-using Amazon.S3.Model;
 using BlazorDiffusion.ServiceModel;
 using ServiceStack;
 using ServiceStack.OrmLite;
@@ -81,41 +79,5 @@ public class ArtifactServices(AppConfig appConfig) : Service
             $"read-date={artifact.ModifiedDate.ToString("R").Replace(",", "")}";
         Response!.AddHeader(HttpHeaders.ContentDisposition, headerValue);
         return imageBytes;
-    }
-
-    public async Task<object> Any(DownloadDirect request)
-    {
-        var artifact = !string.IsNullOrEmpty(request.RefId)
-            ? await Db.SingleAsync<Artifact>(x => x.RefId == request.RefId)
-            : null;
-
-        if (artifact == null)
-            return HttpError.NotFound("File not found");
-
-        var accessId = request.AccessId ?? appConfig.R2AccessId;
-        var accessKey = request.AccessKey ?? appConfig.R2AccessKey;
-        var s3Client = new AmazonS3Client(accessId, accessKey, new AmazonS3Config
-        {
-            ServiceURL = $"https://{appConfig.R2Account}.r2.cloudflarestorage.com"
-        });
-
-        var s3Request = new GetObjectRequest
-        {
-            BucketName = appConfig.ArtifactBucket,
-            Key = artifact.FilePath.TrimStart('/'),
-        };
-
-        if (request.EncryptionMethod != null)
-            s3Request.ServerSideEncryptionCustomerMethod = request.EncryptionMethod;
-
-
-        var response = await s3Client.GetObjectAsync(s3Request);        
-        return new HttpResult(response.ResponseStream, artifact.FileName)
-        {
-            Headers =
-            {
-                [HttpHeaders.ContentDisposition] = $"attachment; {HttpExt.GetDispositionFileName(artifact.FileName)}; size={response.ContentLength};"
-            }
-        };
     }
 }

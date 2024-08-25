@@ -106,7 +106,7 @@ public class ImportTasks
             else
             {
                 creative.OwnerRef = creative.OwnerId != null ? usersMap[creative.OwnerId.Value] : null;
-                creative.EngineId ??= DreamStudioClient.DefaultEngineId;
+                // creative.EngineId ??= DreamStudioClient.DefaultEngineId;
                 foreach (var artifact in creative.Artifacts)
                 {
                     Scores.PopulateArtifactScores(artifact);

@@ -26,7 +26,7 @@ public class UpdateUserProfile : IUpdateDb<AppUser>, IReturn<UserProfile>
 {
     [ValidateNotEmpty]
     public string? DisplayName { get; set; }
-    [Input(Type="File"), UploadTo("avatars")]
+    [Input(Type="File")]
     public string? Avatar { get; set; }
     [ValidateMaximumLength(20)]
     public string? Handle { get; set; }

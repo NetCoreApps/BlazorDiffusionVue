@@ -66,11 +66,11 @@ public class CreativeServiceTests
                 //IncludeTotal = true,
             });
             
-            container.Register<IStableDiffusionClient>(new DreamStudioClient
-            {
-                ApiKey = Environment.GetEnvironmentVariable("DREAMAI_APIKEY") ?? "<your_api_key>",
-                OutputPathPrefix = Path.Join(ContentRootDirectory.RealPath.CombineWith("App_Files"),"artifacts")
-            });
+            // container.Register<IStableDiffusionClient>(new DreamStudioClient
+            // {
+            //     ApiKey = Environment.GetEnvironmentVariable("DREAMAI_APIKEY") ?? "<your_api_key>",
+            //     OutputPathPrefix = Path.Join(ContentRootDirectory.RealPath.CombineWith("App_Files"),"artifacts")
+            // });
             container.AddSingleton<ICrudEvents>(c =>
                 new OrmLiteCrudEvents(c.Resolve<IDbConnectionFactory>()));
             container.Resolve<ICrudEvents>().InitSchema();

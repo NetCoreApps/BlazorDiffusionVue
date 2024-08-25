@@ -3,10 +3,13 @@ using BlazorDiffusion.ServiceModel;
 using System.Threading.Tasks;
 using ServiceStack.OrmLite;
 using System;
+using System.Linq;
+using BlazorDiffusion.ServiceInterface.AiServer;
+using ServiceStack.Text;
 
 namespace BlazorDiffusion.ServiceInterface;
 
-public class MyServices : Service
+public class MyServices(AiServerClient aiClient) : Service
 {
     public async Task<object> Any(GetUserProfile request)
     {
@@ -35,6 +38,18 @@ public class MyServices : Service
 
         if (request.Handle != null && await Db.ExistsAsync<AppUser>(x => x.Handle == request.Handle && x.Id != userId))
             throw new ArgumentException("Handle already taken", nameof(request.Handle));
+
+        var file = Request.Files.FirstOrDefault();
+        if (file != null)
+        {
+            var fileName = $"/avatars/{userId.ToString()}.{file.FileName.LastRightPart('.')}";
+            var response = aiClient.Client.PostFileWithRequest<StoreFileUploadResponse>(file.InputStream, fileName, new StoreFileUpload {
+                Name = "pub"
+            });
+            var publicPath = response.Results?.FirstOrDefault()
+                ?? throw new Exception("File Upload Failed");
+            request.Avatar = "/variants/width=128".CombineWith(publicPath);
+        }
 
         await Db.UpdateOnlyAsync(() => new AppUser {
             DisplayName = request.DisplayName ?? userInfo.DisplayName,

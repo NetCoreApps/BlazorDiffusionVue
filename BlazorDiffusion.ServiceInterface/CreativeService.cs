@@ -6,6 +6,8 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
+using AiServer.ServiceModel;
+using BlazorDiffusion.ServiceInterface.AiServer;
 using BlazorDiffusion.ServiceModel;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -24,7 +26,8 @@ public class CreativeService(
     IStableDiffusionClient stableDiffusion,
     AppConfig appConfig,
     AppUserQuotas userQuotas,
-    UserManager<AppUser> userManager)
+    UserManager<AppUser> userManager,
+    AiServerClient aiClient)
     : Service
 {
     const int DefaultHeight = 1024;
@@ -530,13 +533,14 @@ public class CreativeService(
         Updated.CreativeIds.Add(creative.Id);
     }
 
-    public void Delete(HardDeleteCreative request)
+    public async Task Delete(HardDeleteCreative request)
     {
         var creative = Db.SingleById<Creative>(request.Id);
         if (creative == null)
             throw HttpError.NotFound($"Creative {request.Id} does not exist");
 
         var artifacts = Db.Select<Artifact>(x => x.CreativeId == request.Id);
+        
         var artifactIds = artifacts.Select(x => x.Id).ToSet();
 
         using var transaction = Db.OpenTransaction();
@@ -552,7 +556,14 @@ public class CreativeService(
 
         transaction.Commit();
 
-        // await stableDiffusion.DeleteFolderAsync(creative);
+        var artifactPaths = artifacts
+            .Where(x => x.FilePathLarge != null)
+            .Select(x => x.FilePathLarge!).ToList();
+        var api = await aiClient.Client.ApiAsync(new DeleteFiles
+        {
+            Paths = artifactPaths,
+        });
+        log.LogInformation("DeleteFiles:\n{Json}", api.Response.ToJson());
 
         using var analyticsDb = OpenDbConnection(Databases.Analytics);
         analyticsDb.Delete<ArtifactStat>(x => artifactIds.Contains(x.ArtifactId));

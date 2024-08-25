@@ -1,5 +1,5 @@
 /* Options:
-Date: 2024-08-21 10:25:52
+Date: 2024-08-25 14:46:41
 Version: 8.31
 Tip: To override a DTO option, remove "//" prefix before updating
 BaseUrl: https://localhost:5005
@@ -34,25 +34,141 @@ using ServiceStack.DataAnnotations;
 using System.IO;
 using AiServer.ServiceModel;
 using AiServer.ServiceModel.Types;
+using AiServer.ServiceInterface.Speech;
 using ServiceStack.Jobs;
 using AiServer.ServiceInterface;
 
 namespace AiServer.ServiceInterface
 {
-    [Route("/download/{Provider}/{Year}/{Month}/{Day}/{Filename}")]
-    public partial class DownloadDiffusionFile
-        : IReturn<Stream>
+    public partial class AdminGetJob
+        : IReturn<AdminGetJobResponse>, IGet
     {
-        public virtual string Provider { get; set; }
-        public virtual int? Year { get; set; }
-        public virtual int? Month { get; set; }
-        public virtual int? Day { get; set; }
-        public virtual string FileName { get; set; }
+        public virtual long? Id { get; set; }
+        public virtual string RefId { get; set; }
+    }
+
+    public partial class AdminGetJobProgress
+        : IReturn<AdminGetJobProgressResponse>, IGet
+    {
+        [Validate("GreaterThan(0)")]
+        public virtual long Id { get; set; }
+
+        public virtual int? LogStart { get; set; }
+    }
+
+    public partial class AdminGetJobProgressResponse
+    {
+        public virtual BackgroundJobState State { get; set; }
+        public virtual double? Progress { get; set; }
+        public virtual string Status { get; set; }
+        public virtual string Logs { get; set; }
+        public virtual ResponseStatus Error { get; set; }
+        public virtual ResponseStatus ResponseStatus { get; set; }
+    }
+
+    public partial class AdminGetJobResponse
+    {
+        public virtual JobSummary Result { get; set; }
+        public virtual BackgroundJob Queued { get; set; }
+        public virtual CompletedJob Completed { get; set; }
+        public virtual FailedJob Failed { get; set; }
+        public virtual ResponseStatus ResponseStatus { get; set; }
+    }
+
+    public partial class AdminJobInfo
+        : IReturn<AdminJobInfoResponse>, IGet
+    {
+    }
+
+    public partial class AdminJobInfoResponse
+    {
+        public AdminJobInfoResponse()
+        {
+            MonthDbs = new List<DateTime>{};
+            TableCounts = new Dictionary<string, int>{};
+        }
+
+        public virtual List<DateTime> MonthDbs { get; set; }
+        public virtual Dictionary<string, int> TableCounts { get; set; }
+        public virtual ResponseStatus ResponseStatus { get; set; }
+    }
+
+    public partial class AdminQueryCompletedJobs
+        : QueryDb<CompletedJob>, IReturn<QueryResponse<CompletedJob>>
+    {
+        public virtual DateTime? CreatedDate { get; set; }
+    }
+
+    public partial class AdminQueryFailedJobs
+        : QueryDb<FailedJob>, IReturn<QueryResponse<FailedJob>>
+    {
+        public virtual DateTime? CreatedDate { get; set; }
+    }
+
+    public partial class AdminQueryJobSummary
+        : QueryDb<JobSummary>, IReturn<QueryResponse<JobSummary>>
+    {
+        public virtual int? Id { get; set; }
+        public virtual string RefId { get; set; }
+    }
+
+    public partial class AdminQueryScheduledTasks
+        : QueryDb<ScheduledTask>, IReturn<QueryResponse<ScheduledTask>>
+    {
+    }
+
+    public partial class GetComfyModelMappings
+        : IReturn<GetComfyModelMappingsResponse>
+    {
+    }
+
+    public partial class GetComfyModelMappingsResponse
+    {
+        public GetComfyModelMappingsResponse()
+        {
+            Models = new Dictionary<string, string>{};
+        }
+
+        public virtual Dictionary<string, string> Models { get; set; }
     }
 
     public partial class PopulateChatSummary
         : IReturn<StringsResponse>, IGet
     {
+    }
+
+}
+
+namespace AiServer.ServiceInterface.Speech
+{
+    public partial class CreateSpeechGenerationResponse
+    {
+        public virtual string RefId { get; set; }
+        public virtual ResponseStatus ResponseStatus { get; set; }
+    }
+
+    public partial class QueueSpeechGeneration
+        : IReturn<CreateSpeechGenerationResponse>
+    {
+        public virtual SpeechGenerationRequest Request { get; set; }
+        public virtual string State { get; set; }
+        public virtual string ReplyTo { get; set; }
+        public virtual string RefId { get; set; }
+    }
+
+    public partial class SpeechGenerationRequest
+    {
+        public virtual string Text { get; set; }
+        public virtual string Voice { get; set; }
+        public virtual SpeechQuality? Quality { get; set; }
+        public virtual int? Seed { get; set; }
+    }
+
+    public enum SpeechQuality
+    {
+        Low,
+        Medium,
+        High,
     }
 
 }
@@ -118,12 +234,6 @@ namespace AiServer.ServiceModel
     {
         OpenAiProvider,
         GoogleAiProvider,
-    }
-
-    public partial class AiServerHostedDiffusionFile
-    {
-        public virtual string FileName { get; set; }
-        public virtual string Url { get; set; }
     }
 
     public partial class ApiProvider
@@ -402,8 +512,10 @@ namespace AiServer.ServiceModel
     public partial class CreateDiffusionGeneration
         : IReturn<CreateDiffusionGenerationResponse>
     {
-        public virtual string Provider { get; set; }
+        [Validate("NotNull")]
         public virtual DiffusionImageGeneration Request { get; set; }
+
+        public virtual string Provider { get; set; }
         public virtual string State { get; set; }
         public virtual string ReplyTo { get; set; }
         public virtual string RefId { get; set; }
@@ -441,11 +553,38 @@ namespace AiServer.ServiceModel
         public virtual int Id { get; set; }
     }
 
+    public partial class DeleteArtifactsResoponse
+    {
+        public DeleteArtifactsResoponse()
+        {
+            Deleted = new List<string>{};
+            Missing = new List<string>{};
+            Failed = new List<string>{};
+        }
+
+        public virtual List<string> Deleted { get; set; }
+        public virtual List<string> Missing { get; set; }
+        public virtual List<string> Failed { get; set; }
+        public virtual ResponseStatus ResponseStatus { get; set; }
+    }
+
     public partial class DeleteDiffusionApiProvider
         : IReturn<IdResponse>, IDeleteDb<DiffusionApiProvider>
     {
         public virtual int? Id { get; set; }
         public virtual string Name { get; set; }
+    }
+
+    [Route("/artifacts")]
+    public partial class DeleteFiles
+        : IReturn<DeleteArtifactsResoponse>, IDelete
+    {
+        public DeleteFiles()
+        {
+            Paths = new List<string>{};
+        }
+
+        public virtual List<string> Paths { get; set; }
     }
 
     public partial class DiffusionApiProviderOutput
@@ -494,6 +633,17 @@ namespace AiServer.ServiceModel
         public virtual double? Quality { get; set; }
     }
 
+    [Route("/download/{Provider}/{Year}/{Month}/{Day}/{Filename}")]
+    public partial class DownloadDiffusionFile
+        : IReturn<Stream>, IGet
+    {
+        public virtual string Provider { get; set; }
+        public virtual int? Year { get; set; }
+        public virtual int? Month { get; set; }
+        public virtual int? Day { get; set; }
+        public virtual string FileName { get; set; }
+    }
+
     public partial class GetActiveProviders
         : IReturn<GetActiveProvidersResponse>, IGet
     {
@@ -508,6 +658,14 @@ namespace AiServer.ServiceModel
 
         public virtual ApiProvider[] Results { get; set; }
         public virtual ResponseStatus ResponseStatus { get; set; }
+    }
+
+    [Route("/artifacts/{**Path}")]
+    public partial class GetArtifact
+        : IReturn<byte[]>, IGet
+    {
+        [Validate("NotEmpty")]
+        public virtual string Path { get; set; }
     }
 
     public partial class GetComfyModels
@@ -539,9 +697,29 @@ namespace AiServer.ServiceModel
 
     public partial class GetDiffusionGenerationResponse
     {
+        public GetDiffusionGenerationResponse()
+        {
+            Outputs = new List<DiffusionApiProviderOutput>{};
+        }
+
         public virtual DiffusionImageGeneration Request { get; set; }
         public virtual DiffusionGenerationResponse Result { get; set; }
         public virtual List<DiffusionApiProviderOutput> Outputs { get; set; }
+    }
+
+    [Route("/variants/{ImgOptions}/downloads/{Provider}/{Year}/{Month}/{Day}/{FileName}")]
+    public partial class GetImageVariant
+        : IReturn<Stream>, IGet
+    {
+        public virtual string Provider { get; set; }
+        public virtual int Year { get; set; }
+        public virtual int Month { get; set; }
+        public virtual int Day { get; set; }
+        public virtual string FileName { get; set; }
+        public virtual int? Width { get; set; }
+        public virtual int? Height { get; set; }
+        public virtual int? Quality { get; set; }
+        public virtual string ImgOptions { get; set; }
     }
 
     [Route("/icons/models/{Model}", "GET")]
@@ -601,6 +779,17 @@ namespace AiServer.ServiceModel
         public virtual List<SummaryStats> ProviderStats { get; set; }
         public virtual List<SummaryStats> ModelStats { get; set; }
         public virtual List<SummaryStats> MonthStats { get; set; }
+    }
+
+    [Route("/variants/{Variant}/{**Path}")]
+    public partial class GetVariant
+        : IReturn<byte[]>, IGet
+    {
+        [Validate("NotEmpty")]
+        public virtual string Variant { get; set; }
+
+        [Validate("NotEmpty")]
+        public virtual string Path { get; set; }
     }
 
     public partial class GetWorkerStats
@@ -1341,9 +1530,14 @@ namespace AiServer.ServiceModel.Types
 
     public partial class DiffusionProviderModelSettings
     {
-        [Ignore]
-        public virtual string Id { get; set; }
+        public DiffusionProviderModelSettings()
+        {
+            ApiModels = new Dictionary<string, string>{};
+        }
 
+        public virtual string Id { get; set; }
+        public virtual Dictionary<string, string> ApiModels { get; set; }
+        public virtual string Url { get; set; }
         public virtual double? Quality { get; set; }
         public virtual string AspectRatio { get; set; }
         public virtual double? CfgScale { get; set; }
@@ -1384,6 +1578,7 @@ namespace ServiceStack.Jobs
         public virtual string RefId { get; set; }
         public virtual string Worker { get; set; }
         public virtual string Tag { get; set; }
+        public virtual string BatchId { get; set; }
         public virtual string Callback { get; set; }
         public virtual long? DependsOn { get; set; }
         public virtual DateTime? RunAfter { get; set; }
@@ -1416,6 +1611,30 @@ namespace ServiceStack.Jobs
         public virtual Dictionary<string, string> Meta { get; set; }
     }
 
+    public partial class BackgroundJobOptions
+    {
+        public BackgroundJobOptions()
+        {
+            Args = new Dictionary<string, string>{};
+        }
+
+        public virtual string RefId { get; set; }
+        public virtual long? ParentId { get; set; }
+        public virtual string Worker { get; set; }
+        public virtual DateTime? RunAfter { get; set; }
+        public virtual string Callback { get; set; }
+        public virtual long? DependsOn { get; set; }
+        public virtual string UserId { get; set; }
+        public virtual int? RetryLimit { get; set; }
+        public virtual string ReplyTo { get; set; }
+        public virtual string Tag { get; set; }
+        public virtual string BatchId { get; set; }
+        public virtual string CreatedBy { get; set; }
+        public virtual int? TimeoutSecs { get; set; }
+        public virtual Dictionary<string, string> Args { get; set; }
+        public virtual bool? RunCommand { get; set; }
+    }
+
     public enum BackgroundJobState
     {
         Queued,
@@ -1443,6 +1662,7 @@ namespace ServiceStack.Jobs
         public virtual string RefId { get; set; }
         public virtual string Worker { get; set; }
         public virtual string Tag { get; set; }
+        public virtual string BatchId { get; set; }
         public virtual DateTime CreatedDate { get; set; }
         public virtual string CreatedBy { get; set; }
         public virtual string RequestType { get; set; }
@@ -1460,6 +1680,21 @@ namespace ServiceStack.Jobs
         public virtual string ErrorMessage { get; set; }
     }
 
+    public partial class ScheduledTask
+    {
+        public virtual long Id { get; set; }
+        public virtual string Name { get; set; }
+        public virtual TimeSpan? Interval { get; set; }
+        public virtual string CronExpression { get; set; }
+        public virtual string RequestType { get; set; }
+        public virtual string Command { get; set; }
+        public virtual string Request { get; set; }
+        public virtual string RequestBody { get; set; }
+        public virtual BackgroundJobOptions Options { get; set; }
+        public virtual DateTime? LastRun { get; set; }
+        public virtual long? LastJobId { get; set; }
+    }
+
     public partial class WorkerStats
     {
         public virtual string Name { get; set; }
@@ -1468,6 +1703,7 @@ namespace ServiceStack.Jobs
         public virtual long Completed { get; set; }
         public virtual long Retries { get; set; }
         public virtual long Failed { get; set; }
+        public virtual TimeSpan? RunningTime { get; set; }
     }
 
 }
