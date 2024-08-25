@@ -104,7 +104,7 @@ public class DataService(IDbConnectionFactory dbFactory) : Service
         var refIds = request.RefIds?.ToArray() ?? [];
 
         var albums = Db.LoadSelect<Album>(x => x.DeletedDate == null && (ids.Contains(x.Id) || refIds.Contains(x.RefId)))
-            .OrderByDescending(x => x.Artifacts.Max(x => x.Id)).ToList();
+            .OrderByDescending(x => x.Artifacts?.Max(x => x.Id)).ToList();
 
         var albumResults = albums.Map(x => x.ToAlbumResult());
 

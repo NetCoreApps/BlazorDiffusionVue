@@ -22,6 +22,7 @@ public static class DbExtensions
         };
 
         var userAlbums = db.LoadSelect<Album>(x => x.OwnerId == userId && x.DeletedDate == null);
+        userAlbums.Each(x => x.Artifacts ??= []);
         var albums = userAlbums.OrderByDescending(x => x.Artifacts.Max(x => x.Id)).ToList();
         var albumResults = albums.Map(x => x.ToAlbumResult());
 
