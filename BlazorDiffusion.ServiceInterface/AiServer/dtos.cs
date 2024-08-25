@@ -1,5 +1,5 @@
 /* Options:
-Date: 2024-08-25 14:46:41
+Date: 2024-08-25 21:30:13
 Version: 8.31
 Tip: To override a DTO option, remove "//" prefix before updating
 BaseUrl: https://localhost:5005
@@ -20,8 +20,8 @@ BaseUrl: https://localhost:5005
 //InitializeCollections: True
 //ExportValueTypes: False
 //IncludeTypes: 
-//ExcludeTypes: 
-//AddNamespaces: 
+ExcludeTypes: BackgroundJob,JobSummary,ScheduledTask,CompletedJob,FailedJob,BackgroundJobBase,BackgroundJobOptions,WorkerStats,BackgroundJobState
+AddNamespaces: ServiceStack.Jobs
 //AddDefaultXmlNamespace: http://schemas.servicestack.net/types
 */
 
@@ -31,11 +31,11 @@ using System.Collections.Generic;
 using System.Runtime.Serialization;
 using ServiceStack;
 using ServiceStack.DataAnnotations;
+using ServiceStack.Jobs;
 using System.IO;
 using AiServer.ServiceModel;
 using AiServer.ServiceModel.Types;
 using AiServer.ServiceInterface.Speech;
-using ServiceStack.Jobs;
 using AiServer.ServiceInterface;
 
 namespace AiServer.ServiceInterface
@@ -1552,158 +1552,6 @@ namespace AiServer.ServiceModel.Types
     public partial class QueryDiffusionApiTypes
         : QueryDb<DiffusionApiType>, IReturn<QueryResponse<DiffusionApiType>>
     {
-    }
-
-}
-
-namespace ServiceStack.Jobs
-{
-    public partial class BackgroundJob
-        : BackgroundJobBase
-    {
-        public virtual long Id { get; set; }
-    }
-
-    public partial class BackgroundJobBase
-        : IMeta
-    {
-        public BackgroundJobBase()
-        {
-            Args = new Dictionary<string, string>{};
-            Meta = new Dictionary<string, string>{};
-        }
-
-        public virtual long Id { get; set; }
-        public virtual long? ParentId { get; set; }
-        public virtual string RefId { get; set; }
-        public virtual string Worker { get; set; }
-        public virtual string Tag { get; set; }
-        public virtual string BatchId { get; set; }
-        public virtual string Callback { get; set; }
-        public virtual long? DependsOn { get; set; }
-        public virtual DateTime? RunAfter { get; set; }
-        public virtual DateTime CreatedDate { get; set; }
-        public virtual string CreatedBy { get; set; }
-        public virtual string RequestId { get; set; }
-        public virtual string RequestType { get; set; }
-        public virtual string Command { get; set; }
-        public virtual string Request { get; set; }
-        public virtual string RequestBody { get; set; }
-        public virtual string UserId { get; set; }
-        public virtual string Response { get; set; }
-        public virtual string ResponseBody { get; set; }
-        public virtual BackgroundJobState State { get; set; }
-        public virtual DateTime? StartedDate { get; set; }
-        public virtual DateTime? CompletedDate { get; set; }
-        public virtual DateTime? NotifiedDate { get; set; }
-        public virtual int? RetryLimit { get; set; }
-        public virtual int Attempts { get; set; }
-        public virtual int DurationMs { get; set; }
-        public virtual int? TimeoutSecs { get; set; }
-        public virtual double? Progress { get; set; }
-        public virtual string Status { get; set; }
-        public virtual string Logs { get; set; }
-        public virtual DateTime? LastActivityDate { get; set; }
-        public virtual string ReplyTo { get; set; }
-        public virtual string ErrorCode { get; set; }
-        public virtual ResponseStatus Error { get; set; }
-        public virtual Dictionary<string, string> Args { get; set; }
-        public virtual Dictionary<string, string> Meta { get; set; }
-    }
-
-    public partial class BackgroundJobOptions
-    {
-        public BackgroundJobOptions()
-        {
-            Args = new Dictionary<string, string>{};
-        }
-
-        public virtual string RefId { get; set; }
-        public virtual long? ParentId { get; set; }
-        public virtual string Worker { get; set; }
-        public virtual DateTime? RunAfter { get; set; }
-        public virtual string Callback { get; set; }
-        public virtual long? DependsOn { get; set; }
-        public virtual string UserId { get; set; }
-        public virtual int? RetryLimit { get; set; }
-        public virtual string ReplyTo { get; set; }
-        public virtual string Tag { get; set; }
-        public virtual string BatchId { get; set; }
-        public virtual string CreatedBy { get; set; }
-        public virtual int? TimeoutSecs { get; set; }
-        public virtual Dictionary<string, string> Args { get; set; }
-        public virtual bool? RunCommand { get; set; }
-    }
-
-    public enum BackgroundJobState
-    {
-        Queued,
-        Started,
-        Executed,
-        Completed,
-        Failed,
-        Cancelled,
-    }
-
-    public partial class CompletedJob
-        : BackgroundJobBase
-    {
-    }
-
-    public partial class FailedJob
-        : BackgroundJobBase
-    {
-    }
-
-    public partial class JobSummary
-    {
-        public virtual long Id { get; set; }
-        public virtual long? ParentId { get; set; }
-        public virtual string RefId { get; set; }
-        public virtual string Worker { get; set; }
-        public virtual string Tag { get; set; }
-        public virtual string BatchId { get; set; }
-        public virtual DateTime CreatedDate { get; set; }
-        public virtual string CreatedBy { get; set; }
-        public virtual string RequestType { get; set; }
-        public virtual string Command { get; set; }
-        public virtual string Request { get; set; }
-        public virtual string Response { get; set; }
-        public virtual string UserId { get; set; }
-        public virtual string Callback { get; set; }
-        public virtual DateTime? StartedDate { get; set; }
-        public virtual DateTime? CompletedDate { get; set; }
-        public virtual BackgroundJobState State { get; set; }
-        public virtual int DurationMs { get; set; }
-        public virtual int Attempts { get; set; }
-        public virtual string ErrorCode { get; set; }
-        public virtual string ErrorMessage { get; set; }
-    }
-
-    public partial class ScheduledTask
-    {
-        public virtual long Id { get; set; }
-        public virtual string Name { get; set; }
-        public virtual TimeSpan? Interval { get; set; }
-        public virtual string CronExpression { get; set; }
-        public virtual string RequestType { get; set; }
-        public virtual string Command { get; set; }
-        public virtual string Request { get; set; }
-        public virtual string RequestBody { get; set; }
-        public virtual BackgroundJobOptions Options { get; set; }
-        public virtual DateTime? LastRun { get; set; }
-        public virtual long? LastJobId { get; set; }
-    }
-
-    public partial class WorkerStats
-    {
-        public virtual string Name { get; set; }
-        public virtual long Queued { get; set; }
-        public virtual long Received { get; set; }
-        public virtual long Completed { get; set; }
-        public virtual long Retries { get; set; }
-        public virtual long Failed { get; set; }
-        public virtual TimeSpan? RunningTime { get; set; }
     }
 
 }

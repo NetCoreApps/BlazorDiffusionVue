@@ -163,16 +163,16 @@ public static class Scores
         }
         AlbumSearchCountMap = new(albumSearchCountMap);
 
-        Log.DebugFormat($"Scores.LoadAnalytics() took {0}ms", sw.ElapsedMilliseconds);
+         Log.DebugFormat($"Scores.LoadAnalytics() took {sw.ElapsedMilliseconds:N0}ms");
     }
 
     public static bool PopulateArtifactScores(Artifact artifact)
     {
         var isPrimary = PrimaryArtifactCreativeMap.ContainsKey(artifact.Id);
-        var likesCount = ArtifactLikesCountMap.TryGetValue(artifact.Id, out var likes) ? likes : 0;
-        var albumsCount = ArtifactInAlbumsCountMap.TryGetValue(artifact.Id, out var albums) ? albums : 0;
-        var downloadsCount = ArtifactDownloadsCountMap.TryGetValue(artifact.Id, out var downloads) ? downloads : 0;
-        var searchCount = ArtifactSearchCountMap.TryGetValue(artifact.Id, out var searches) ? searches : 0;
+        var likesCount = ArtifactLikesCountMap.GetValueOrDefault(artifact.Id, 0);
+        var albumsCount = ArtifactInAlbumsCountMap.GetValueOrDefault(artifact.Id, 0);
+        var downloadsCount = ArtifactDownloadsCountMap.GetValueOrDefault(artifact.Id, 0);
+        var searchCount = ArtifactSearchCountMap.GetValueOrDefault(artifact.Id, 0);
         var score = Calculate(isPrimary: isPrimary, artifact: artifact);
 
         if (likesCount != artifact.LikesCount ||
@@ -221,8 +221,7 @@ public static class Scores
     }
 
     public static TimeSpan TemporalScoreThreshold = TimeSpan.FromDays(63);
-    static TimeBonus[] TimeBonuses = new TimeBonus[]
-    {
+    static TimeBonus[] TimeBonuses = [
         new(TimeSpan.FromMinutes(10), 2000),
         new(TimeSpan.FromMinutes(20), 1800),
         new(TimeSpan.FromMinutes(40), 1500),
@@ -244,10 +243,10 @@ public static class Scores
         new(TimeSpan.FromDays(42),    60),
         new(TimeSpan.FromDays(49),    50),
         new(TimeSpan.FromDays(56),    40),
-        new(TemporalScoreThreshold,   30),
-    };
+        new(TemporalScoreThreshold,   30)
+    ];
 
-    public static int CaclulateTemporalScore(Artifact artifact)
+    public static int CalculateTemporalScore(Artifact artifact)
     {
         var now = DateTime.UtcNow;
         var age = now - artifact.CreatedDate;
@@ -266,7 +265,7 @@ public static class Scores
 
     public static bool PopulateTemporalScore(Artifact artifact)
     {
-        var temporalScore = CaclulateTemporalScore(artifact);
+        var temporalScore = CalculateTemporalScore(artifact);
         if (artifact.TemporalScore != temporalScore)
         {
             artifact.TemporalScore = temporalScore;
