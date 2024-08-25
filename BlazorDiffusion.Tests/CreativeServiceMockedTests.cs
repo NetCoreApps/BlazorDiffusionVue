@@ -33,8 +33,7 @@ public class CreativeServiceMockedTests
             {
                 return new ImageGenerationResponse
                 {
-                    Results = new List<ImageGenerationResult>
-                    {
+                    Results = [
                         new()
                         {
                             Height = request.Height,
@@ -46,7 +45,7 @@ public class CreativeServiceMockedTests
                             FileName = "output_12345.png",
                             FilePath = "/blah/output_12345.png"
                         }
-                    }
+                    ]
                 };
             }
 
@@ -78,7 +77,6 @@ public class CreativeServiceMockedTests
 
             var bgTaskMock = new Mock<IMessageService>();
             container.AddSingleton((Func<IServiceProvider, IMessageService>)(c => bgTaskMock.Object));
-            bgTaskMock.Object.RegisterHandler<BackgroundTasks>(this.ExecuteMessage);
             var msgProducer = new Mock<IMessageProducer>();
             var msgFactory = new Mock<IMessageFactory>();
             msgFactory.Setup(x => x.CreateMessageProducer()).Returns(msgProducer.Object);

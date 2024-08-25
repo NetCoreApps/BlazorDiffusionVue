@@ -95,7 +95,7 @@ public class AppHost() : AppHostBase("Blazor Diffusion"), IHostingStartup
         });
 
         using var db = Resolve<IDbConnectionFactory>().Open();
-        db.LoadAppDataAsync(AppData.Instance).Wait();
+        db.LoadAppData(AppData.Instance);
 
         ScriptContext.Args[nameof(AppData)] = AppData.Instance;
     }

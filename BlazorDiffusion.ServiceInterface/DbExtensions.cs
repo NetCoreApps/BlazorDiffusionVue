@@ -10,22 +10,22 @@ namespace BlazorDiffusion.ServiceInterface;
 
 public static class DbExtensions
 {
-    public static async Task<UserProfile> GetUserProfileAsync(this IDbConnection db, int userId) => 
-        await db.SingleAsync<UserProfile>(db.From<AppUser>().Where(x => x.Id == userId));
+    public static UserProfile GetUserProfile(this IDbConnection db, int userId) => 
+        db.Single<UserProfile>(db.From<AppUser>().Where(x => x.Id == userId));
 
-    public static async Task<UserResult> GetUserResultAsync(this IDbConnection db, int userId)
+    public static UserResult GetUserResult(this IDbConnection db, int userId)
     {
         var likes = new Likes
         {
-            ArtifactIds = await db.ColumnAsync<int>(db.From<ArtifactLike>().Where(x => x.AppUserId == userId).Select(x => x.ArtifactId).OrderByDescending(x => x.Id)),
-            AlbumIds = await db.ColumnAsync<int>(db.From<AlbumLike>().Where(x => x.AppUserId == userId).Select(x => x.AlbumId).OrderByDescending(x => x.Id)),
+            ArtifactIds = db.Column<int>(db.From<ArtifactLike>().Where(x => x.AppUserId == userId).Select(x => x.ArtifactId).OrderByDescending(x => x.Id)),
+            AlbumIds = db.Column<int>(db.From<AlbumLike>().Where(x => x.AppUserId == userId).Select(x => x.AlbumId).OrderByDescending(x => x.Id)),
         };
 
-        var userAlbums = await db.LoadSelectAsync<Album>(x => x.OwnerId == userId && x.DeletedDate == null);
+        var userAlbums = db.LoadSelect<Album>(x => x.OwnerId == userId && x.DeletedDate == null);
         var albums = userAlbums.OrderByDescending(x => x.Artifacts.Max(x => x.Id)).ToList();
         var albumResults = albums.Map(x => x.ToAlbumResult());
 
-        var userInfo = await db.SingleAsync<(string refId, string handle, string avatar, string profileUrl)>(db.From<AppUser>()
+        var userInfo = db.Single<(string refId, string handle, string avatar, string profileUrl)>(db.From<AppUser>()
             .Where(x => x.Id == userId).Select(x => new { x.RefIdStr, x.Handle, x.Avatar, x.ProfileUrl }));
 
         return new UserResult
@@ -52,10 +52,10 @@ public static class DbExtensions
         return userRef;
     }
 
-    public static async Task LoadAppDataAsync(this IDbConnection db, AppData appData)
+    public static void LoadAppData(this IDbConnection db, AppData appData)
     {
-        appData.AlbumRefs = await db.GetAlbumRefsAsync();
-        appData.UserRefMap = await db.DictionaryAsync<int, string>(db.From<AppUser>().Select(x => new { x.Id, x.RefIdStr }));
-        appData.TotalArtifacts = await db.CountAsync<Artifact>();
+        appData.AlbumRefs = db.GetAlbumRefs();
+        appData.UserRefMap = db.Dictionary<int, string>(db.From<AppUser>().Select(x => new { x.Id, x.RefIdStr }));
+        appData.TotalArtifacts = db.Count<Artifact>();
     }
 }

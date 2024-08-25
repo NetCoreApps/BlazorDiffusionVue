@@ -1,30 +1,31 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading.Tasks;
-using AiServer.ServiceModel;
-using BlazorDiffusion.ServiceInterface.AiServer;
-using BlazorDiffusion.ServiceModel;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
 using ServiceStack;
-using ServiceStack.Auth;
+using ServiceStack.Data;
 using ServiceStack.DataAnnotations;
 using ServiceStack.IO;
+using ServiceStack.Jobs;
 using ServiceStack.OrmLite;
 using ServiceStack.Text;
+using AiServer.ServiceModel;
+using BlazorDiffusion.ServiceInterface.AiServer;
+using BlazorDiffusion.ServiceInterface.App;
+using BlazorDiffusion.ServiceModel;
 
 namespace BlazorDiffusion.ServiceInterface;
 
 public class CreativeService(
     ILogger<CreativeService> log,
+    IBackgroundJobs jobs,
+    IDbConnectionFactory dbFactory,
     IStableDiffusionClient stableDiffusion,
-    AppConfig appConfig,
     AppUserQuotas userQuotas,
     UserManager<AppUser> userManager,
     AiServerClient aiClient)
@@ -41,11 +42,10 @@ public class CreativeService(
     const int DefaultMaxWidth = 1344;
     const int DefaultMaxHeight = 1344;
 
-    public async Task<object> Any(CheckQuota request)
+    public object Any(CheckQuota request)
     {
-        var session = await SessionAsAsync<CustomUserSession>();
-        var userId = session.GetUserId();
-        var userRoles = session.Roles;
+        var userId = Request.GetRequiredUserId();
+        var userRoles = Request.GetClaimsPrincipal().GetRoles();
         var creative = new CreateCreative
         {
             Width = request.Width,
@@ -56,7 +56,7 @@ public class CreativeService(
         var requestCredits = userQuotas.CalculateCredits(imageGenerationRequest);
         var startOfDay = DateTime.UtcNow.Date;
         var dailyQuota = userQuotas.GetDailyQuota(userRoles) ?? -1;
-        var creditsUsed = await userQuotas.GetCreditsUsedAsync(Db, userId, since: DateTime.UtcNow.Date);
+        var creditsUsed = userQuotas.GetCreditsUsed(Db, userId, since: DateTime.UtcNow.Date);
 
         return new CheckQuotaResponse
         {
@@ -69,7 +69,7 @@ public class CreativeService(
         };
     }
 
-    public async Task<object> Post(CreateCreativeCallback request)
+    public object Post(CreateCreativeCallback request)
     {
         if (request.ResponseStatus != null)
             throw new HttpError(request.ResponseStatus, HttpStatusCode.GatewayTimeout);
@@ -81,9 +81,9 @@ public class CreativeService(
         var json = Encoding.UTF8.GetString(bytes);
         var createCreative = json.FromJson<CreateCreative>();
         
-        var modifiers = await Db.SelectAsync<Modifier>(x => Sql.In(x.Id, createCreative.ModifierIds));
+        var modifiers = Db.Select<Modifier>(x => Sql.In(x.Id, createCreative.ModifierIds));
         var artists = createCreative.ArtistIds.Count == 0 ? new List<Artist>() :
-            await Db.SelectAsync<Artist>(x => Sql.In(x.Id, createCreative.ArtistIds));
+            Db.Select<Artist>(x => Sql.In(x.Id, createCreative.ArtistIds));
 
         var now = DateTime.UtcNow;
         var response = new ImageGenerationResponse
@@ -112,20 +112,18 @@ public class CreativeService(
                 FilePathSmall = $"/variants/{variant}=118".CombineWith(item.Url.RightPart("/artifacts")),
                 FilePathMedium = $"/variants/{variant}=288".CombineWith(item.Url.RightPart("/artifacts")),
                 FilePathLarge = item.Url,
-                // No longer have the bytes here, can look at updating info in bg job
-                // ContentLength = bytes.Length,
-                // ImageDetails = imageDetails,
+                //Image details updated in SyncArtifactsCommand
             });
         }
         
-        var creativeQueue = await Db.SingleAsync<CreativeQueue>(x => x.RefId == request.RefId);
+        var creativeQueue = Db.Single<CreativeQueue>(x => x.RefId == request.RefId);
         Creative? creative = null;
         if (creativeQueue == null)
         {
             // Already processed
             log?.LogWarning("CreativeQueue not found for RefId (likely duplicate): {RefId}", request.RefId);
             // Find existing Creative
-            creative = await Db.SingleAsync<Creative>(x => x.RefId == request.RefId);
+            creative = Db.Single<Creative>(x => x.RefId == request.RefId);
             if (creative == null)
             {
                 log?.LogError("Creative and CreativeQueue not found for RefId: {RefId}", request.RefId);
@@ -134,25 +132,24 @@ public class CreativeService(
             return new CreateCreativeResponse { Result = creative };
         }
         
-        var creativeId = await PersistCreative(createCreative, 
+        var creativeId = PersistCreative(createCreative, 
             response, 
             modifiers, 
             artists,
             creativeQueue.UserId,
             creativeQueue.RefId);
     
-        creative = await Db.LoadSingleByIdAsync<Creative>(creativeId);
-    
-        PublishMessage(new BackgroundTasks { NewCreative = creative });
+        creative = Db.LoadSingleById<Creative>(creativeId);
+
+        jobs.RunCommand<CreateCreativeCommand>(creative);
     
         return new CreateCreativeResponse { Result = creative };
     }
     
     public async Task<object> Post(QueueCreative request)
     {
-        var session = await SessionAsAsync<CustomUserSession>();
-        var userId = session.GetUserId();
-        var userAuth = await userManager.FindByIdAsync(session.UserAuthId);
+        var userId = Request.GetRequiredUserId();
+        var userAuth = await userManager.FindByIdAsync($"{userId}");
         if (userAuth == null)
             throw HttpError.Unauthorized("Not Authorized");
 
@@ -171,19 +168,19 @@ public class CreativeService(
             throw HttpError.Forbidden("Account is locked");
         }
 
-        var userRoles = await session.GetRolesAsync(AuthRepositoryAsync);
+        var userRoles = Request.GetClaimsPrincipal().GetRoles();
 
-        var modifiers = await Db.SelectAsync<Modifier>(x => Sql.In(x.Id, request.ModifierIds));
+        var modifiers = Db.Select<Modifier>(x => Sql.In(x.Id, request.ModifierIds));
         var artists = request.ArtistIds.Count == 0 ? new List<Artist>() :
-            await Db.SelectAsync<Artist>(x => Sql.In(x.Id, request.ArtistIds));
+            Db.Select<Artist>(x => Sql.In(x.Id, request.ArtistIds));
 
         var imageGenerationRequest = CreateImageGenerationRequest(request.ConvertTo<CreateCreative>(), modifiers, artists, userRoles);
 
-        var quotaError = await userQuotas.ValidateQuotaAsync(Db, imageGenerationRequest, userId, userRoles);
+        var quotaError = userQuotas.ValidateQuota(Db, imageGenerationRequest, userId, userRoles);
         if (quotaError != null)
         {
             log.LogInformation("User #{Id} {UserName} exceeded quota, credits: {CreditsUsed} + {CreditsRequested} > {DailyQuota}, time remaining: {TimeRemaining}",
-                session.UserAuthId, session.UserAuthName, quotaError.CreditsUsed,
+                userId, Request.GetClaimsPrincipal().GetUserName(), quotaError.CreditsUsed,
                 quotaError.CreditsRequested, quotaError.DailyQuota, quotaError.TimeRemaining);
 
             return quotaError.ToHttpError(quotaError.ToResponseStatus());
@@ -205,9 +202,8 @@ public class CreativeService(
 
     public async Task<object> Post(CreateCreative request)
     {
-        var session = await SessionAsAsync<CustomUserSession>();
-        var userId = session.GetUserId();
-        var userAuth = await userManager.FindByIdAsync(session.UserAuthId);
+        var userId = Request.GetRequiredUserId();
+        var userAuth = await userManager.FindByIdAsync($"{userId}");
         if (userAuth == null)
             throw HttpError.Unauthorized("Not Authorized");
 
@@ -226,19 +222,19 @@ public class CreativeService(
             throw HttpError.Forbidden("Account is locked");
         }
 
-        var userRoles = await session.GetRolesAsync(AuthRepositoryAsync);
+        var userRoles = Request.GetClaimsPrincipal().GetRoles();
 
-        var modifiers = await Db.SelectAsync<Modifier>(x => Sql.In(x.Id, request.ModifierIds));
+        var modifiers = Db.Select<Modifier>(x => Sql.In(x.Id, request.ModifierIds));
         var artists = request.ArtistIds.Count == 0 ? new List<Artist>() :
-            await Db.SelectAsync<Artist>(x => Sql.In(x.Id, request.ArtistIds));
+            Db.Select<Artist>(x => Sql.In(x.Id, request.ArtistIds));
 
         var imageGenerationRequest = CreateImageGenerationRequest(request, modifiers, artists, userRoles);
 
-        var quotaError = await userQuotas.ValidateQuotaAsync(Db, imageGenerationRequest, userId, userRoles);
+        var quotaError = userQuotas.ValidateQuota(Db, imageGenerationRequest, userId, userRoles);
         if (quotaError != null)
         {
             log.LogInformation("User #{Id} {UserName} exceeded quota, credits: {CreditsUsed} + {CreditsRequested} > {DailyQuota}, time remaining: {TimeRemaining}",
-                session.UserAuthId, session.UserAuthName, quotaError.CreditsUsed,
+                userId, Request.GetClaimsPrincipal().GetUserName(), quotaError.CreditsUsed,
                 quotaError.CreditsRequested, quotaError.DailyQuota, quotaError.TimeRemaining);
 
             return quotaError.ToHttpError(quotaError.ToResponseStatus());
@@ -250,11 +246,14 @@ public class CreativeService(
             State = Convert.ToBase64String(request.ToJson().ToUtf8Bytes())
         };
         var imageGenerationResponse = await stableDiffusion.QueueGenerateImageAsync(queueReq);
-        Db.Insert(new CreativeQueue
+        lock (Locks.AppDb)
         {
-            RefId = imageGenerationResponse.RefId,
-            UserId = userId
-        });
+            Db.Insert(new CreativeQueue
+            {
+                RefId = imageGenerationResponse.RefId,
+                UserId = userId
+            });
+        }
         // Poll for completion
         var refId = imageGenerationResponse.RefId;
 
@@ -262,7 +261,7 @@ public class CreativeService(
         var timeout = DateTime.UtcNow.AddSeconds(120);
         while (DateTime.UtcNow < timeout)
         {
-            creative = await Db.SingleAsync<Creative>(x => x.RefId == refId);
+            creative = Db.Single<Creative>(x => x.RefId == refId);
             if (creative != null)
             {
                 break;
@@ -270,22 +269,21 @@ public class CreativeService(
             await Task.Delay(1000);
         }
         
-        if(creative == null)
+        if (creative == null)
             throw new HttpError(HttpStatusCode.BadRequest,"Request timed out waiting for Creative. Your Creative might be delayed, please check back later.");
         
-        PublishMessage(new BackgroundTasks { NewCreative = creative });
+        jobs.RunCommand<CreateCreativeCommand>(creative);
 
         return new CreateCreativeResponse { Result = creative };
     }
     
-    public async Task<object> Patch(UpdateCreative request)
+    public object Patch(UpdateCreative request)
     {
-        var creative = await Db.LoadSingleByIdAsync<Creative>(request.Id);
+        var creative = Db.LoadSingleById<Creative>(request.Id);
         if (creative == null)
             return HttpError.NotFound("Creative not found");
 
-        var session = await GetSessionAsync();
-        if (!await session.IsOwnerOrModerator(creative.OwnerId))
+        if (!Request.IsOwnerOrModerator(creative.OwnerId))
             return HttpError.Forbidden("You don't own this Creative");
 
         var artifactId = request.UnpinPrimaryArtifact == true
@@ -299,16 +297,19 @@ public class CreativeService(
                 throw HttpError.NotFound($"Artifact not found");
         }
 
-        await Db.UpdateOnlyAsync(() => 
-            new Creative { 
-                PrimaryArtifactId = artifactId,
-                ModifiedBy = session.UserAuthId,
-                ModifiedDate = DateTime.UtcNow,
-            }, where:x => x.Id == request.Id);
+        lock (Locks.AppDb)
+        {
+            Db.UpdateOnly(() => 
+                new Creative { 
+                    PrimaryArtifactId = artifactId,
+                    ModifiedBy = Request.GetRequiredUserId().ToString(),
+                    ModifiedDate = DateTime.UtcNow,
+                }, where:x => x.Id == request.Id);
+        }
 
         Updated.CreativeIds.Add(creative.Id);
         
-        PublishMessage(new BackgroundTasks {
+        jobs.RunCommand<UpdateScoresCommand>(new UpdateScores {
             RecordPrimaryArtifact = new() {
                 CreativeId = creative.Id,
                 FromArtifactId = creative.PrimaryArtifactId,
@@ -320,36 +321,41 @@ public class CreativeService(
         return creative;
     }
 
-    public async Task<object> Patch(UpdateArtifact request)
+    public object Patch(UpdateArtifact request)
     {
-        var artifact = await Db.SingleByIdAsync<Artifact>(request.Id);
+        var artifact = Db.SingleById<Artifact>(request.Id);
         if (artifact == null)
             return HttpError.NotFound("Artifact not found");
 
-        var creative = await Db.SingleByIdAsync<Creative>(artifact.CreativeId);
+        var creative = Db.SingleById<Creative>(artifact.CreativeId);
         if (creative == null)
             return HttpError.NotFound("Creative not found");
 
-        var session = await GetSessionAsync();
-        if (!await session.IsOwnerOrModerator(creative.OwnerId))
+        if (!Request.IsOwnerOrModerator(creative.OwnerId))
             return HttpError.Forbidden("You don't own this Creative");
 
         if (request.Nsfw != null)
         {
-            await Db.UpdateOnlyAsync(() => new Artifact {
-                Nsfw = request.Nsfw,
-                ModifiedBy = session.UserAuthId,
-                ModifiedDate = DateTime.UtcNow,
-            }, where: x => x.Id == request.Id);
+            lock (Locks.AppDb)
+            {
+                Db.UpdateOnly(() => new Artifact {
+                    Nsfw = request.Nsfw,
+                    ModifiedBy = Request.GetRequiredUserId().ToString(),
+                    ModifiedDate = DateTime.UtcNow,
+                }, where: x => x.Id == request.Id);
+            }
             artifact.Nsfw = request.Nsfw;
         }
         if (request.Quality != null)
         {
-            await Db.UpdateOnlyAsync(() => new Artifact {
-                Quality = request.Quality.Value,
-                ModifiedBy = session.UserAuthId,
-                ModifiedDate = DateTime.UtcNow,
-            }, where: x => x.Id == request.Id);
+            lock (Locks.AppDb)
+            {
+                Db.UpdateOnly(() => new Artifact {
+                    Quality = request.Quality.Value,
+                    ModifiedBy = Request.GetRequiredUserId().ToString(),
+                    ModifiedDate = DateTime.UtcNow,
+                }, where: x => x.Id == request.Id);
+            }
             artifact.Quality = request.Quality.Value;
         }
 
@@ -358,7 +364,7 @@ public class CreativeService(
         return artifact;
     }
 
-    private async Task<int> PersistCreative(CreateCreative request,
+    private int PersistCreative(CreateCreative request,
         ImageGenerationResponse imageGenerationResponse,
         List<Modifier> modifiers,
         List<Artist> artists,
@@ -366,15 +372,14 @@ public class CreativeService(
         string? refId = null)
     {
         request.UserPrompt = request.UserPrompt.Trim();
-        var session = await SessionAsAsync<CustomUserSession>();
-        var userId = session.GetUserId();
+        var userId = Request.GetRequiredUserId();
         if(userId == 0)
             userId = callbackUserId;
         if(userId == 0)
             throw HttpError.Unauthorized("Not Authorized");
         var now = DateTime.UtcNow;
         var creative = request.ConvertTo<Creative>()
-            .WithAudit(session.UserAuthId, now);
+            .WithAudit(userId, now);
         creative.Width = request.Width ?? DefaultWidth;
         creative.Height = request.Height ?? DefaultHeight;
         creative.Steps = request.Steps ?? DefaultSteps;
@@ -386,39 +391,42 @@ public class CreativeService(
         creative.Prompt = request.UserPrompt.ConstructPrompt(modifiers, artists);
         creative.RefId = refId ?? Guid.NewGuid().ToString("D");
 
-        using var db = HostContext.AppHost.GetDbConnection();
-        using var transaction = db.OpenTransaction();
-        await db.SaveAsync(creative);
+        lock (Locks.AppDb)
+        {
+            using var db = dbFactory.OpenDbConnection();
+            using var transaction = db.OpenTransaction();
+            db.Save(creative);
         
-        var creativeArtists = request.ArtistIds.Select(x => new CreativeArtist {
-            ArtistId = x,
-            CreativeId = creative.Id
-        });
-        var creativeModifiers = request.ModifierIds.Select(x => new CreativeModifier {
-            CreativeId = creative.Id,
-            ModifierId = x
-        });
+            var creativeArtists = request.ArtistIds.Select(x => new CreativeArtist {
+                ArtistId = x,
+                CreativeId = creative.Id
+            });
+            var creativeModifiers = request.ModifierIds.Select(x => new CreativeModifier {
+                CreativeId = creative.Id,
+                ModifierId = x
+            });
         
-        await db.InsertAllAsync(creativeArtists);
-        await db.InsertAllAsync(creativeModifiers);
+            db.InsertAll(creativeArtists);
+            db.InsertAll(creativeModifiers);
 
-        var artifacts = imageGenerationResponse.Results.Select(x => new Artifact {
-            CreativeId = creative.Id,
-            Width = x.Width,
-            Height = x.Height,
-            Prompt = x.Prompt,
-            Seed = x.Seed,
-            FileName = x.FileName,
-            FilePath = x.FilePath,
-            FilePathSmall = x.FilePathSmall,
-            FilePathMedium = x.FilePathMedium,
-            FilePathLarge = x.FilePathLarge,
-            ContentType = MimeTypes.ImagePng,
-            ContentLength = x.ContentLength,
-            RefId = Guid.NewGuid().ToString("D"),
-        }.WithImageDetails(x.ImageDetails).WithAudit(session.UserAuthId, now));
-        await db.InsertAllAsync(artifacts);
-        transaction.Commit();
+            var artifacts = imageGenerationResponse.Results.Select(x => new Artifact {
+                CreativeId = creative.Id,
+                Width = x.Width,
+                Height = x.Height,
+                Prompt = x.Prompt,
+                Seed = x.Seed,
+                FileName = x.FileName,
+                FilePath = x.FilePath,
+                FilePathSmall = x.FilePathSmall,
+                FilePathMedium = x.FilePathMedium,
+                FilePathLarge = x.FilePathLarge,
+                ContentType = MimeTypes.ImagePng,
+                ContentLength = x.ContentLength,
+                RefId = Guid.NewGuid().ToString("D"),
+            }.WithImageDetails(x.ImageDetails).WithAudit(Request!, now));
+            db.InsertAll(artifacts);
+            transaction.Commit();
+        }
 
         return creative.Id;
     }
@@ -473,60 +481,26 @@ public class CreativeService(
             throw HttpError.ServiceUnavailable($"Failed to generate image: {e.Message}");
         }
     }
-    
-    public async Task<object> Get(ResizedArtifact request)
+
+    public void Delete(DeleteCreative request)
     {
-        var artifact = Db.SingleById<Artifact>(request.ArtifactId);
-        if (artifact == null)
-            return HttpError.NotFound("Artifact does not exist");
-
-        if (request.Size == ArtifactSize.Original)
-            return HttpResult.Redirect(appConfig.AssetsBasePath.CombineWith(artifact.FilePath));
-        if (request.Size == ArtifactSize.Small && artifact.FilePathSmall != null)
-            return HttpResult.Redirect(appConfig.AssetsBasePath.CombineWith(artifact.FilePathSmall));
-        if (request.Size == ArtifactSize.Medium && artifact.FilePathMedium != null)
-            return HttpResult.Redirect(appConfig.AssetsBasePath.CombineWith(artifact.FilePathMedium));
-        if (request.Size == ArtifactSize.Large && artifact.FilePathLarge != null)
-            return HttpResult.Redirect(appConfig.AssetsBasePath.CombineWith(artifact.FilePathLarge));
-
-        await VirtualFiles.ResizeArtifactsAsync(artifact);
-
-        await Db.UpdateOnlyAsync(() => new Artifact
-        {
-            FilePathSmall = artifact.FilePathSmall!,
-            FilePathMedium = artifact.FilePathMedium!,
-            FilePathLarge = artifact.FilePathLarge!,
-        }, where: x => x.Id == artifact.Id);
-
-        if (request.Size == ArtifactSize.Small)
-            return HttpResult.Redirect(appConfig.AssetsBasePath.CombineWith(artifact.FilePathSmall));
-        if (request.Size == ArtifactSize.Medium)
-            return HttpResult.Redirect(appConfig.AssetsBasePath.CombineWith(artifact.FilePathMedium));
-        if (request.Size == ArtifactSize.Large)
-            return HttpResult.Redirect(appConfig.AssetsBasePath.CombineWith(artifact.FilePathLarge));
-
-        return HttpResult.Redirect(appConfig.AssetsBasePath.CombineWith(artifact.FilePath));
-    }
-
-    public async Task Delete(DeleteCreative request)
-    {
-        var creative = await Db.SingleByIdAsync<Creative>(request.Id);
+        var creative = Db.SingleById<Creative>(request.Id);
         if (creative == null)
             return;
 
-        var session = await GetSessionAsync();
-        if (!await session.IsOwnerOrModerator(creative.OwnerId))
-            throw HttpError.Forbidden($"You don't own this Creative {session.UserAuthId} vs {creative.OwnerId}");
+        var userIdStr = Request.GetRequiredUserId().ToString();
+        if (!Request.IsOwnerOrModerator(creative.OwnerId))
+            throw HttpError.Forbidden($"You don't own this Creative {userIdStr} vs {creative.OwnerId}");
 
         var now = DateTime.UtcNow;
         // transfer to system user
-        await Db.UpdateOnlyAsync(() =>
+        Db.UpdateOnly(() =>
             new Creative {
                 OwnerId = Users.System.Id, 
                 OwnerRef = Users.System.RefIdStr,
-                ModifiedBy = session.UserAuthId,
+                ModifiedBy = userIdStr,
                 ModifiedDate = now,
-                DeletedBy = session.UserAuthId,
+                DeletedBy = userIdStr,
                 DeletedDate = now,
             }, where: x => x.Id == request.Id);
 
@@ -569,36 +543,13 @@ public class CreativeService(
         analyticsDb.Delete<SearchStat>(x => x.ArtifactId != null && artifactIds.Contains(x.ArtifactId.Value));
     }
 
-    public object Any(DeleteCdnFilesMq request)
-    {
-        var msg = new DiskTasks
-        {
-            CdnDeleteFiles = request.Files
-        };
-        PublishMessage(msg);
-        return msg;
-    }
-
-    public void Any(DeleteCdnFile request)
-    {
-        VirtualFiles.DeleteFile(request.File);
-    }
-
-    public object Any(GetCdnFile request)
-    {
-        var file = VirtualFiles.GetFile(request.File);
-        if (file == null)
-            throw new FileNotFoundException(request.File);
-        return new HttpResult(file);
-    }
-
-    public async Task<object> Any(GetCreative request)
+    public object Any(GetCreative request)
     {
         var creativeId = request.Id
-            ?? await Db.ScalarAsync<int?>(Db.From<Artifact>().Where(x => x.Id == request.ArtifactId).Select(x => x.CreativeId));
+            ?? Db.Scalar<int?>(Db.From<Artifact>().Where(x => x.Id == request.ArtifactId).Select(x => x.CreativeId));
 
         var creative = creativeId != null
-            ? await Db.LoadSingleByIdAsync<Creative>(creativeId)
+            ? Db.LoadSingleById<Creative>(creativeId)
             : null;
 
         if (creative == null)
@@ -659,36 +610,6 @@ public class DiffusionApiProviderOutput
 
 public class CreateCreativeCallbackResponse
 {
-    
-}
-
-public static class CreateServiceUtils
-{
-    public static async Task<bool> IsOwnerOrModerator(this Service service, int? userId) => 
-        await (await service.GetSessionAsync()).IsOwnerOrModerator(userId);
-
-    public static Task<bool> IsOwnerOrModerator(this IAuthSession session, int? ownerId)
-    {
-        var roles = session.Roles.Safe();
-        if (!roles.Contains(AppRoles.Admin) && !roles.Contains(AppRoles.Moderator))
-        {
-            return Task.FromResult(ownerId != null && ownerId.ToString() == session.UserAuthId);
-        }
-        return Task.FromResult(true);
-    }
-
-    public static async Task<Creative> SaveCreativeAsync(this IDbConnection db, int creativeId, IStableDiffusionClient client)
-    {
-        var creative = await db.LoadSingleByIdAsync<Creative>(creativeId);
-        return await client.SaveCreativeAsync(creative);
-    }
-
-    public static async Task<Creative> SaveCreativeAsync(this IStableDiffusionClient client, Creative creative)
-    {
-        await client.SaveMetadataAsync(creative);
-        return creative;
-    }
-
 }
 
 public interface IStableDiffusionClient

@@ -293,111 +293,111 @@ public static class Scores
             + (searchCount * Weights.Search);
     }
 
-    public static async Task ChangePrimaryArtifactAsync(IDbConnection db, int creativeId, int? fromArtifactId, int? toArtifactId)
+    public static void ChangePrimaryArtifact(IDbConnection db, int creativeId, int? fromArtifactId, int? toArtifactId)
     {
         if (fromArtifactId != null)
         {
-            await db.UpdateAddAsync(() => new Artifact { Score = -Weights.PrimaryArtifact }, where: x => x.Id == fromArtifactId.Value);
+            db.UpdateAdd(() => new Artifact { Score = -Weights.PrimaryArtifact }, where: x => x.Id == fromArtifactId.Value);
             CreativePrimaryArtifactMap.TryRemove(creativeId, out _);
             PrimaryArtifactCreativeMap.TryRemove(fromArtifactId.Value, out _);
             Updated.ArtifactScore(fromArtifactId.Value);
         }
         if (toArtifactId != null)
         {
-            await db.UpdateAddAsync(() => new Artifact { Score = Weights.PrimaryArtifact }, where: x => x.Id == toArtifactId.Value);
+            db.UpdateAdd(() => new Artifact { Score = Weights.PrimaryArtifact }, where: x => x.Id == toArtifactId.Value);
             CreativePrimaryArtifactMap[creativeId] = toArtifactId.Value;
             PrimaryArtifactCreativeMap[toArtifactId.Value] = creativeId;
             Updated.ArtifactScore(toArtifactId.Value);
         }
     }
 
-    public static async Task SetPrimayArtifactAsync(IDbConnection db, int creativeId, int artifactId)
+    public static void SetPrimaryArtifactAsync(IDbConnection db, int creativeId, int artifactId)
     {
         CreativePrimaryArtifactMap[creativeId] = artifactId;
         PrimaryArtifactCreativeMap[artifactId] = creativeId;
 
-        await db.UpdateAddAsync(() => new Artifact { Score = Weights.PrimaryArtifact }, where: x => x.Id == artifactId);
+        db.UpdateAdd(() => new Artifact { Score = Weights.PrimaryArtifact }, where: x => x.Id == artifactId);
         Updated.ArtifactScore(artifactId);
     }
 
-    public static async Task IncrementArtifactLikeAsync(IDbConnection db, int artifactId)
+    public static void IncrementArtifactLike(IDbConnection db, int artifactId)
     {
         ArtifactLikesCountMap[artifactId] = ArtifactLikesCountMap.TryGetValue(artifactId, out var count)
             ? count + 1
             : 1;
-        await db.UpdateAddAsync(() => new Artifact { LikesCount = 1, Score = Weights.Like }, where: x => x.Id == artifactId);
+        db.UpdateAdd(() => new Artifact { LikesCount = 1, Score = Weights.Like }, where: x => x.Id == artifactId);
         Updated.ArtifactScore(artifactId);
     }
 
-    public static async Task DecrementArtifactLikeAsync(IDbConnection db, int artifactId)
+    public static void DecrementArtifactLike(IDbConnection db, int artifactId)
     {
         ArtifactLikesCountMap[artifactId] = ArtifactLikesCountMap.TryGetValue(artifactId, out var count)
             ? Math.Max(count - 1, 0)
             : 0;
-        await db.UpdateAddAsync(() => new Artifact { LikesCount = -1, Score = -Weights.Like }, where: x => x.Id == artifactId);
+        db.UpdateAdd(() => new Artifact { LikesCount = -1, Score = -Weights.Like }, where: x => x.Id == artifactId);
         Updated.ArtifactScore(artifactId);
     }
 
-    public static async Task IncrementAlbumLikeAsync(IDbConnection db, int albumId)
+    public static void IncrementAlbumLike(IDbConnection db, int albumId)
     {
         AlbumLikesCountMap[albumId] = AlbumLikesCountMap.TryGetValue(albumId, out var count)
             ? count + 1
             : 1;
-        await db.UpdateAddAsync(() => new Album { LikesCount = 1, Score = Weights.Like }, where: x => x.Id == albumId);
+        db.UpdateAdd(() => new Album { LikesCount = 1, Score = Weights.Like }, where: x => x.Id == albumId);
         Updated.AlbumScore(albumId);
     }
 
-    public static async Task DecrementAlbumLikeAsync(IDbConnection db, int albumId)
+    public static void DecrementAlbumLike(IDbConnection db, int albumId)
     {
         AlbumLikesCountMap[albumId] = AlbumLikesCountMap.TryGetValue(albumId, out var count)
             ? Math.Max(count - 1, 0)
             : 0;
-        await db.UpdateAddAsync(() => new Album { LikesCount = -1, Score = -Weights.Like }, where: x => x.Id == albumId);
+        db.UpdateAdd(() => new Album { LikesCount = -1, Score = -Weights.Like }, where: x => x.Id == albumId);
         Updated.AlbumIds.Add(albumId);
     }
 
-    public static async Task IncrementArtifactInAlbumAsync(IDbConnection db, int artifactId)
+    public static void IncrementArtifactInAlbum(IDbConnection db, int artifactId)
     {
         ArtifactInAlbumsCountMap[artifactId] = ArtifactInAlbumsCountMap.TryGetValue(artifactId, out var count)
             ? count + 1
             : 1;
-        await db.UpdateAddAsync(() => new Artifact { AlbumsCount = 1, Score = Weights.InAlbum }, where: x => x.Id == artifactId);
+        db.UpdateAdd(() => new Artifact { AlbumsCount = 1, Score = Weights.InAlbum }, where: x => x.Id == artifactId);
         Updated.ArtifactScore(artifactId);
     }
 
-    public static async Task DencrementArtifactInAlbumAsync(IDbConnection db, int artifactId)
+    public static void DecrementArtifactInAlbum(IDbConnection db, int artifactId)
     {
         ArtifactInAlbumsCountMap[artifactId] = ArtifactInAlbumsCountMap.TryGetValue(artifactId, out var count)
             ? Math.Max(count - 1, 0)
             : 0;
-        await db.UpdateAddAsync(() => new Artifact { AlbumsCount = -1, Score = -Weights.InAlbum }, where: x => x.Id == artifactId);
+        db.UpdateAdd(() => new Artifact { AlbumsCount = -1, Score = -Weights.InAlbum }, where: x => x.Id == artifactId);
         Updated.ArtifactScore(artifactId);
     }
 
-    public static async Task IncrementArtifactDownloadAsync(IDbConnection db, int artifactId)
+    public static void IncrementArtifactDownload(IDbConnection db, int artifactId)
     {
         ArtifactLikesCountMap[artifactId] = ArtifactDownloadsCountMap.TryGetValue(artifactId, out var count)
             ? count + 1
             : 1;
-        await db.UpdateAddAsync(() => new Artifact { DownloadsCount = 1, Score = Weights.Download }, where: x => x.Id == artifactId);
+        db.UpdateAdd(() => new Artifact { DownloadsCount = 1, Score = Weights.Download }, where: x => x.Id == artifactId);
         Updated.ArtifactScore(artifactId);
     }
 
-    public static async Task IncrementArtifactSearchAsync(IDbConnection db, int artifactId)
+    public static void IncrementArtifactSearch(IDbConnection db, int artifactId)
     {
         ArtifactSearchCountMap[artifactId] = ArtifactSearchCountMap.TryGetValue(artifactId, out var count)
             ? count + 1
             : 1;
-        await db.UpdateAddAsync(() => new Artifact { SearchCount = 1, Score = Weights.Search }, where: x => x.Id == artifactId);
+        db.UpdateAdd(() => new Artifact { SearchCount = 1, Score = Weights.Search }, where: x => x.Id == artifactId);
         Updated.ArtifactScore(artifactId);
     }
 
-    public static async Task IncrementAlbumSearchAsync(IDbConnection db, int albumId)
+    public static void IncrementAlbumSearch(IDbConnection db, int albumId)
     {
         AlbumSearchCountMap[albumId] = AlbumSearchCountMap.TryGetValue(albumId, out var count)
             ? count + 1
             : 1;
-        await db.UpdateAddAsync(() => new Album { SearchCount = 1, Score = Weights.Search }, where: x => x.Id == albumId);
+        db.UpdateAdd(() => new Album { SearchCount = 1, Score = Weights.Search }, where: x => x.Id == albumId);
         Updated.AlbumScore(albumId);
     }
 }

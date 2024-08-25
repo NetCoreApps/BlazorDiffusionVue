@@ -1,72 +1,83 @@
 ﻿using System;
 using System.Threading.Tasks;
+using BlazorDiffusion.ServiceInterface.Analytics;
+using BlazorDiffusion.ServiceInterface.App;
 using BlazorDiffusion.ServiceModel;
 using ServiceStack;
+using ServiceStack.Jobs;
 using ServiceStack.OrmLite;
 
 namespace BlazorDiffusion.ServiceInterface;
 
-public class ArtifactServices(AppConfig appConfig) : Service
+public class ArtifactServices(AppConfig appConfig, IBackgroundJobs jobs) : Service
 {
-    public async Task<object> Post(CreateArtifactLike request)
+    public object Post(CreateArtifactLike request)
     {
-        var session = await SessionAsAsync<CustomUserSession>();
-        var userId = session.GetUserId();
+        var userId = Request.GetRequiredUserId();
         var row = new ArtifactLike
         {
             AppUserId = userId,
             ArtifactId = request.ArtifactId,
             CreatedDate = DateTime.UtcNow,
         };
-        row.Id = await base.Db.InsertAsync(row, selectIdentity:true);
+        lock (Locks.AppDb)
+        {
+            row.Id = base.Db.Insert(row, selectIdentity:true);
+        }
 
-        PublishMessage(new BackgroundTasks { RecordArtifactLikeId = request.ArtifactId });
+        jobs.RunCommand<UpdateScoresCommand>(new UpdateScores { RecordArtifactLikeId = request.ArtifactId });
         return row;
     }
 
-    public async Task Delete(DeleteArtifactLike request)
+    public void Delete(DeleteArtifactLike request)
     {
-        var session = await SessionAsAsync<CustomUserSession>();
-        var userId = session.GetUserId();
-        await Db.DeleteAsync<ArtifactLike>(x => x.ArtifactId == request.ArtifactId && x.AppUserId == userId);
+        var userId = Request.GetRequiredUserId();
+        lock (Locks.AppDb)
+        {
+            Db.Delete<ArtifactLike>(x => x.ArtifactId == request.ArtifactId && x.AppUserId == userId);
+        }
 
-        PublishMessage(new BackgroundTasks { RecordArtifactUnlikeId = request.ArtifactId });
+        jobs.RunCommand<UpdateScoresCommand>(new UpdateScores { RecordArtifactUnlikeId = request.ArtifactId });
     }
 
-    public async Task<object> Post(CreateArtifactReport request)
+    public object Post(CreateArtifactReport request)
     {
-        var session = await SessionAsAsync<CustomUserSession>();
-        var userId = session.GetUserId();
+        var userId = Request.GetRequiredUserId();
         var row = request.ConvertTo<ArtifactReport>();
         row.AppUserId = userId;
         row.CreatedDate = DateTime.UtcNow;
-        row.Id = await base.Db.InsertAsync(row, selectIdentity: true);
+        lock (Locks.AppDb)
+        {
+            row.Id = base.Db.Insert(row, selectIdentity: true);
+        }
         return row;
     }
 
-    public async Task Delete(DeleteArtifactReport request)
+    public void Delete(DeleteArtifactReport request)
     {
-        var session = await SessionAsAsync<CustomUserSession>();
-        var userId = session.GetUserId();
-        await Db.DeleteAsync<ArtifactReport>(x => x.ArtifactId == request.ArtifactId && x.AppUserId == userId);
+        var userId = Request.GetRequiredUserId();
+        lock (Locks.AppDb)
+        {
+            Db.Delete<ArtifactReport>(x => x.ArtifactId == request.ArtifactId && x.AppUserId == userId);
+        }
     }
 
     public async Task<object> Get(DownloadArtifact request)
     {
         var artifact = !string.IsNullOrEmpty(request.RefId)
-            ? await Db.SingleAsync<Artifact>(x => x.RefId == request.RefId)
+            ? Db.Single<Artifact>(x => x.RefId == request.RefId)
             : null;
         if (artifact?.FilePathLarge == null)
             return HttpError.NotFound("File not found");
 
-        PublishMessage(new AnalyticsTasks {
+        jobs.RunCommand<RecordAnalyticsCommand>(new RecordAnalytics {
             RecordArtifactStat = new ArtifactStat {
                 Type = StatType.Download,
                 ArtifactId = artifact!.Id,
                 RefId = artifact.RefId,
                 Source = nameof(DownloadArtifact),
                 Version = ServiceStack.Text.Env.VersionString,
-            }.WithRequest(Request!, await GetSessionAsync())
+            }.WithRequest(Request!)
         });
 
         long? contentLength = null;

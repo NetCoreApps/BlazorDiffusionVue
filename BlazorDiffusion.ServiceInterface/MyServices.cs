@@ -11,10 +11,10 @@ namespace BlazorDiffusion.ServiceInterface;
 
 public class MyServices(AiServerClient aiClient) : Service
 {
-    public async Task<object> Any(GetUserProfile request)
+    public object Any(GetUserProfile request)
     {
-        var session = await SessionAsAsync<CustomUserSession>();
-        var userProfile = await Db.GetUserProfileAsync(session.UserAuthId.ToInt());
+        var userId = Request.GetRequiredUserId();
+        var userProfile = Db.GetUserProfile(userId);
         return new GetUserProfileResponse {
             Result = userProfile
         };
@@ -22,10 +22,8 @@ public class MyServices(AiServerClient aiClient) : Service
 
     public async Task<object> Any(UpdateUserProfile request)
     {
-        var session = await SessionAsAsync<CustomUserSession>();
-        var userId = session.GetUserId();
-
-        var userInfo = await Db.SingleAsync<UserProfile>(Db.From<AppUser>()
+        var userId = Request.GetRequiredUserId();
+        var userInfo = Db.Single<UserProfile>(Db.From<AppUser>()
             .Where(x => x.Id == userId));
 
         if (string.IsNullOrWhiteSpace(request.Handle))
@@ -36,14 +34,14 @@ public class MyServices(AiServerClient aiClient) : Service
         if (request.Handle != null && !request.Handle.IsValidVarName())
             throw new ArgumentException("Invalid chars in Handle", nameof(request.Handle));
 
-        if (request.Handle != null && await Db.ExistsAsync<AppUser>(x => x.Handle == request.Handle && x.Id != userId))
+        if (request.Handle != null && Db.Exists<AppUser>(x => x.Handle == request.Handle && x.Id != userId))
             throw new ArgumentException("Handle already taken", nameof(request.Handle));
 
         var file = Request.Files.FirstOrDefault();
         if (file != null)
         {
             var fileName = $"/avatars/{userId.ToString()}.{file.FileName.LastRightPart('.')}";
-            var response = aiClient.Client.PostFileWithRequest<StoreFileUploadResponse>(file.InputStream, fileName, new StoreFileUpload {
+            var response = await aiClient.Client.PostFileWithRequestAsync<StoreFileUploadResponse>(file.InputStream, fileName, new StoreFileUpload {
                 Name = "pub"
             });
             var publicPath = response.Results?.FirstOrDefault()
@@ -58,11 +56,14 @@ public class MyServices(AiServerClient aiClient) : Service
         if (string.IsNullOrWhiteSpace(request.Avatar))
             request.Avatar = null;
 
-        await Db.UpdateOnlyAsync(() => new AppUser {
-            DisplayName = request.DisplayName ?? userInfo.DisplayName,
-            Handle = request.Handle,
-            Avatar = request.Avatar ?? userInfo.Avatar,
-        }, where: x => x.Id == userId);
+        lock (Locks.AppDb)
+        {
+            Db.UpdateOnly(() => new AppUser {
+                DisplayName = request.DisplayName ?? userInfo.DisplayName,
+                Handle = request.Handle,
+                Avatar = request.Avatar ?? userInfo.Avatar,
+            }, where: x => x.Id == userId);
+        }
 
         return new UserProfile {
             DisplayName = request.DisplayName ?? userInfo.DisplayName,

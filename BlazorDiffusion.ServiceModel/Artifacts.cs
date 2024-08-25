@@ -386,12 +386,3 @@ public enum ArtifactSize
     Large,
 }
 
-
-[Tag(Tag.Artifacts)]
-[Route("/artifacts/{ArtifactId}/resized/{Size}")]
-public class ResizedArtifact : IReturnVoid //redirects to resized image on CDN
-{
-    [ValidateGreaterThan(0)]
-    public int ArtifactId { get; set; }
-    public ArtifactSize Size { get; set; }
-}

@@ -204,32 +204,6 @@ public static class ImageUtils
         return 0xFFFFFF;
     }
 
-    public static async Task<IHttpFile?> TransformAvatarAsync(FilesUploadContext ctx)
-    {
-        var originalMs = await ctx.File.InputStream.CopyToNewMemoryStreamAsync();
-
-        var resizedMs = await CropAndResizeAsync(originalMs, 128, 128, PngFormat.Instance);
-
-        // Offload persistence of original image to background task
-        originalMs.Position = 0;
-        using var mqClient = HostContext.AppHost.GetMessageProducer(ctx.Request);
-        mqClient.Publish(new DiskTasks
-        {
-            SaveFile = new()
-            {
-                FilePath = ctx.Location.ResolvePath(ctx),
-                Stream = originalMs,
-            }
-        });
-
-        return new HttpFile(ctx.File)
-        {
-            FileName = $"{ctx.FileName.LastLeftPart('.')}_128.{ctx.File.FileName.LastRightPart('.')}",
-            ContentLength = resizedMs.Length,
-            InputStream = resizedMs,
-        };
-    }
-
     public static async Task<MemoryStream> CropAndResizeAsync(Stream inStream, int width, int height, IImageFormat format)
     {
         var outStream = new MemoryStream();

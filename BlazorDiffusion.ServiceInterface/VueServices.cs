@@ -16,14 +16,13 @@ public class VueServices(IAutoQueryDb autoQuery) : Service
     //    return response;
     //}
     
-    public async Task<object> Get(GetArtifactUserData request)
+    public object Get(GetArtifactUserData request)
     {
-        var session = await SessionAsAsync<CustomUserSession>();
-        var userId = session.GetUserId();
-        var votes = await Db.SelectAsync(Db.From<ArtifactCommentVote>().Join<ArtifactComment>()
+        var userId = Request.GetRequiredUserId();
+        var votes = Db.Select(Db.From<ArtifactCommentVote>().Join<ArtifactComment>()
             .Where(x => x.AppUserId == userId)
             .And<ArtifactComment>(x => x.ArtifactId == request.ArtifactId));
-        var liked = await Db.ExistsAsync<ArtifactLike>(x => x.ArtifactId == request.ArtifactId && x.AppUserId == userId);
+        var liked = Db.Exists<ArtifactLike>(x => x.ArtifactId == request.ArtifactId && x.AppUserId == userId);
 
         var ret = new GetArtifactUserDataResponse
         {
@@ -35,11 +34,10 @@ public class VueServices(IAutoQueryDb autoQuery) : Service
         return ret;
     }
 
-    public async Task<object> Get(GetAlbumUserData request)
+    public object Get(GetAlbumUserData request)
     {
-        var session = await SessionAsAsync<CustomUserSession>();
-        var userId = session.GetUserId();
-        var likedIds = await Db.ColumnAsync<int>(Db.From<AlbumArtifact>()
+        var userId = Request.GetRequiredUserId();
+        var likedIds = Db.Column<int>(Db.From<AlbumArtifact>()
             .Join<ArtifactLike>((a,l) => a.ArtifactId == l.ArtifactId && l.AppUserId == userId)
             .Where<AlbumArtifact>(x => x.AlbumId == request.AlbumId)
             .Select(x => x.ArtifactId));
@@ -50,29 +48,33 @@ public class VueServices(IAutoQueryDb autoQuery) : Service
         };
     }
 
-    async Task RefreshVotes(int artifactCommentId)
+    void RefreshVotes(int artifactCommentId)
     {
-        var commentVotes = await Db.SelectAsync<ArtifactCommentVote>(x => x.ArtifactCommentId == artifactCommentId);
+        var commentVotes = Db.Select<ArtifactCommentVote>(x => x.ArtifactCommentId == artifactCommentId);
         var upVotes = commentVotes.Count(x => x.Vote > 0);
         var downVotes = commentVotes.Count(x => x.Vote < 0);
         var votes = upVotes - downVotes;
-        await Db.UpdateOnlyAsync(() => new ArtifactComment
+
+        lock (Locks.AppDb)
         {
-            UpVotes = upVotes,
-            DownVotes = downVotes,
-            Votes = votes,
-        }, where: x => x.Id == artifactCommentId);
+            Db.UpdateOnly(() => new ArtifactComment
+            {
+                UpVotes = upVotes,
+                DownVotes = downVotes,
+                Votes = votes,
+            }, where: x => x.Id == artifactCommentId);
+        }
     }
 
-    public async Task Post(CreateArtifactCommentVote request)
+    public void Post(CreateArtifactCommentVote request)
     {
-        await autoQuery.CreateAsync(request, base.Request);
-        await RefreshVotes(request.ArtifactCommentId);
+        autoQuery.Create(request, base.Request);
+        RefreshVotes(request.ArtifactCommentId);
     }
 
-    public async Task Delete(DeleteArtifactCommentVote request)
+    public void Delete(DeleteArtifactCommentVote request)
     {
-        await autoQuery.DeleteAsync(request, base.Request);
-        await RefreshVotes(request.ArtifactCommentId);
+        autoQuery.Delete(request, base.Request);
+        RefreshVotes(request.ArtifactCommentId);
     }
 }

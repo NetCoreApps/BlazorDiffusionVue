@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿using BlazorDiffusion.ServiceInterface;
+using Microsoft.AspNetCore.Identity;
+using ServiceStack.Jobs;
 using ServiceStack.Messaging;
 
 namespace BlazorDiffusion;
@@ -6,18 +8,16 @@ namespace BlazorDiffusion;
 /// <summary>
 /// Sends emails by publishing a message to the Background MQ Server where it's processed in the background
 /// </summary>
-public class EmailSender(IMessageService messageService) : IEmailSender<AppUser>
+public class EmailSender(IBackgroundJobs jobs) : IEmailSender<AppUser>
 {
     public Task SendEmailAsync(string email, string subject, string htmlMessage)
     {
-        using var mqClient = messageService.CreateMessageProducer();
-        mqClient.Publish(new SendEmail
+        jobs.RunCommand<SendEmailCommand>(new SendEmail
         {
             To = email,
             Subject = subject,
             BodyHtml = htmlMessage,
         });
-
         return Task.CompletedTask;
     }
 

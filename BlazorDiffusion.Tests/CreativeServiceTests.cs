@@ -44,9 +44,9 @@ public class CreativeServiceTests
 
             var appSettings = this.AppSettings;
             this.Plugins.Add(new AuthFeature(() => new CustomUserSession(),
-                new IAuthProvider[] {
-                    new CredentialsAuthProvider(appSettings)
-                })
+            [
+                new CredentialsAuthProvider(appSettings)
+            ])
             {
                 IncludeDefaultLogin = false
             });

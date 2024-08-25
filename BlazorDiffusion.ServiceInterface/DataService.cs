@@ -6,16 +6,17 @@ using ServiceStack.OrmLite;
 using BlazorDiffusion.ServiceModel;
 using System;
 using System.Data;
+using ServiceStack.Data;
 
 namespace BlazorDiffusion.ServiceInterface;
 
-public class DataService : Service
+public class DataService(IDbConnectionFactory dbFactory) : Service
 {
-    public async Task<object> Any(SearchData request)
+    public object Any(SearchData request)
     {
         var to = new SearchDataResponse
         {
-            Artists = (await Db.SelectAsync<Artist>()).OrderBy(x => x.Rank)
+            Artists = Db.Select<Artist>().OrderBy(x => x.Rank)
                 .Select(x => new ArtistInfo
                 {
                     Id = x.Id,
@@ -23,20 +24,20 @@ public class DataService : Service
                     Type = x.Type == null ? null : string.Join(", ", x.Type.Take(3)),
                 }).ToList(),
 
-            Modifiers = (await Db.SelectAsync<Modifier>()).OrderBy(x => x.Rank)
+            Modifiers = Db.Select<Modifier>().OrderBy(x => x.Rank)
                 .Select(x => new ModifierInfo { Id = x.Id, Name = x.Name, Category = x.Category }).ToList(),
         };
         return to;
     }
 
-    public async Task<object> Any(GetUserInfo request)
+    public object Any(GetUserInfo request)
     {
-        var userId = await Db.ScalarAsync<int>(Db.From<AppUser>()
+        var userId = Db.Scalar<int>(Db.From<AppUser>()
             .Where(x => x.RefIdStr == request.RefId).Select(x => x.Id));
         if (userId == default)
             return HttpError.NotFound("User not found");
 
-        var result = X.Apply(await Db.GetUserResultAsync(userId), x => x.RefId = request.RefId);
+        var result = X.Apply(Db.GetUserResult(userId), x => x.RefId = request.RefId);
         return new GetUserInfoResponse
         {
             Result = result,
@@ -45,8 +46,8 @@ public class DataService : Service
 
     public async Task<object> Any(AnonData request)
     {
-        var topAlbumResults = (await Db.SelectAsync(Db.From<Album>().Where(x => x.DeletedDate == null)
-                .OrderByDescending(x => new { x.Score, x.Id }).Take(10)))
+        var topAlbumResults = Db.Select(Db.From<Album>().Where(x => x.DeletedDate == null)
+                .OrderByDescending(x => new { x.Score, x.Id }).Take(10))
             .Map(x => x.ToAlbumResult());
 
         return new AnonDataResponse
@@ -69,25 +70,23 @@ public class DataService : Service
         };
     }
 
-    public async Task<object> Any(GetAlbumRefs request)
+    public object Any(GetAlbumRefs request)
     {
-        var topAlbums = await Db.GetAlbumRefsAsync();
-
-        return new GetAlbumRefsResponse
-        {
+        var topAlbums = Db.GetAlbumRefs();
+        return new GetAlbumRefsResponse {
             Results = topAlbums
         };
     }
 
-    public async Task<object> Any(UserData request)
+    public object Any(UserData request)
     {
-        var session = await SessionAsAsync<CustomUserSession>();
-        var userId = session.GetUserId();
-        var result = await Db.GetUserResultAsync(userId);
-        var profile = await Db.GetUserProfileAsync(userId);
+        var userId = Request.GetRequiredUserId();
+        var roles = Request.GetClaimsPrincipal().GetRoles();
+        var result = Db.GetUserResult(userId);
+        var profile = Db.GetUserProfile(userId);
 
-        using var dbAnalytics = OpenDbConnection(Databases.Analytics);
-        var signupTypes = await dbAnalytics.ColumnAsync<SignupType>(Db.From<Signup>()
+        using var dbAnalytics = dbFactory.OpenDbConnection(Databases.Analytics);
+        var signupTypes = dbAnalytics.Column<SignupType>(Db.From<Signup>()
             .Where(x => x.AppUserId == userId && x.Type == SignupType.Beta && x.CancelledDate == null).Select(x => x.Type));
 
         return new UserDataResponse
@@ -95,16 +94,16 @@ public class DataService : Service
             User = result,
             Profile = profile,
             Signups = signupTypes,
-            Roles = (await session.GetRolesAsync(AuthRepositoryAsync)).ToList(),
+            Roles = roles,
         };
     }
 
-    public async Task<object> Any(GetAlbumResults request)
+    public object Any(GetAlbumResults request)
     {
-        var ids = request.Ids?.ToArray() ?? Array.Empty<int>();
-        var refIds = request.RefIds?.ToArray() ?? Array.Empty<string>();
+        var ids = request.Ids?.ToArray() ?? [];
+        var refIds = request.RefIds?.ToArray() ?? [];
 
-        var albums = (await Db.LoadSelectAsync<Album>(x => x.DeletedDate == null && (ids.Contains(x.Id) || refIds.Contains(x.RefId))))
+        var albums = Db.LoadSelect<Album>(x => x.DeletedDate == null && (ids.Contains(x.Id) || refIds.Contains(x.RefId)))
             .OrderByDescending(x => x.Artifacts.Max(x => x.Id)).ToList();
 
         var albumResults = albums.Map(x => x.ToAlbumResult());
@@ -115,37 +114,39 @@ public class DataService : Service
         };
     }
 
-    public async Task<object> Any(CreateSignup request)
+    public object Any(CreateSignup request)
     {
-        var session = await SessionAsAsync<CustomUserSession>();
-        using var dbAnalytics = OpenDbConnection(Databases.Analytics);
+        var userId = Request.GetUserId();
+        using var dbAnalytics = dbFactory.OpenDbConnection(Databases.Analytics);
 
-        // If already exists uncancel existing Signup and prevent duplicate registrations
-        int existingSignups = session.IsAuthenticated
-            ? await dbAnalytics.UpdateOnlyAsync(() => new Signup { Email = request.Email, CancelledDate = null },
-                where: x => x.AppUserId == session.GetUserId() && x.Type == request.Type)
-            : await dbAnalytics.UpdateOnlyAsync(() => new Signup { CancelledDate = null },
-                where: x => x.Email == request.Email && x.Type == request.Type);
-
-        if (existingSignups == 0)
+        lock (Locks.GetDbLock(Databases.Analytics))
         {
-            await dbAnalytics.InsertAsync(new Signup {
-                Type = request.Type,
-                Name = request.Name, 
-                Email = request.Email,
+            // If already exists uncancel existing Signup and prevent duplicate registrations
+            int existingSignups = userId != null
+                ? dbAnalytics.UpdateOnly(() => new Signup { Email = request.Email, CancelledDate = null },
+                    where: x => x.AppUserId == userId && x.Type == request.Type)
+                : dbAnalytics.UpdateOnly(() => new Signup { CancelledDate = null },
+                    where: x => x.Email == request.Email && x.Type == request.Type);
+
+            if (existingSignups == 0)
+            {
+                dbAnalytics.Insert(new Signup {
+                    Type = request.Type,
+                    Name = request.Name, 
+                    Email = request.Email,
+                }
+                .WithRequest(Request!));
             }
-            .WithRequest(Request, session));
         }
-     
         return new EmptyResponse();
     }
 }
 
 public static class DataServiceExtensions
 {
-    public static async Task<List<AlbumRef>> GetAlbumRefsAsync(this IDbConnection db)
+    public static List<AlbumRef> GetAlbumRefs(this IDbConnection db)
     {
-        return await db.SelectAsync<AlbumRef>(db.From<Album>(db.TableAlias("a"))
+        return db.Select<AlbumRef>(db.From<Album>(db.TableAlias("a"))
             .Where(x => x.DeletedDate == null)
             .OrderByDescending(x => new { x.Score, x.Id })
             .Take(1000)

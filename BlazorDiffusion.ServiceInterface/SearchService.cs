@@ -1,15 +1,17 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
+using BlazorDiffusion.ServiceInterface.Analytics;
 using ServiceStack;
 using ServiceStack.OrmLite;
 using BlazorDiffusion.ServiceModel;
 using CoenM.ImageHash.HashAlgorithms;
+using ServiceStack.Jobs;
 
 namespace BlazorDiffusion.ServiceInterface;
 
-public class SearchService(IAutoQueryDb autoQuery) : Service
+public class SearchService(IAutoQueryDb autoQuery, IBackgroundJobs jobs) : Service
 {
-    public async Task<object> Any(SearchArtifacts query)
+    public object Any(SearchArtifacts query)
     {
         var search = query.Query ?? "";
 
@@ -18,7 +20,7 @@ public class SearchService(IAutoQueryDb autoQuery) : Service
 
         var similar = query.Similar?.Trim();
         var similarToArtifact = !string.IsNullOrEmpty(similar)
-            ? await Db.SingleAsync<Artifact>(x => x.RefId == similar)
+            ? Db.Single<Artifact>(x => x.RefId == similar)
             : null;
         // ?similar={RefId}&by=[^background|avg|diff|...perceptual]
         if (similarToArtifact != null)
@@ -31,7 +33,9 @@ public class SearchService(IAutoQueryDb autoQuery) : Service
                 var artifactFile = VirtualFiles.GetFile(similarToArtifact.FilePath);
                 using var filStream = artifactFile.OpenRead();
                 similarToArtifact.LoadImageDetails(filStream);
-                await Db.UpdateOnlyAsync(() => new Artifact
+                lock (Locks.AppDb)
+                {
+                    Db.UpdateOnly(() => new Artifact
                     {
                         PerceptualHash = similarToArtifact.PerceptualHash,
                         AverageHash = similarToArtifact.AverageHash,
@@ -39,6 +43,7 @@ public class SearchService(IAutoQueryDb autoQuery) : Service
                         Background = similarToArtifact.Background,
                     },
                     where: x => x.Id == similarToArtifact.Id);
+                }
             }
 
             var by = query.By ?? DefaultSimilarSearch;
@@ -181,9 +186,7 @@ public class SearchService(IAutoQueryDb autoQuery) : Service
             q.SelectDistinct<Artifact, Creative>((a, c) => new { a, c.UserPrompt, c.ArtistNames, c.ModifierNames, c.PrimaryArtifactId, c.OwnerRef });
         }
 
-        // Don't record analytics when prerendering
-        var session = await SessionAsAsync<CustomUserSession>();
-        var userId = session.GetUserId();
+        var userId = Request.GetUserId();
         if (userId != Users.Admin.Id && userId != Users.System.Id)
         {
             var recordSearch = query.Query != null
@@ -193,10 +196,9 @@ public class SearchService(IAutoQueryDb autoQuery) : Service
                 || (query.Album != null && query.Source != AppSource.Top)
                 || similarToArtifact?.Id != null;
 
-            if (recordSearch && Request.RawUrl?.StartsWith("gateway://") != true)
+            if (recordSearch && Request!.RawUrl?.StartsWith("gateway://") != true)
             {
-                base.PublishMessage(new AnalyticsTasks
-                {
+                jobs.RunCommand<RecordAnalyticsCommand>(new RecordAnalytics {
                     RecordSearchStat = new SearchStat
                     {
                         Query = query.Query,
@@ -208,11 +210,11 @@ public class SearchService(IAutoQueryDb autoQuery) : Service
                         Album = query.Album,
                         ArtifactId = similarToArtifact?.Id,
                         Source = query.Source,
-                    }.WithRequest(Request, session),
+                    }.WithRequest(Request),
                 });
             }
         }
 
-        return autoQuery.ExecuteAsync(query, q, base.Request, db);
+        return autoQuery.Execute(query, q, base.Request, db);
     }
 }

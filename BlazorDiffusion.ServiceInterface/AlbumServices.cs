@@ -2,126 +2,131 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using BlazorDiffusion.ServiceInterface.App;
 using ServiceStack;
 using ServiceStack.OrmLite;
 using BlazorDiffusion.ServiceModel;
+using ServiceStack.Jobs;
 
 namespace BlazorDiffusion.ServiceInterface;
 
-public class AlbumServices(ICrudEvents crudEvents) : Service
+public class AlbumServices(IBackgroundJobs jobs, ICrudEvents crudEvents) : Service
 {
-    public async Task<object> Any(CreateAlbum request)
+    public object Any(CreateAlbum request)
     {
         if (string.IsNullOrEmpty(request.Name))
             throw new ArgumentNullException(nameof(request.Name));
 
         var slug = request.Name.GenerateSlug();
 
-        if (await Db.ExistsAsync<Album>(x => x.Slug == slug))
+        if (Db.Exists<Album>(x => x.Slug == slug))
             throw HttpError.Conflict("Album already exists");
 
-        var session = await SessionAsAsync<CustomUserSession>();
+        var userId = Request.GetRequiredUserId();
 
         var album = request.ConvertTo<Album>();
-        album.OwnerId = session.GetUserId();
+        album.OwnerId = userId;
         album.OwnerRef = Db.GetUserRef(album.OwnerId);
         album.RefId = Guid.NewGuid().ToString("D");
         album.Slug = slug;
-        album.WithAudit(session.UserAuthId);
+        album.WithAudit(userId);
 
-        // TODO CrudEvents.RecordAsync
-        album.Id = (int)await Db.InsertAsync(album, selectIdentity: true);
-
-        if (request.ArtifactIds?.Count > 0)
+        lock (Locks.AppDb)
         {
-            var albumArtifacts = request.ArtifactIds.Map(x => new AlbumArtifact
+            album.Id = (int)Db.Insert(album, selectIdentity: true);
+            
+            if (request.ArtifactIds?.Count > 0)
             {
-                AlbumId = album.Id,
-                ArtifactId = x,
-                CreatedDate = album.CreatedDate,
-                ModifiedDate = album.ModifiedDate,
-            });
-            await Db.InsertAllAsync(albumArtifacts);
-            album.Artifacts = albumArtifacts;
-        }
-
-        var crudContext = CrudContext.Create<Album>(Request, Db, request, AutoCrudOperation.Create);
-        await crudEvents.RecordAsync(crudContext);
-
-        return album;
-    }
-
-    public async Task<object> Any(UpdateAlbum request)
-    {
-        var session = await GetSessionAsync();
-        
-        var album = await Db.LoadSingleByIdAsync<Album>(request.Id);
-        if (album == null)
-            throw HttpError.NotFound("Album not found");
-
-        if (!await session.IsOwnerOrModerator(album.OwnerId))
-            throw HttpError.Forbidden("You don't own this Album");
-        
-        using var trans = Db.OpenTransaction();
-        var updateAlbum = request.Name != null || request.Description != null || request.Slug != null || request.Tags?.Count > 0;
-        if (updateAlbum)
-        {
-            if (album.Name != null)
-            {
-                album.Slug = album.Name.GenerateSlug();
-            }
-            album.PopulateWithNonDefaultValues(request).WithAudit(session.UserAuthId);
-            await Db.UpdateNonDefaultsAsync(album, x => x.Id == album.Id);
-        }
-
-        if (request.RemoveArtifactIds?.Count > 0)
-        {
-            await Db.DeleteAsync<AlbumArtifact>(x => x.AlbumId == album.Id && request.RemoveArtifactIds.Contains(x.ArtifactId));
-            // Delete Album if it no longer contains any Artifacts
-            if (!await Db.ExistsAsync<AlbumArtifact>(x => x.AlbumId == album.Id))
-            {
-                await Db.DeleteByIdAsync<Album>(album.Id);
-            }
-            else if (album.PrimaryArtifactId != null && request.RemoveArtifactIds.Contains(album.PrimaryArtifactId.Value))
-            {
-                await Db.UpdateOnlyAsync(() => new Album { PrimaryArtifactId = null }, where: x => x.Id == album.Id);
-            }
-            album.Artifacts.RemoveAll(x => request.RemoveArtifactIds.Contains(x.ArtifactId)); // required so they get added below
-            request.RemoveArtifactIds.ForEach(Updated.ArtifactIds.Add); //rerender artifact .html
-        }
-        if (request.AddArtifactIds?.Count > 0)
-        {
-            var albumArtifacts = request.AddArtifactIds.Where(x => album.Artifacts.OrEmpty().All(a => a.ArtifactId != x))
-                .Map(x => new AlbumArtifact
+                var albumArtifacts = request.ArtifactIds.Map(x => new AlbumArtifact
                 {
                     AlbumId = album.Id,
                     ArtifactId = x,
                     CreatedDate = album.CreatedDate,
                     ModifiedDate = album.ModifiedDate,
                 });
-            await Db.InsertAllAsync(albumArtifacts);
-            request.AddArtifactIds.ForEach(Updated.ArtifactIds.Add); //rerender artifact .html
+                Db.InsertAll(albumArtifacts);
+                album.Artifacts = albumArtifacts;
+            }
+
+            var crudContext = CrudContext.Create<Album>(Request, Db, request, AutoCrudOperation.Create);
+            crudEvents.Record(crudContext);
         }
-        if (request.PrimaryArtifactId != null)
+
+        return album;
+    }
+
+    public object Any(UpdateAlbum request)
+    {
+        var album = Db.LoadSingleById<Album>(request.Id);
+        if (album == null)
+            throw HttpError.NotFound("Album not found");
+
+        if (!Request.IsOwnerOrModerator(album.OwnerId))
+            throw HttpError.Forbidden("You don't own this Album");
+
+        lock (Locks.AppDb)
         {
-            if (request.UnpinPrimaryArtifact != true)
-                await Db.UpdateOnlyAsync(() => new Album { PrimaryArtifactId = request.PrimaryArtifactId }, where: x => x.Id == album.Id);
-            else
-                await Db.UpdateOnlyAsync(() => new Album { PrimaryArtifactId = null }, where: x => x.Id == album.Id);
+            using var trans = Db.OpenTransaction();
+            var updateAlbum = request.Name != null || request.Description != null || request.Slug != null || request.Tags?.Count > 0;
+            if (updateAlbum)
+            {
+                if (album.Name != null)
+                {
+                    album.Slug = album.Name.GenerateSlug();
+                }
+                album.PopulateWithNonDefaultValues(request).WithAudit(Request!);
+                Db.UpdateNonDefaults(album, x => x.Id == album.Id);
+            }
+
+            if (request.RemoveArtifactIds?.Count > 0)
+            {
+                Db.Delete<AlbumArtifact>(x => x.AlbumId == album.Id && request.RemoveArtifactIds.Contains(x.ArtifactId));
+                // Delete Album if it no longer contains any Artifacts
+                if (!Db.Exists<AlbumArtifact>(x => x.AlbumId == album.Id))
+                {
+                    Db.DeleteById<Album>(album.Id);
+                }
+                else if (album.PrimaryArtifactId != null && request.RemoveArtifactIds.Contains(album.PrimaryArtifactId.Value))
+                {
+                    Db.UpdateOnly(() => new Album { PrimaryArtifactId = null }, where: x => x.Id == album.Id);
+                }
+                album.Artifacts.RemoveAll(x => request.RemoveArtifactIds.Contains(x.ArtifactId)); // required so they get added below
+                request.RemoveArtifactIds.ForEach(Updated.ArtifactIds.Add); //rerender artifact .html
+            }
+            if (request.AddArtifactIds?.Count > 0)
+            {
+                var albumArtifacts = request.AddArtifactIds.Where(x => album.Artifacts.OrEmpty().All(a => a.ArtifactId != x))
+                    .Map(x => new AlbumArtifact
+                    {
+                        AlbumId = album.Id,
+                        ArtifactId = x,
+                        CreatedDate = album.CreatedDate,
+                        ModifiedDate = album.ModifiedDate,
+                    });
+                Db.InsertAll(albumArtifacts);
+                request.AddArtifactIds.ForEach(Updated.ArtifactIds.Add); //rerender artifact .html
+            }
+            if (request.PrimaryArtifactId != null)
+            {
+                if (request.UnpinPrimaryArtifact != true)
+                    Db.UpdateOnly(() => new Album { PrimaryArtifactId = request.PrimaryArtifactId }, where: x => x.Id == album.Id);
+                else
+                    Db.UpdateOnly(() => new Album { PrimaryArtifactId = null }, where: x => x.Id == album.Id);
+            }
+
+            if (updateAlbum)
+            {
+                var crudContext = CrudContext.Create<Album>(Request, Db, request, AutoCrudOperation.Patch);
+                crudEvents.Record(crudContext);
+            }
+
+            trans.Commit();
+
+            jobs.RunCommand<UpdateScoresCommand>(new UpdateScores {
+                ArtifactIdsAddedToAlbums = request.AddArtifactIds,
+                ArtifactIdsRemovedFromAlbums = request.RemoveArtifactIds,
+            });
         }
-
-        if (updateAlbum)
-        {
-            var crudContext = CrudContext.Create<Album>(Request, Db, request, AutoCrudOperation.Patch);
-            await crudEvents.RecordAsync(crudContext);
-        }
-
-        trans.Commit();
-
-        PublishMessage(new BackgroundTasks {
-            ArtifactIdsAddedToAlbums = request.AddArtifactIds,
-            ArtifactIdsRemovedFromAlbums = request.RemoveArtifactIds,
-        });
 
         return album;
     }
@@ -146,7 +151,7 @@ public class AlbumServices(ICrudEvents crudEvents) : Service
                 artifact.ArtifactId,
             });
 
-        var albumRefs = await Db.SelectAsync<AlbumArtifactResult>(q);
+        var albumRefs = Db.Select<AlbumArtifactResult>(q);
 
         var albumMap = new Dictionary<int, AlbumResult>();
         foreach (var albumRef in albumRefs)
@@ -162,8 +167,8 @@ public class AlbumServices(ICrudEvents crudEvents) : Service
                     OwnerRef = albumRef.OwnerRef,
                     Score = albumRef.Score,
                     ArtifactIds = albumRef.PrimaryArtifactId != null 
-                        ? new() { albumRef.PrimaryArtifactId.Value } 
-                        : new(),
+                        ? [albumRef.PrimaryArtifactId.Value]
+                        : [],
                 };
 
             album.ArtifactIds.AddIfNotExists(albumRef.ArtifactId);
@@ -175,30 +180,36 @@ public class AlbumServices(ICrudEvents crudEvents) : Service
         };
     }
 
-    public async Task<object> Post(CreateAlbumLike request)
+    public object Post(CreateAlbumLike request)
     {
-        var session = await SessionAsAsync<CustomUserSession>();
-        var userId = session.GetUserId();
+        var userId = Request.GetRequiredUserId();
         var row = new AlbumLike
         {
             AppUserId = userId,
             AlbumId = request.AlbumId,
             CreatedDate = DateTime.UtcNow,
         };
-        row.Id = await base.Db.InsertAsync(row, selectIdentity: true);
+        lock (Locks.AppDb)
+        {
+            row.Id = base.Db.Insert(row, selectIdentity: true);
+        }
 
-        PublishMessage(new BackgroundTasks { RecordAlbumLikeId = request.AlbumId });
+        jobs.RunCommand<UpdateScoresCommand>(new UpdateScores {
+            RecordAlbumLikeId = request.AlbumId
+        });
         return row;
     }
 
     public async Task Delete(DeleteAlbumLike request)
     {
-        var session = await SessionAsAsync<CustomUserSession>();
-        var userId = session.GetUserId();
-        await Db.DeleteAsync<AlbumLike>(x => x.AlbumId == request.AlbumId && x.AppUserId == userId);
+        var userId = Request.GetRequiredUserId();
+        lock (Locks.AppDb)
+        {
+            Db.Delete<AlbumLike>(x => x.AlbumId == request.AlbumId && x.AppUserId == userId);
+        }
 
-        PublishMessage(new BackgroundTasks { RecordAlbumUnlikeId = request.AlbumId });
+        jobs.RunCommand<UpdateScoresCommand>(new UpdateScores {
+            RecordAlbumUnlikeId = request.AlbumId
+        });
     }
-
-
 }

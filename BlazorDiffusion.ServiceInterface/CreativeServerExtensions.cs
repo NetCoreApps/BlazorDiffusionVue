@@ -12,8 +12,10 @@ public static class CreativeServerExtensions
     const string SystemUserId = "2";
 
     public static T WithAudit<T>(this T row, IRequest req, DateTime? date = null) where T : AuditBase =>
-        row.WithAudit(req.GetSession().UserAuthId, date);
+        row.WithAudit(req.GetUserId(), date);
 
+    public static T WithAudit<T>(this T row, int? by, DateTime? date = null) where T : AuditBase =>
+        row.WithAudit(by != null ? $"{by}" : null, date);
     public static T WithAudit<T>(this T row, string? by, DateTime? date = null) where T : AuditBase
     {
         by ??= SystemUserId;
@@ -65,4 +67,34 @@ public static class CreativeServerExtensions
     public static string GetArtistName(this Artist artist) => string.IsNullOrEmpty(artist.FirstName)
         ? artist.LastName
         : $"{artist.FirstName} {artist.LastName}";
+    
+    public static (string dir1, string dir2, string fileId) ToFileParts(this int id)
+    {
+        var idStr = $"{id}".PadLeft(9, '0');
+        var dir1 = idStr[..3];
+        var dir2 = idStr.Substring(3, 3);
+        var fileId = idStr[6..];
+        return (dir1, dir2, fileId);
+    }
+
+    public static int? GetUserId(this IRequest? req)
+    {
+        var user = req.GetClaimsPrincipal();
+        return user.IsAuthenticated()
+            ? user.GetUserId().ToInt()
+            : null;
+    }
+
+    public static int GetRequiredUserId(this IRequest? req) => req.GetClaimsPrincipal().GetUserId().ToInt();
+
+    public static bool IsOwnerOrModerator(this IRequest? req, int? ownerId)
+    {
+        var userId = req.GetUserId();
+        var roles = req.GetClaimsPrincipal().GetRoles();
+        if (!roles.Contains(AppRoles.Admin) && !roles.Contains(AppRoles.Moderator))
+        {
+            return ownerId != null && ownerId == userId;
+        }
+        return true;
+    }
 }

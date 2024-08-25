@@ -467,7 +467,7 @@ public class Migration1001 : MigrationBase
                 Slug = albumnRef.Name.GenerateSlug(),
                 Description = albumnRef.Description,
                 Tags = albumnRef.Tags,
-            }.WithAudit($"{owner.Id}");
+            }.WithAudit(owner.Id);
             album.Id = (int)Db.Insert(album, selectIdentity: true);
 
             foreach (var x in albumArtifactRefs.Where(x => x.AlbumRefId == albumnRef.RefId))

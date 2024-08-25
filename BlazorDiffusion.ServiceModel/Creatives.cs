@@ -233,12 +233,3 @@ public class CreativeModifier
     [Reference]
     public Modifier Modifier { get; set; }
 }
-
-[Tag(Tag.Creatives)]
-[Route("/creative/metadata/{CreativeId}")]
-[ValidateHasRole(AppRoles.Moderator)]
-public class ViewCreativeMetadata : IGet, IReturn<Creative>
-{
-    [ValidateGreaterThan(0)]
-    public int CreativeId { get; set; }
-}

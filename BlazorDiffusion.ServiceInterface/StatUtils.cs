@@ -8,12 +8,11 @@ namespace BlazorDiffusion;
 
 public static class StatUtils
 {
-    public static T WithRequest<T>(this T stat, IRequest req, IAuthSession session) where T : StatBase
+    public static T WithRequest<T>(this T stat, IRequest req) where T : StatBase
     {
-        if (session.IsAuthenticated)
-        {
-            stat.AppUserId = session.UserAuthId?.ToInt();
-        }
+        var userId = req.GetUserId();
+        if (userId != null)
+            stat.AppUserId = userId;
 
         stat.RawUrl = req.RawUrl;
         stat.RemoteIp = req.RemoteIp;
