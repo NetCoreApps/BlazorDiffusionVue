@@ -6,12 +6,12 @@ import { ApiResult, combinePaths, EventBus, leftPart, queryString, rightPart, se
 import { useAuth, useUtils } from "@servicestack/vue"
 
 export const BaseUrl = globalThis.BaseUrl = '/'
-// export const AssetsBasePath = globalThis.AssetsBasePath = "https://cdn.diffusion.works"
-// export const FallbackAssetsBasePath = globalThis.FallbackAssetsBasePath = "https://pub-97bba6b94a944260b10a6e7d4bf98053.r2.dev"
 export const AssetsBasePath = globalThis.AssetsBasePath = location.hostname === "localhost" 
     ? "https://localhost:5005" 
     : "https://ai-server-cdn.diffusion.works"
-export const FallbackAssetsBasePath = globalThis.FallbackAssetsBasePath = AssetsBasePath
+export const FallbackAssetsBasePath = globalThis.FallbackAssetsBasePath = location.hostname === "localhost"
+    ? "https://localhost:5005"
+    : "https://ai-server-cdn.diffusion.works"
 
 export class Store {
     InitialTake = 50
