@@ -16,8 +16,6 @@ public class ConfigureSmtp : IHostingStartup
             }
         })
         .ConfigureAppHost(appHost => {
-            var mqService = appHost.Resolve<IMessageService>();
-            mqService.RegisterHandler<SendEmail>(appHost.ExecuteMessage);
             // Check if SMTP is configured
             var smtpConfig = appHost.TryResolve<SmtpConfig>();
             var log = appHost.GetApplicationServices().GetRequiredService<ILogger<ConfigureSmtp>>();
