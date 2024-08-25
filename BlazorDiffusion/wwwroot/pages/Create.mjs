@@ -159,10 +159,10 @@ export default {
         
         <div class="mb-4">
           <h3 class="text-lg font-medium mb-4 text-center">Select Model</h3>
-          <div class="mx-auto grid grid-cols-2 gap-4 w-80">
+          <div class="mx-auto flex gap-4 justify-center">
             <div v-for="model in models" :key="model.id" 
                  @click="selectModel(model)"
-                 :class="['cursor-pointer transition-colors relative cursor-pointer overflow-hidden rounded-lg ring-1 border border-transparent focus:outline-none', 
+                 :class="['max-w-32 cursor-pointer transition-colors relative cursor-pointer overflow-hidden rounded-lg ring-1 border border-transparent focus:outline-none', 
                           selectedModel.id === model.id ? 'bg-indigo-700 border-indigo-700 ring-indigo-700' : 'ring-gray-800 bg-gray-800 border-gray-800 hover:ring-indigo-500 hover:border-indigo-500']">
               <div class="">
                 <img :src="model.icon" :alt="model.name" class="w-full h-full object-cover">
