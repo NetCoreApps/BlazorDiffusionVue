@@ -540,7 +540,6 @@ public class CreativeService(
             throw HttpError.NotFound($"Creative {request.Id} does not exist");
 
         var artifacts = Db.Select<Artifact>(x => x.CreativeId == request.Id);
-        
         var artifactIds = artifacts.Select(x => x.Id).ToSet();
 
         using var transaction = Db.OpenTransaction();

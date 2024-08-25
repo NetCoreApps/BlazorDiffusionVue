@@ -50,6 +50,13 @@ public class MyServices(AiServerClient aiClient) : Service
                 ?? throw new Exception("File Upload Failed");
             request.Avatar = "/variants/width=128".CombineWith(publicPath);
         }
+        
+        if (string.IsNullOrWhiteSpace(request.DisplayName))
+            request.DisplayName = null;
+        if (string.IsNullOrWhiteSpace(request.Handle))
+            request.Handle = null;
+        if (string.IsNullOrWhiteSpace(request.Avatar))
+            request.Avatar = null;
 
         await Db.UpdateOnlyAsync(() => new AppUser {
             DisplayName = request.DisplayName ?? userInfo.DisplayName,
