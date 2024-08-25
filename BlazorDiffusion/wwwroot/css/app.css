@@ -1609,6 +1609,10 @@ select{
   max-width: 42rem;
 }
 
+.max-w-32 {
+  max-width: 8rem;
+}
+
 .max-w-3xl {
   max-width: 48rem;
 }
@@ -2539,6 +2543,11 @@ select{
   padding-right: 0.25rem;
 }
 
+.px-10 {
+  padding-left: 2.5rem;
+  padding-right: 2.5rem;
+}
+
 .px-2 {
   padding-left: 0.5rem;
   padding-right: 0.5rem;
@@ -2850,6 +2859,10 @@ select{
 
 .uppercase {
   text-transform: uppercase;
+}
+
+.lowercase {
+  text-transform: lowercase;
 }
 
 .capitalize {
@@ -3256,11 +3269,6 @@ select{
 .ring-black {
   --tw-ring-opacity: 1;
   --tw-ring-color: rgb(0 0 0 / var(--tw-ring-opacity));
-}
-
-.ring-blue-800 {
-  --tw-ring-opacity: 1;
-  --tw-ring-color: rgb(30 64 175 / var(--tw-ring-opacity));
 }
 
 .ring-gray-800 {

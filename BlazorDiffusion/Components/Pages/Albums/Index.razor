@@ -14,7 +14,7 @@
             @if (artifact != null)
             {
                 <div>
-                    <NavLink href="@($"/albums/{album.Slug}")" class="@CssUtils.ClassNames("overflow-hidden flex justify-center")">
+                    <NavLink data-enhance-nav="false" href="@($"/albums/{album.Slug}")" class="@CssUtils.ClassNames("overflow-hidden flex justify-center")">
                         <div class="relative sm:p-2 flex flex-col cursor-pointer items-center w-32 h-32 sm:w-64 sm:h-64 xl:w-96 xl:h-96 2xl:w-[512px] 2xl:h-[512px]">
                             <ArtifactImage Artifact=@artifact MinSize="@artifact.Width" Class="flex rounded sm:rounded-xl w-full h-full" ImageClass="object-cover" />
 

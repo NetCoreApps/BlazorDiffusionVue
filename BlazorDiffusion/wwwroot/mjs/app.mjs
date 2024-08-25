@@ -79,7 +79,7 @@ export function mount(sel, component, props) {
     if (!hasTemplate(el, component)) {
         // Fallback for enhanced navigation clearing HTML DOM template of Vue App, requiring a force reload
         // Avoid by disabling enhanced navigation to page, e.g. by adding data-enhance-nav="false" to element
-        console.warn('Vue Compontent template is missing, force reloading...', el, component)
+        console.warn('Vue Component template is missing, force reloading...', el, component)
         blazorRefresh()
         return
     }
@@ -276,6 +276,7 @@ globalThis.logout = function () {
 
 document.addEventListener('DOMContentLoaded', () =>
     Blazor.addEventListener('enhancedload', () => {
+        console.log('enhancedload')
         remount()
         globalThis.hljs?.highlightAll()
         if (localStorage.getItem('color-scheme') == 'dark') {
