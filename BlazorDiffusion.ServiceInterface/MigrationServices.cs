@@ -52,6 +52,8 @@ public class MigrationServices(ILogger<MigrationServices> log, AiServerClient ai
                         if (string.IsNullOrEmpty(newFilePath))
                         {
                             to.Failed.Add(filePath);
+                            log.LogError("Failed migrating artifact {Id} {FilePath}: Missing Path", 
+                                artifact.Id, filePath);
                         }
                         else
                         {
@@ -67,12 +69,16 @@ public class MigrationServices(ILogger<MigrationServices> log, AiServerClient ai
                                 FilePathMedium = filePathMedium,
                                 FilePathLarge = newFilePath,
                             }, where: a => a.Id == artifact.Id);
+                            to.Results.Add(newFilePath);
+                            log.LogInformation($"Migrated {artifact.Id} to {newFilePath}");
                         }
                     }
                 }
                 else
                 {
                     to.Failed.Add(artifact.FilePath);
+                    log.LogError("Failed migrating artifact {Id} {FilePath}: {Json}", 
+                        artifact.Id, filePath, api.Error.ToJson());
                 }
             }
             catch (Exception e)
