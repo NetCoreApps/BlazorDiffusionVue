@@ -109,9 +109,9 @@ public class CreativeService(
                 FileName = item.FileName,
                 Width = (int)createCreative.Width!,
                 Height = (int)createCreative.Height!,
-                FilePathSmall = $"/variants/{variant}=118".CombineWith(item.Url.RightPart("/artifacts")),
-                FilePathMedium = $"/variants/{variant}=288".CombineWith(item.Url.RightPart("/artifacts")),
-                FilePathLarge = item.Url,
+                // FilePathSmall = $"/variants/{variant}=118".CombineWith(item.Url.RightPart("/artifacts")),
+                // FilePathMedium = $"/variants/{variant}=288".CombineWith(item.Url.RightPart("/artifacts")),
+                // FilePathLarge = item.Url,
                 //Image details updated in SyncArtifactsCommand
             });
         }
@@ -417,9 +417,9 @@ public class CreativeService(
                 Seed = x.Seed,
                 FileName = x.FileName,
                 FilePath = x.FilePath,
-                FilePathSmall = x.FilePathSmall,
-                FilePathMedium = x.FilePathMedium,
-                FilePathLarge = x.FilePathLarge,
+                // FilePathSmall = x.FilePathSmall,
+                // FilePathMedium = x.FilePathMedium,
+                // FilePathLarge = x.FilePathLarge,
                 ContentType = MimeTypes.ImagePng,
                 ContentLength = x.ContentLength,
                 RefId = Guid.NewGuid().ToString("D"),
@@ -530,10 +530,8 @@ public class CreativeService(
         transaction.Commit();
 
         var artifactPaths = artifacts
-            .Where(x => x.FilePathLarge != null)
-            .Select(x => x.FilePathLarge!).ToList();
-        var api = await aiClient.Client.ApiAsync(new DeleteFiles
-        {
+            .Select(x => x.FilePath).ToList();
+        var api = await aiClient.Client.ApiAsync(new DeleteFiles {
             Paths = artifactPaths,
         });
         log.LogInformation("DeleteFiles:\n{Json}", api.Response.ToJson());

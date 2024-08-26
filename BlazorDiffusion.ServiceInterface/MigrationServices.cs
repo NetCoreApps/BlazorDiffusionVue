@@ -27,7 +27,7 @@ public class MigrationServices(ILogger<MigrationServices> log, AiServerClient ai
     {
         var limit = request.Limit ?? 10;
         var artifacts = Db.Select(Db.From<Artifact>()
-            .Where(x => x.FilePath.EndsWith(".png") || !x.FilePathSmall!.StartsWith("/variant"))
+            .Where(x => x.FilePath.EndsWith(".png"))
             .OrderBy(x => x.Id)
             .Take(limit));
 
@@ -59,15 +59,15 @@ public class MigrationServices(ILogger<MigrationServices> log, AiServerClient ai
                         {
                             var variant = artifact.Height > artifact.Width ? "height" : "width";
                             var fileName = newFilePath.LastRightPart('/');
-                            var filePathSmall = $"/variants/{variant}=118".CombineWith(newFilePath.RightPart("/artifacts"));
-                            var filePathMedium = $"/variants/{variant}=288".CombineWith(newFilePath.RightPart("/artifacts"));
+                            // var filePathSmall = $"/variants/{variant}=118".CombineWith(newFilePath.RightPart("/artifacts"));
+                            // var filePathMedium = $"/variants/{variant}=288".CombineWith(newFilePath.RightPart("/artifacts"));
                             Db.UpdateOnly(() => new Artifact
                             {
                                 FileName = fileName,
                                 FilePath = newFilePath,
-                                FilePathSmall = filePathSmall,
-                                FilePathMedium = filePathMedium,
-                                FilePathLarge = newFilePath,
+                                // FilePathSmall = filePathSmall,
+                                // FilePathMedium = filePathMedium,
+                                // FilePathLarge = newFilePath,
                             }, where: a => a.Id == artifact.Id);
                             to.Results.Add(newFilePath);
                             log.LogInformation($"Migrated {artifact.Id} to {newFilePath}");

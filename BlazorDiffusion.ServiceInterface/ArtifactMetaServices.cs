@@ -67,7 +67,7 @@ public class ArtifactServices(AppConfig appConfig, IBackgroundJobs jobs) : Servi
         var artifact = !string.IsNullOrEmpty(request.RefId)
             ? Db.Single<Artifact>(x => x.RefId == request.RefId)
             : null;
-        if (artifact?.FilePathLarge == null)
+        if (artifact?.FilePath == null)
             return HttpError.NotFound("File not found");
 
         jobs.RunCommand<RecordAnalyticsCommand>(new RecordAnalytics {
@@ -81,7 +81,7 @@ public class ArtifactServices(AppConfig appConfig, IBackgroundJobs jobs) : Servi
         });
 
         long? contentLength = null;
-        var url = appConfig.AiServerBaseUrl.CombineWith(artifact.FilePathLarge);
+        var url = appConfig.AiServerBaseUrl.CombineWith(artifact.FilePath);
         var imageBytes = await url.GetBytesFromUrlAsync(responseFilter:res => contentLength = res.GetContentLength());
         var headerValue = $"attachment; {HttpExt.GetDispositionFileName(artifact.FileName)}; " + 
             (contentLength != null ? $"size={contentLength}; " : "") +
