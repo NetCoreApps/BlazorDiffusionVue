@@ -6,6 +6,8 @@ using System;
 using System.Linq;
 using BlazorDiffusion.ServiceInterface.AiServer;
 using ServiceStack.Text;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Webp;
 
 namespace BlazorDiffusion.ServiceInterface;
 
@@ -40,13 +42,35 @@ public class MyServices(AiServerClient aiClient) : Service
         var file = Request.Files.FirstOrDefault();
         if (file != null)
         {
-            var fileName = $"/avatars/{userId.ToString()}.{file.FileName.LastRightPart('.')}";
-            var response = await aiClient.Client.PostFileWithRequestAsync<StoreFileUploadResponse>(file.InputStream, fileName, new StoreFileUpload {
+            var imageStream = file.InputStream;
+            var ms = MemoryStreamFactory.GetStream((int)file.ContentLength);
+            var ext = file.FileName.LastRightPart('.');
+            if (ext != "webp")
+            {
+                var image = await Image.LoadAsync(imageStream);
+                await image.SaveAsWebpAsync(ms, new WebpEncoder { Quality = 80 });
+                await imageStream.DisposeAsync();
+                ms.Position = 0;
+                imageStream = ms;
+                ext = "webp";
+            }
+            
+            var fileName = $"/avatars/{userId.ToString()}.{ext}";
+            var response = await aiClient.Client.PostFileWithRequestAsync<StoreFileUploadResponse>(imageStream, fileName, new StoreFileUpload {
                 Name = "pub"
             });
             var publicPath = response.Results?.FirstOrDefault()
                 ?? throw new Exception("File Upload Failed");
-            request.Avatar = "/variants/width=128".CombineWith(publicPath);
+            var v = 0;
+            if (userInfo.Avatar != null && userInfo.Avatar.Contains('?'))
+            {
+                var qs = PclExportClient.Instance.ParseQueryString(userInfo.Avatar);
+                if (qs["v"] != null && int.TryParse(qs["v"], out var qsValue))
+                    v = qsValue;
+            }
+            v += 1;
+            var nextAvatar = "/variants/width=128".CombineWith(publicPath).AddQueryParam("v", v.ToString());
+            request.Avatar = nextAvatar;
         }
         
         if (string.IsNullOrWhiteSpace(request.DisplayName))
