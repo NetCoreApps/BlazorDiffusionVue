@@ -1,11 +1,9 @@
-﻿using ServiceStack.Caching;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Security.Claims;
+using ServiceStack;
 
-namespace BlazorDiffusion.ServiceModel;
+namespace BlazorDiffusion;
 
 public class AppConfig
 {
