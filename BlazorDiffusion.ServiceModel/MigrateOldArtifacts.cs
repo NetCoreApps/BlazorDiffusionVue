@@ -3,6 +3,7 @@ using ServiceStack;
 
 namespace BlazorDiffusion.ServiceModel;
 
+[ValidateIsAdmin]
 public class MigrateOldArtifacts : IGet, IReturn<MigrateOldArtifactsResponse>
 {
     public int? Limit { get; set; }
