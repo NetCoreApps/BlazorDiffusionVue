@@ -30,7 +30,7 @@ public class SyncArtifactsCommand(ILogger<SyncArtifactsCommand> logger, IBackgro
         {
             try
             {
-                var artifactUrl = appConfig.AiServerBaseUrl.CombineWith(artifact.FilePathLarge);
+                var artifactUrl = appConfig.AiServerBaseUrl.CombineWith(artifact.FilePath);
                 var stream = await artifactUrl.GetStreamFromUrlAsync(
                     responseFilter:res => artifact.ContentLength = res.Content.Headers.ContentLength ?? 0, token:token);
             

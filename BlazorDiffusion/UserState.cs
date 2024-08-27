@@ -285,25 +285,28 @@ public static class CreativeExtensions
                     ? ArtifactSize.Large
                     : ArtifactSize.Medium;
 
-    public static string? GetFilePath(this Artifact artifact, ArtifactSize size) => size switch {
-        ArtifactSize.Small => artifact.FilePathSmall,
-        ArtifactSize.Medium => artifact.FilePathMedium,
-        ArtifactSize.Large => artifact.FilePathLarge,
-        _ => artifact.FilePath,
-    };
-
+    public static string GetVariantPath(Artifact artifact, int minSize, int maxSize)
+    {
+        var path = artifact.FilePath.RightPart("/artifacts");
+        if (artifact.Height > artifact.Width)
+            return $"/variants/width={minSize},height={maxSize}".CombineWith(path);
+        if (artifact.Width > artifact.Height)
+            return $"/variants/width={maxSize},height={minSize}".CombineWith(path);
+        return $"/variants/width={minSize}".CombineWith(path);
+    }
+    
     public static string GetFilePath(string cdnPath, Artifact artifact, int? minSize=null)
     {
         var size = GetSize(minSize);
-        var cachedFilePath = artifact.GetFilePath(size);
-        return cachedFilePath != null
-            ? cdnPath + cachedFilePath
-            : artifact.GetResizedPath(size);
+        var variantPath = size == ArtifactSize.Small
+            ? GetVariantPath(artifact, 118, 207)
+            : size == ArtifactSize.Medium
+                ? GetVariantPath(artifact, 288, 504)
+                : null;
+        if (variantPath == null)
+            return cdnPath.CombineWith(artifact.FilePath);
+        return cdnPath.CombineWith(variantPath);
     }
-
-    public static string GetResizedPath(this Artifact artifact, ArtifactSize size) =>
-        $"/artifacts/{artifact.Id}/resized/{size.ToString().ToLower()}";
-
 
     public static int GetAlbumCoverArtifactId(this AlbumResult album)
     {

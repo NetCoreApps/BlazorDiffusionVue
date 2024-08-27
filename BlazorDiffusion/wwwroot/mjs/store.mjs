@@ -469,20 +469,33 @@ export class Store {
         return size
     }
 
-    /** @param {Artifact} artifact 
+    /** @param {Artifact} artifact
+     *  @param {number} minSize
+     *  @param {number} maxSize */
+    getVariantPath(artifact, minSize, maxSize) {
+        const path = rightPart(artifact.filePath, "/artifacts")
+        if (artifact.height > artifact.width)
+            return combinePaths(`/variants/width=${minSize},height=${maxSize}`, path)
+        if (artifact.width > artifact.height)
+            return combinePaths(`/variants/width=${maxSize},height=${minSize}`, path)
+        return combinePaths(`/variants/width=${minSize}`, path)
+    }
+
+    /** @param {string} cdnPath 
+     *  @param {Artifact} artifact 
      *  @param {number?} minSize */
     getFilePath(cdnPath, artifact, minSize=null) {
         const size = this.getSize(minSize)
-        const cachedFilePath = artifact[`filePath${size}`]
-        return cachedFilePath
-            ? cdnPath + cachedFilePath
-            : this.getResizedPath(artifact, size)
-    }
+        const variantPath = size === 'Small'
+            ? this.getVariantPath(artifact, 118, 207)
+            : size === 'Medium'
+                ? this.getVariantPath(artifact, 288, 504)
+                : null
+        console.log('getFilePath', this.AssetsBasePath, minSize, size, variantPath, artifact.filePath)
 
-    /** @param {Artifact} artifact
-     *  @param {string} size */
-    getResizedPath(artifact, size) {
-        return `/artifacts/${artifact.id}/resized/${size.toLowerCase()}`
+        if (!variantPath)
+            return combinePaths(cdnPath, artifact.filePath)
+        return combinePaths(cdnPath, variantPath)
     }
 
     /** @param {Artifact} artifact */

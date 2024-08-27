@@ -48,9 +48,12 @@ public class Artifact : AuditBase
     public int Score { get; set; }
     public int Rank { get; set; }
     public string RefId { get; set; }
-    public string? FilePathSmall { get; set; } // 118x118 or 118x207
-    public string? FilePathMedium { get; set; } // 288x288 or 288x504
-    public string? FilePathLarge { get; set; } // Original Size in .webp
+    
+    // No longer using hard-coded paths
+    // public string? FilePathSmall { get; set; } // 118x118 or 118x207
+    // public string? FilePathMedium { get; set; } // 288x288 or 288x504
+    // public string? FilePathLarge { get; set; } // Original Size in .webp
+    
     public Dictionary<string,string> Versions { get; set; } // Alternative Asset Versions
 }
 

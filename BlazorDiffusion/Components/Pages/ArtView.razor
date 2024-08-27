@@ -12,7 +12,7 @@
             <HeadCard Title="@Creative.UserPrompt"
                       Summary="summary_large_image"
                       Url="@AppConfig.WwwBaseUrl.CombineWith($"/artifacts/{Id}/{Slug}")"
-                      ImagePath="@(Artifact!.FilePathLarge ?? Artifact.FilePath)"
+                      ImagePath="@(Artifact!.FilePath)"
                       Description="@MetaDescription" />
         </HeadContent>
 
