@@ -289,9 +289,9 @@ public static class CreativeExtensions
     {
         var path = artifact.FilePath.RightPart("/artifacts");
         if (artifact.Height > artifact.Width)
-            return $"/variants/width={minSize},height={maxSize}".CombineWith(path);
+            return $"/variants/height={maxSize}".CombineWith(path);
         if (artifact.Width > artifact.Height)
-            return $"/variants/width={maxSize},height={minSize}".CombineWith(path);
+            return $"/variants/width={maxSize}".CombineWith(path);
         return $"/variants/width={minSize}".CombineWith(path);
     }
     

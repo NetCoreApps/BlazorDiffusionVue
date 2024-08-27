@@ -475,9 +475,9 @@ export class Store {
     getVariantPath(artifact, minSize, maxSize) {
         const path = rightPart(artifact.filePath, "/artifacts")
         if (artifact.height > artifact.width)
-            return combinePaths(`/variants/width=${minSize},height=${maxSize}`, path)
+            return combinePaths(`/variants/height=${maxSize}`, path)
         if (artifact.width > artifact.height)
-            return combinePaths(`/variants/width=${maxSize},height=${minSize}`, path)
+            return combinePaths(`/variants/width=${maxSize}`, path)
         return combinePaths(`/variants/width=${minSize}`, path)
     }
 
