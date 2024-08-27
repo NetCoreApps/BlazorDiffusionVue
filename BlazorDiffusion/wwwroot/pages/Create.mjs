@@ -371,6 +371,8 @@ export default {
             { id:"flux-schnell",      name: "FLUX",      icon: "/img/flux-schnell.webp" },
             { id:"sdxl-lightning",    name: "Lightning", icon: "/img/sdxl-lightning.webp", admin },
             { id:"dall-e-3",          name: "DALL-E 3",  icon: "/img/dall-e-3.webp",       admin },
+            { id: "flux-dev",         name: "FLUX-DEV",  icon: "/img/flux-dev.webp", admin },
+            { id: "flux-pro",         name: "FLUX-PRO",  icon: "/img/flux-pro.webp", admin },
         ])
         if (!hasRole('Admin')) {
             models.value = models.value.filter(x => !x.admin)
