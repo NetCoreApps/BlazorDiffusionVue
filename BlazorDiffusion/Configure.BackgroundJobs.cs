@@ -16,7 +16,9 @@ public class ConfigureBackgroundJobs : IHostingStartup
                     () => [typeof(LogCommand)]
                 }
             });
-            services.AddPlugin(new BackgroundsJobFeature());
+             services.AddPlugin(new BackgroundsJobFeature {
+                DefaultTimeoutSecs = 10 * 60,
+            });
             services.AddHostedService<JobsHostedService>();
         }).ConfigureAppHost(afterAppHostInit: appHost => {
             var services = appHost.GetApplicationServices();
