@@ -66,7 +66,7 @@ public class AiServerClient: IStableDiffusionClient
 
     public async Task<ImageGenerationResponse> GetQueueResult(string refId)
     {
-        var getComfyGeneration = new GetDiffusionGeneration
+        var getComfyGeneration = new GetGeneration
         {
             RefId = refId
         };
@@ -166,11 +166,11 @@ public class AiServerClient: IStableDiffusionClient
 
 public static class StableDiffusionClientExtensions
 {
-    public static CreateDiffusionGeneration ToComfy(this ImageGeneration request)
+    public static CreateGeneration ToComfy(this ImageGeneration request)
     {
-        return new CreateDiffusionGeneration()
+        return new CreateGeneration()
         {
-            Request = new DiffusionImageGeneration()
+            Request = new GenerationArgs()
             {
                 Height = request.Height,
                 Width = request.Width,
@@ -179,7 +179,7 @@ public static class StableDiffusionClientExtensions
                 PositivePrompt = request.Prompt,
                 NegativePrompt = $"(nsfw),(nude),(explicit),(gore),(violence),(blood)",
                 Model = request.Engine,
-                TaskType = ComfyTaskType.TextToImage
+                TaskType = AiTaskType.TextToImage
             }
         };
     }

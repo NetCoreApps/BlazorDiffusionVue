@@ -1,5 +1,5 @@
 /* Options:
-Date: 2024-08-25 21:30:13
+Date: 2024-08-29 10:07:34
 Version: 8.31
 Tip: To override a DTO option, remove "//" prefix before updating
 BaseUrl: https://localhost:5005
@@ -35,7 +35,6 @@ using ServiceStack.Jobs;
 using System.IO;
 using AiServer.ServiceModel;
 using AiServer.ServiceModel.Types;
-using AiServer.ServiceInterface.Speech;
 using AiServer.ServiceInterface;
 
 namespace AiServer.ServiceInterface
@@ -117,58 +116,34 @@ namespace AiServer.ServiceInterface
     {
     }
 
-    public partial class GetComfyModelMappings
-        : IReturn<GetComfyModelMappingsResponse>
+    public partial class AdminRequeueFailedJobs
+        : IReturn<AdminRequeueFailedJobsJobsResponse>
     {
-    }
-
-    public partial class GetComfyModelMappingsResponse
-    {
-        public GetComfyModelMappingsResponse()
+        public AdminRequeueFailedJobs()
         {
-            Models = new Dictionary<string, string>{};
+            Ids = new List<long>{};
         }
 
-        public virtual Dictionary<string, string> Models { get; set; }
+        public virtual List<long> Ids { get; set; }
+        public virtual bool? All { get; set; }
+    }
+
+    public partial class AdminRequeueFailedJobsJobsResponse
+    {
+        public AdminRequeueFailedJobsJobsResponse()
+        {
+            Results = new List<long>{};
+            Errors = new Dictionary<long, string>{};
+        }
+
+        public virtual List<long> Results { get; set; }
+        public virtual Dictionary<long, string> Errors { get; set; }
+        public virtual ResponseStatus ResponseStatus { get; set; }
     }
 
     public partial class PopulateChatSummary
         : IReturn<StringsResponse>, IGet
     {
-    }
-
-}
-
-namespace AiServer.ServiceInterface.Speech
-{
-    public partial class CreateSpeechGenerationResponse
-    {
-        public virtual string RefId { get; set; }
-        public virtual ResponseStatus ResponseStatus { get; set; }
-    }
-
-    public partial class QueueSpeechGeneration
-        : IReturn<CreateSpeechGenerationResponse>
-    {
-        public virtual SpeechGenerationRequest Request { get; set; }
-        public virtual string State { get; set; }
-        public virtual string ReplyTo { get; set; }
-        public virtual string RefId { get; set; }
-    }
-
-    public partial class SpeechGenerationRequest
-    {
-        public virtual string Text { get; set; }
-        public virtual string Voice { get; set; }
-        public virtual SpeechQuality? Quality { get; set; }
-        public virtual int? Seed { get; set; }
-    }
-
-    public enum SpeechQuality
-    {
-        Low,
-        Medium,
-        High,
     }
 
 }
@@ -236,6 +211,29 @@ namespace AiServer.ServiceModel
         GoogleAiProvider,
     }
 
+    public partial class AiProviderFileOutput
+    {
+        public virtual string FileName { get; set; }
+        public virtual string Url { get; set; }
+    }
+
+    public partial class AiProviderTextOutput
+    {
+        public virtual string Text { get; set; }
+    }
+
+    public enum AiTaskType
+    {
+        TextToImage = 1,
+        ImageToImage = 2,
+        ImageToImageUpscale = 3,
+        ImageToImageWithMask = 4,
+        ImageToText = 5,
+        TextToAudio = 6,
+        TextToSpeech = 7,
+        SpeechToText = 8,
+    }
+
     public partial class ApiProvider
     {
         public ApiProvider()
@@ -284,6 +282,22 @@ namespace AiServer.ServiceModel
         public virtual string HeartbeatUrl { get; set; }
         public virtual string Icon { get; set; }
         public virtual Dictionary<string, string> ApiModels { get; set; }
+    }
+
+    public partial class ArtifactOutput
+    {
+        ///<summary>
+        ///URL to access the generated image
+        ///</summary>
+        public virtual string Url { get; set; }
+        ///<summary>
+        ///Filename of the generated image
+        ///</summary>
+        public virtual string FileName { get; set; }
+        ///<summary>
+        ///Provider used for image generation
+        ///</summary>
+        public virtual string Provider { get; set; }
     }
 
     public partial class ChangeApiProviderStatus
@@ -462,8 +476,21 @@ namespace AiServer.ServiceModel
         public virtual List<string> SelectedModels { get; set; }
     }
 
-    public partial class CreateDiffusionApiProvider
-        : IReturn<IdResponse>, ICreateDb<DiffusionApiProvider>
+    [Route("/generate", "POST")]
+    public partial class CreateGeneration
+        : IReturn<CreateGenerationResponse>
+    {
+        [Validate("NotNull")]
+        public virtual GenerationArgs Request { get; set; }
+
+        public virtual string Provider { get; set; }
+        public virtual string State { get; set; }
+        public virtual string ReplyTo { get; set; }
+        public virtual string RefId { get; set; }
+    }
+
+    public partial class CreateGenerationApiProvider
+        : IReturn<IdResponse>, ICreateDb<GenerationApiProvider>
     {
         ///<summary>
         ///The name of the API Provider
@@ -478,7 +505,7 @@ namespace AiServer.ServiceModel
         ///</summary>
         public virtual string ApiKeyHeader { get; set; }
         ///<summary>
-        ///Base URL for the Diffusion Provider
+        ///Base URL for the Generation Provider
         ///</summary>
         public virtual string ApiBaseUrl { get; set; }
         ///<summary>
@@ -505,23 +532,10 @@ namespace AiServer.ServiceModel
         ///Models this API Provider should process
         ///</summary>
         public virtual List<string> Models { get; set; }
-        public virtual int? DiffusionApiTypeId { get; set; }
+        public virtual int? GenerationApiTypeId { get; set; }
     }
 
-    [Route("/diffusion/generate", "POST")]
-    public partial class CreateDiffusionGeneration
-        : IReturn<CreateDiffusionGenerationResponse>
-    {
-        [Validate("NotNull")]
-        public virtual DiffusionImageGeneration Request { get; set; }
-
-        public virtual string Provider { get; set; }
-        public virtual string State { get; set; }
-        public virtual string ReplyTo { get; set; }
-        public virtual string RefId { get; set; }
-    }
-
-    public partial class CreateDiffusionGenerationResponse
+    public partial class CreateGenerationResponse
     {
         public virtual long Id { get; set; }
         public virtual string RefId { get; set; }
@@ -553,9 +567,9 @@ namespace AiServer.ServiceModel
         public virtual int Id { get; set; }
     }
 
-    public partial class DeleteArtifactsResoponse
+    public partial class DeleteArtifactsResponse
     {
-        public DeleteArtifactsResoponse()
+        public DeleteArtifactsResponse()
         {
             Deleted = new List<string>{};
             Missing = new List<string>{};
@@ -568,16 +582,9 @@ namespace AiServer.ServiceModel
         public virtual ResponseStatus ResponseStatus { get; set; }
     }
 
-    public partial class DeleteDiffusionApiProvider
-        : IReturn<IdResponse>, IDeleteDb<DiffusionApiProvider>
-    {
-        public virtual int? Id { get; set; }
-        public virtual string Name { get; set; }
-    }
-
     [Route("/artifacts")]
     public partial class DeleteFiles
-        : IReturn<DeleteArtifactsResoponse>, IDelete
+        : IReturn<DeleteArtifactsResponse>, IDelete
     {
         public DeleteFiles()
         {
@@ -587,34 +594,21 @@ namespace AiServer.ServiceModel
         public virtual List<string> Paths { get; set; }
     }
 
-    public partial class DiffusionApiProviderOutput
+    public partial class DeleteGenerationApiProvider
+        : IReturn<IdResponse>, IDeleteDb<GenerationApiProvider>
     {
-        public virtual string FileName { get; set; }
-        public virtual string Url { get; set; }
+        public virtual int? Id { get; set; }
+        public virtual string Name { get; set; }
     }
 
-    public partial class DiffusionGenerationResponse
-    {
-        public DiffusionGenerationResponse()
-        {
-            Outputs = new List<DiffusionApiProviderOutput>{};
-        }
-
-        public virtual List<DiffusionApiProviderOutput> Outputs { get; set; }
-        public virtual string Error { get; set; }
-    }
-
-    public partial class DiffusionImageGeneration
+    public partial class GenerationArgs
     {
         public virtual string Model { get; set; }
         public virtual int? Steps { get; set; }
-        public virtual int BatchSize { get; set; }
+        public virtual int? BatchSize { get; set; }
         public virtual int? Seed { get; set; }
         public virtual string PositivePrompt { get; set; }
         public virtual string NegativePrompt { get; set; }
-        public virtual ComfyFileInput Image { get; set; }
-        public virtual ComfyFileInput Speech { get; set; }
-        public virtual ComfyFileInput Mask { get; set; }
         public virtual Stream ImageInput { get; set; }
         public virtual Stream SpeechInput { get; set; }
         public virtual Stream MaskInput { get; set; }
@@ -625,23 +619,65 @@ namespace AiServer.ServiceModel
         public virtual string UpscaleModel { get; set; }
         public virtual int? Width { get; set; }
         public virtual int? Height { get; set; }
-        public virtual ComfyTaskType? TaskType { get; set; }
+        public virtual AiTaskType? TaskType { get; set; }
         public virtual string Clip { get; set; }
         public virtual double? SampleLength { get; set; }
         public virtual ComfyMaskSource MaskChannel { get; set; }
         public virtual string AspectRatio { get; set; }
         public virtual double? Quality { get; set; }
+        public virtual string Voice { get; set; }
+        public virtual string Language { get; set; }
     }
 
-    [Route("/download/{Provider}/{Year}/{Month}/{Day}/{Filename}")]
-    public partial class DownloadDiffusionFile
-        : IReturn<Stream>, IGet
+    public partial class GenerationResponse
     {
-        public virtual string Provider { get; set; }
-        public virtual int? Year { get; set; }
-        public virtual int? Month { get; set; }
-        public virtual int? Day { get; set; }
-        public virtual string FileName { get; set; }
+        public GenerationResponse()
+        {
+            Outputs = new List<ArtifactOutput>{};
+            TextOutputs = new List<TextOutput>{};
+        }
+
+        ///<summary>
+        ///Unique identifier of the background job
+        ///</summary>
+        public virtual long JobId { get; set; }
+        ///<summary>
+        ///Client-provided identifier for the request
+        ///</summary>
+        public virtual string RefId { get; set; }
+        ///<summary>
+        ///Current state of the background job
+        ///</summary>
+        public virtual BackgroundJobState JobState { get; set; }
+        ///<summary>
+        ///Current status of the generation request
+        ///</summary>
+        public virtual string Status { get; set; }
+        ///<summary>
+        ///List of generated outputs
+        ///</summary>
+        public virtual List<ArtifactOutput> Outputs { get; set; }
+        ///<summary>
+        ///List of generated text outputs
+        ///</summary>
+        public virtual List<TextOutput> TextOutputs { get; set; }
+        ///<summary>
+        ///Detailed response status information
+        ///</summary>
+        public virtual ResponseStatus ResponseStatus { get; set; }
+    }
+
+    public partial class GenerationResult
+    {
+        public GenerationResult()
+        {
+            TextOutputs = new List<AiProviderTextOutput>{};
+            Outputs = new List<AiProviderFileOutput>{};
+        }
+
+        public virtual List<AiProviderTextOutput> TextOutputs { get; set; }
+        public virtual List<AiProviderFileOutput> Outputs { get; set; }
+        public virtual string Error { get; set; }
     }
 
     public partial class GetActiveProviders
@@ -668,6 +704,21 @@ namespace AiServer.ServiceModel
         public virtual string Path { get; set; }
     }
 
+    public partial class GetComfyModelMappings
+        : IReturn<GetComfyModelMappingsResponse>
+    {
+    }
+
+    public partial class GetComfyModelMappingsResponse
+    {
+        public GetComfyModelMappingsResponse()
+        {
+            Models = new Dictionary<string, string>{};
+        }
+
+        public virtual Dictionary<string, string> Models { get; set; }
+    }
+
     public partial class GetComfyModels
         : IReturn<GetComfyModelsResponse>
     {
@@ -686,40 +737,40 @@ namespace AiServer.ServiceModel
         public virtual ResponseStatus ResponseStatus { get; set; }
     }
 
-    [Route("/diffusion/{Id}", "GET")]
-    [Route("/diffusion/ref/{RefId}", "GET")]
-    public partial class GetDiffusionGeneration
-        : IReturn<GetDiffusionGenerationResponse>
+    [Route("/generation/{Id}", "GET")]
+    [Route("/generation/ref/{RefId}", "GET")]
+    public partial class GetGeneration
+        : IReturn<GetGenerationResponse>
     {
         public virtual int? Id { get; set; }
         public virtual string RefId { get; set; }
     }
 
-    public partial class GetDiffusionGenerationResponse
+    public partial class GetGenerationResponse
     {
-        public GetDiffusionGenerationResponse()
+        public GetGenerationResponse()
         {
-            Outputs = new List<DiffusionApiProviderOutput>{};
+            Outputs = new List<AiProviderFileOutput>{};
+            TextOutputs = new List<AiProviderTextOutput>{};
         }
 
-        public virtual DiffusionImageGeneration Request { get; set; }
-        public virtual DiffusionGenerationResponse Result { get; set; }
-        public virtual List<DiffusionApiProviderOutput> Outputs { get; set; }
+        public virtual GenerationArgs Request { get; set; }
+        public virtual GenerationResult Result { get; set; }
+        public virtual List<AiProviderFileOutput> Outputs { get; set; }
+        public virtual List<AiProviderTextOutput> TextOutputs { get; set; }
     }
 
-    [Route("/variants/{ImgOptions}/downloads/{Provider}/{Year}/{Month}/{Day}/{FileName}")]
-    public partial class GetImageVariant
-        : IReturn<Stream>, IGet
+    public partial class GetJobStatus
+        : IReturn<GenerationResponse>
     {
-        public virtual string Provider { get; set; }
-        public virtual int Year { get; set; }
-        public virtual int Month { get; set; }
-        public virtual int Day { get; set; }
-        public virtual string FileName { get; set; }
-        public virtual int? Width { get; set; }
-        public virtual int? Height { get; set; }
-        public virtual int? Quality { get; set; }
-        public virtual string ImgOptions { get; set; }
+        ///<summary>
+        ///Unique identifier of the background job
+        ///</summary>
+        public virtual long? JobId { get; set; }
+        ///<summary>
+        ///Client-provided identifier for the request
+        ///</summary>
+        public virtual string RefId { get; set; }
     }
 
     [Route("/icons/models/{Model}", "GET")]
@@ -818,6 +869,19 @@ namespace AiServer.ServiceModel
     public partial class HelloResponse
     {
         public virtual string Result { get; set; }
+    }
+
+    public partial class MigrateArtifact
+        : IReturn<MigrateArtifactResponse>, IPost
+    {
+        public virtual string Path { get; set; }
+        public virtual DateTime? Date { get; set; }
+    }
+
+    public partial class MigrateArtifactResponse
+    {
+        public virtual string FilePath { get; set; }
+        public virtual ResponseStatus ResponseStatus { get; set; }
     }
 
     [DataContract]
@@ -1176,23 +1240,23 @@ namespace AiServer.ServiceModel
         public virtual string RefId { get; set; }
     }
 
-    public partial class QueryDiffusionApiProviders
-        : QueryDb<DiffusionApiProvider>, IReturn<QueryResponse<DiffusionApiProvider>>
+    public partial class QueryFailedChatTasks
+        : QueryDb<FailedJob>, IReturn<QueryResponse<FailedJob>>
+    {
+        public virtual DateTime? Db { get; set; }
+    }
+
+    public partial class QueryGenerationApiProviders
+        : QueryDb<GenerationApiProvider>, IReturn<QueryResponse<GenerationApiProvider>>
     {
         public virtual int? Id { get; set; }
         public virtual string Name { get; set; }
     }
 
-    public partial class QueryDiffusionModelSettings
-        : QueryDb<DiffusionProviderModelSettings>, IReturn<QueryResponse<DiffusionProviderModelSettings>>
+    public partial class QueryGenerationModelSettings
+        : QueryDb<ProviderModelDefaults>, IReturn<QueryResponse<ProviderModelDefaults>>
     {
         public virtual string Id { get; set; }
-    }
-
-    public partial class QueryFailedChatTasks
-        : QueryDb<FailedJob>, IReturn<QueryResponse<FailedJob>>
-    {
-        public virtual DateTime? Db { get; set; }
     }
 
     public partial class QueryJobSummary
@@ -1202,51 +1266,29 @@ namespace AiServer.ServiceModel
         public virtual string RefId { get; set; }
     }
 
-    public partial class QueueFailedJobs
-        : IReturn<QueueFailedJobsResponse>
+    public partial class QueueGenerationBase
     {
-        public virtual DateTime? Month { get; set; }
-    }
-
-    public partial class QueueFailedJobsResponse
-    {
-        public QueueFailedJobsResponse()
-        {
-            Results = new List<FailedJob>{};
-        }
-
-        public virtual List<FailedJob> Results { get; set; }
-        public virtual ResponseStatus ResponseStatus { get; set; }
+        ///<summary>
+        ///Optional client-provided identifier for the request
+        ///</summary>
+        public virtual string RefId { get; set; }
+        ///<summary>
+        ///Optional queue or topic to reply to
+        ///</summary>
+        public virtual string ReplyTo { get; set; }
+        ///<summary>
+        ///If true, wait for the generation to complete before responding
+        ///</summary>
+        public virtual bool? Sync { get; set; }
+        ///<summary>
+        ///Optional state to associate with the request
+        ///</summary>
+        public virtual string State { get; set; }
     }
 
     public partial class Reload
         : IReturn<EmptyResponse>, IPost
     {
-    }
-
-    public partial class RequeFailedJobs
-        : IReturn<RequeFailedJobsResponse>
-    {
-        public RequeFailedJobs()
-        {
-            Ids = new List<long>{};
-        }
-
-        public virtual List<long> Ids { get; set; }
-        public virtual bool? All { get; set; }
-    }
-
-    public partial class RequeFailedJobsResponse
-    {
-        public RequeFailedJobsResponse()
-        {
-            Results = new List<long>{};
-            Errors = new Dictionary<long, string>{};
-        }
-
-        public virtual List<long> Results { get; set; }
-        public virtual Dictionary<long, string> Errors { get; set; }
-        public virtual ResponseStatus ResponseStatus { get; set; }
     }
 
     public enum ResponseFormat
@@ -1255,6 +1297,19 @@ namespace AiServer.ServiceModel
         Text,
         [EnumMember(Value="json_object")]
         JsonObject,
+    }
+
+    public partial class SpeechToText
+        : QueueGenerationBase, IReturn<GenerationResponse>
+    {
+        ///<summary>
+        ///The AI model to use for speech-to-text conversion
+        ///</summary>
+        public virtual string Model { get; set; }
+        ///<summary>
+        ///The audio stream containing the speech to be transcribed
+        ///</summary>
+        public virtual Stream Speech { get; set; }
     }
 
     public partial class SummaryStats
@@ -1271,6 +1326,68 @@ namespace AiServer.ServiceModel
     {
         OpenAiChat = 1,
         Comfy = 2,
+    }
+
+    public partial class TextOutput
+    {
+        ///<summary>
+        ///The generated text
+        ///</summary>
+        public virtual string Text { get; set; }
+    }
+
+    public partial class TextToImage
+        : QueueGenerationBase, IReturn<GenerationResponse>
+    {
+        ///<summary>
+        ///The main prompt describing the desired image
+        ///</summary>
+        public virtual string PositivePrompt { get; set; }
+        ///<summary>
+        ///Optional prompt specifying what should not be in the image
+        ///</summary>
+        public virtual string NegativePrompt { get; set; }
+        ///<summary>
+        ///The AI model to use for image generation
+        ///</summary>
+        public virtual string Model { get; set; }
+        ///<summary>
+        ///Optional seed for reproducible results
+        ///</summary>
+        public virtual int? Seed { get; set; }
+        ///<summary>
+        ///Number of images to generate in a single batch
+        ///</summary>
+        public virtual int? BatchSize { get; set; }
+        ///<summary>
+        ///Desired width of the generated image
+        ///</summary>
+        public virtual int? Width { get; set; }
+        ///<summary>
+        ///Desired height of the generated image
+        ///</summary>
+        public virtual int? Height { get; set; }
+    }
+
+    public partial class TextToSpeech
+        : QueueGenerationBase, IReturn<GenerationResponse>
+    {
+        ///<summary>
+        ///The text to be converted to speech
+        ///</summary>
+        public virtual string Text { get; set; }
+        ///<summary>
+        ///The voice to use for speech synthesis
+        ///</summary>
+        public virtual string Voice { get; set; }
+        ///<summary>
+        ///The AI model to use for text-to-speech conversion
+        ///</summary>
+        public virtual string Model { get; set; }
+        ///<summary>
+        ///Optional seed for reproducible results in speech generation
+        ///</summary>
+        public virtual int? Seed { get; set; }
     }
 
     ///<summary>
@@ -1367,8 +1484,8 @@ namespace AiServer.ServiceModel
         public virtual List<string> SelectedModels { get; set; }
     }
 
-    public partial class UpdateDiffusionApiProvider
-        : IReturn<IdResponse>, IPatchDb<DiffusionApiProvider>
+    public partial class UpdateGenerationApiProvider
+        : IReturn<IdResponse>, IPatchDb<GenerationApiProvider>
     {
         public virtual int Id { get; set; }
         ///<summary>
@@ -1380,7 +1497,7 @@ namespace AiServer.ServiceModel
         ///</summary>
         public virtual string ApiKeyHeader { get; set; }
         ///<summary>
-        ///Override Base URL for the Diffusion Provider
+        ///Override Base URL for the Generation Provider
         ///</summary>
         public virtual string ApiBaseUrl { get; set; }
         ///<summary>
@@ -1416,11 +1533,50 @@ namespace AiServer.ServiceModel
 
 namespace AiServer.ServiceModel.Types
 {
-    public partial class ComfyFileInput
+    public partial class AiProviderBase
     {
+        public AiProviderBase()
+        {
+            Models = new List<string>{};
+        }
+
+        public virtual int Id { get; set; }
         public virtual string Name { get; set; }
-        public virtual string Type { get; set; }
-        public virtual string Subfolder { get; set; }
+        public virtual string ApiKeyVar { get; set; }
+        public virtual string ApiKey { get; set; }
+        public virtual string ApiKeyHeader { get; set; }
+        public virtual string ApiBaseUrl { get; set; }
+        public virtual string HeartbeatUrl { get; set; }
+        public virtual int Concurrency { get; set; }
+        public virtual int Priority { get; set; }
+        public virtual bool Enabled { get; set; }
+        public virtual DateTime? OfflineDate { get; set; }
+        public virtual DateTime CreatedDate { get; set; }
+        public virtual List<string> Models { get; set; }
+    }
+
+    public enum AiServiceProvider
+    {
+        Replicate,
+        Comfy,
+        OpenAi,
+    }
+
+    public partial class ApiTypeBase
+    {
+        public ApiTypeBase()
+        {
+            ApiModels = new Dictionary<string, string>{};
+        }
+
+        public virtual int Id { get; set; }
+        public virtual string ApiBaseUrl { get; set; }
+        public virtual string ApiKeyHeader { get; set; }
+        public virtual string Name { get; set; }
+        public virtual string Website { get; set; }
+        public virtual string Icon { get; set; }
+        public virtual Dictionary<string, string> ApiModels { get; set; }
+        public virtual AiServiceProvider Provider { get; set; }
     }
 
     public enum ComfyMaskSource
@@ -1459,78 +1615,34 @@ namespace AiServer.ServiceModel.Types
         uni_pc_bh2,
     }
 
-    public enum ComfyTaskType
+    public partial class GenerationApiProvider
+        : AiProviderBase
     {
-        TextToImage = 1,
-        ImageToImage = 2,
-        ImageToImageUpscale = 3,
-        ImageToImageWithMask = 4,
-        ImageToText = 5,
-        TextToAudio = 6,
-        TextToSpeech = 7,
-        SpeechToText = 8,
+        [References(typeof(AiServer.ServiceModel.Types.GenerationApiType))]
+        public virtual int GenerationApiTypeId { get; set; }
+
+        public virtual GenerationApiType Type { get; set; }
     }
 
-    public partial class DiffusionApiProvider
+    public partial class GenerationApiType
+        : ApiTypeBase
     {
-        public DiffusionApiProvider()
-        {
-            Models = new List<string>{};
-            ModelSettings = new Dictionary<string, DiffusionProviderModelSettings>{};
-        }
-
-        public virtual int Id { get; set; }
-        public virtual string Name { get; set; }
-        [References(typeof(AiServer.ServiceModel.Types.DiffusionApiType))]
-        public virtual int DiffusionApiTypeId { get; set; }
-
-        public virtual string ApiKeyVar { get; set; }
-        public virtual string ApiKey { get; set; }
-        public virtual string ApiKeyHeader { get; set; }
-        public virtual string ApiBaseUrl { get; set; }
-        public virtual string HeartbeatUrl { get; set; }
-        public virtual int Concurrency { get; set; }
-        public virtual int Priority { get; set; }
-        public virtual bool Enabled { get; set; }
-        public virtual DateTime? OfflineDate { get; set; }
-        public virtual DateTime CreatedDate { get; set; }
-        public virtual List<string> Models { get; set; }
-        public virtual Dictionary<string, DiffusionProviderModelSettings> ModelSettings { get; set; }
-        public virtual string Img2ImgUpscaleModels { get; set; }
-        public virtual string Txt2SphModels { get; set; }
-        public virtual string Sph2TxtModels { get; set; }
-        public virtual string Img2TxtModels { get; set; }
-        public virtual string Txt2AudModels { get; set; }
-        public virtual DiffusionApiType Type { get; set; }
     }
 
-    public partial class DiffusionApiType
+    public enum ModelType
     {
-        public DiffusionApiType()
-        {
-            ApiModels = new Dictionary<string, string>{};
-        }
-
-        public virtual int Id { get; set; }
-        public virtual DiffusionProvider Provider { get; set; }
-        public virtual string ApiBaseUrl { get; set; }
-        public virtual string ApiKeyHeader { get; set; }
-        public virtual string Name { get; set; }
-        public virtual string Website { get; set; }
-        public virtual string Icon { get; set; }
-        public virtual Dictionary<string, string> ApiModels { get; set; }
+        TextToImage,
+        TextEncoder,
+        ImageUpscale,
+        TextToSpeech,
+        TextToAudio,
+        SpeechToText,
+        VAE,
     }
 
-    public enum DiffusionProvider
+    public partial class ProviderModelDefaults
     {
-        ReplicateDiffusionProvider,
-        ComfyDiffusionProvider,
-        DalleDiffusionProvider,
-    }
-
-    public partial class DiffusionProviderModelSettings
-    {
-        public DiffusionProviderModelSettings()
+        public ProviderModelDefaults()
         {
             ApiModels = new Dictionary<string, string>{};
         }
@@ -1547,10 +1659,11 @@ namespace AiServer.ServiceModel.Types
         public virtual int? Height { get; set; }
         public virtual int? Steps { get; set; }
         public virtual string NegativePrompt { get; set; }
+        public virtual ModelType? ModelType { get; set; }
     }
 
-    public partial class QueryDiffusionApiTypes
-        : QueryDb<DiffusionApiType>, IReturn<QueryResponse<DiffusionApiType>>
+    public partial class QueryGenerationApiTypes
+        : QueryDb<GenerationApiType>, IReturn<QueryResponse<GenerationApiType>>
     {
     }
 
