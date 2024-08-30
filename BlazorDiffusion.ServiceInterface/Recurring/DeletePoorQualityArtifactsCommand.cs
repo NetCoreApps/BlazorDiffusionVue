@@ -1,4 +1,5 @@
 using System.Data;
+using System.Linq;
 using BlazorDiffusion.ServiceInterface.App;
 using BlazorDiffusion.ServiceModel;
 using Microsoft.Extensions.Logging;
@@ -20,10 +21,14 @@ public class DeletePoorQualityArtifactsCommand(
         var poorQualityArtifactIds = db.Column<int>(db.From<Artifact>()
             .Where(x => x.Quality < 0)
             .Select(x => x.Id));
-        
-        log.LogInformation("Deleting {Count} poor quality pictures...", poorQualityArtifactIds.Count);
-        jobs.EnqueueCommand<RemoveArtifactsCommand>(new RemoveArtifacts {
-            Ids = poorQualityArtifactIds
-        });
+
+        var batches = poorQualityArtifactIds.BatchesOf(100);
+        foreach (var batch in batches)
+        {
+            log.LogInformation("Deleting {Count} poor quality pictures...", batch.Length);
+            jobs.EnqueueCommand<RemoveArtifactsCommand>(new RemoveArtifacts {
+                Ids = batch.ToList()
+            });
+        }
     }
 }
