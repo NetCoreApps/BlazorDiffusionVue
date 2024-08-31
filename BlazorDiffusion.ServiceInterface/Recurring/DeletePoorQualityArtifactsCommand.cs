@@ -22,13 +22,9 @@ public class DeletePoorQualityArtifactsCommand(
             .Where(x => x.Quality < 0)
             .Select(x => x.Id));
 
-        var batches = poorQualityArtifactIds.BatchesOf(100);
-        foreach (var batch in batches)
-        {
-            log.LogInformation("Deleting {Count} poor quality pictures...", batch.Length);
-            jobs.EnqueueCommand<RemoveArtifactsCommand>(new RemoveArtifacts {
-                Ids = batch.ToList()
-            });
-        }
+        log.LogInformation("Deleting {Count} poor quality pictures...", poorQualityArtifactIds.Count);
+        jobs.EnqueueCommand<RemoveArtifactsCommand>(new RemoveArtifacts {
+            Ids = poorQualityArtifactIds
+        });
     }
 }
