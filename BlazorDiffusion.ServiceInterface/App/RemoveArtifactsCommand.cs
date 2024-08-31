@@ -61,7 +61,7 @@ public class RemoveArtifacts
             {
                 foreach (var path in api.Response!.Deleted)
                 {
-                    if (!artifactPathsMap.TryGetValue(path, out var id))
+                    if (artifactPathsMap.TryGetValue(path, out var id))
                         deletedIds.Add(id);
                 }
                 log.LogInformation("Deleted Ids: {Ids}", string.Join(",", deletedIds));
@@ -70,7 +70,7 @@ public class RemoveArtifacts
             {
                 foreach (var path in api.Response!.Missing)
                 {
-                    if (!artifactPathsMap.TryGetValue(path, out var id))
+                    if (artifactPathsMap.TryGetValue(path, out var id))
                         missingIds.Add(id);
                 }
                 log.LogInformation("Missing Ids: {Ids}", string.Join(",", missingIds));
@@ -79,7 +79,7 @@ public class RemoveArtifacts
             {
                 foreach (var path in api.Response!.Missing)
                 {
-                    if (!artifactPathsMap.TryGetValue(path, out var id))
+                    if (artifactPathsMap.TryGetValue(path, out var id))
                         failedIds.Add(id);
                 }
                 log.LogInformation("Failed Ids: {Ids}", string.Join(",", failedIds));
