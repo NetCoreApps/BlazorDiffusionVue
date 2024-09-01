@@ -1,5 +1,5 @@
 /* Options:
-Date: 2024-08-29 10:07:34
+Date: 2024-08-31 09:16:34
 Version: 8.31
 Tip: To override a DTO option, remove "//" prefix before updating
 BaseUrl: https://localhost:5005
@@ -39,6 +39,30 @@ using AiServer.ServiceInterface;
 
 namespace AiServer.ServiceInterface
 {
+    public partial class AdminCancelJobs
+        : IReturn<AdminCancelJobsResponse>, IGet
+    {
+        public AdminCancelJobs()
+        {
+            Ids = new List<long>{};
+        }
+
+        public virtual List<long> Ids { get; set; }
+    }
+
+    public partial class AdminCancelJobsResponse
+    {
+        public AdminCancelJobsResponse()
+        {
+            Results = new List<long>{};
+            Errors = new Dictionary<long, string>{};
+        }
+
+        public virtual List<long> Results { get; set; }
+        public virtual Dictionary<long, string> Errors { get; set; }
+        public virtual ResponseStatus ResponseStatus { get; set; }
+    }
+
     public partial class AdminGetJob
         : IReturn<AdminGetJobResponse>, IGet
     {
@@ -61,6 +85,7 @@ namespace AiServer.ServiceInterface
         public virtual double? Progress { get; set; }
         public virtual string Status { get; set; }
         public virtual string Logs { get; set; }
+        public virtual int? DurationMs { get; set; }
         public virtual ResponseStatus Error { get; set; }
         public virtual ResponseStatus ResponseStatus { get; set; }
     }
@@ -77,6 +102,7 @@ namespace AiServer.ServiceInterface
     public partial class AdminJobInfo
         : IReturn<AdminJobInfoResponse>, IGet
     {
+        public virtual DateTime? Month { get; set; }
     }
 
     public partial class AdminJobInfoResponse
@@ -92,16 +118,28 @@ namespace AiServer.ServiceInterface
         public virtual ResponseStatus ResponseStatus { get; set; }
     }
 
+    public partial class AdminMetadataTypes
+        : IReturn<MetadataTypes>, IGet
+    {
+    }
+
+    public partial class AdminQueryBackgroundJobs
+        : QueryDb<BackgroundJob>, IReturn<QueryResponse<BackgroundJob>>
+    {
+        public virtual int? Id { get; set; }
+        public virtual string RefId { get; set; }
+    }
+
     public partial class AdminQueryCompletedJobs
         : QueryDb<CompletedJob>, IReturn<QueryResponse<CompletedJob>>
     {
-        public virtual DateTime? CreatedDate { get; set; }
+        public virtual DateTime? Month { get; set; }
     }
 
     public partial class AdminQueryFailedJobs
         : QueryDb<FailedJob>, IReturn<QueryResponse<FailedJob>>
     {
-        public virtual DateTime? CreatedDate { get; set; }
+        public virtual DateTime? Month { get; set; }
     }
 
     public partial class AdminQueryJobSummary
@@ -139,6 +177,24 @@ namespace AiServer.ServiceInterface
         public virtual List<long> Results { get; set; }
         public virtual Dictionary<long, string> Errors { get; set; }
         public virtual ResponseStatus ResponseStatus { get; set; }
+    }
+
+    [Route("/dummyreplyto")]
+    public partial class DummyReplyTo
+        : IReturn<DummyReplyToResponse>
+    {
+        public virtual string RefId { get; set; }
+    }
+
+    public partial class DummyReplyToResponse
+    {
+        public virtual string RefId { get; set; }
+    }
+
+    public partial class HasDummyReplyTo
+        : IReturnVoid
+    {
+        public virtual string RefId { get; set; }
     }
 
     public partial class PopulateChatSummary
@@ -226,8 +282,8 @@ namespace AiServer.ServiceModel
     {
         TextToImage = 1,
         ImageToImage = 2,
-        ImageToImageUpscale = 3,
-        ImageToImageWithMask = 4,
+        ImageUpscale = 3,
+        ImageWithMask = 4,
         ImageToText = 5,
         TextToAudio = 6,
         TextToSpeech = 7,
@@ -284,19 +340,27 @@ namespace AiServer.ServiceModel
         public virtual Dictionary<string, string> ApiModels { get; set; }
     }
 
+    ///<summary>
+    ///Output object for generated artifacts
+    ///</summary>
     public partial class ArtifactOutput
     {
         ///<summary>
         ///URL to access the generated image
         ///</summary>
+        [ApiMember(Description="URL to access the generated image")]
         public virtual string Url { get; set; }
+
         ///<summary>
         ///Filename of the generated image
         ///</summary>
+        [ApiMember(Description="Filename of the generated image")]
         public virtual string FileName { get; set; }
+
         ///<summary>
         ///Provider used for image generation
         ///</summary>
+        [ApiMember(Description="Provider used for image generation")]
         public virtual string Provider { get; set; }
     }
 
@@ -567,9 +631,28 @@ namespace AiServer.ServiceModel
         public virtual int Id { get; set; }
     }
 
-    public partial class DeleteArtifactsResponse
+    [Route("/files/{**Path}")]
+    public partial class DeleteFile
+        : IReturn<EmptyResponse>, IDelete
     {
-        public DeleteArtifactsResponse()
+        [Validate("NotEmpty")]
+        public virtual string Path { get; set; }
+    }
+
+    public partial class DeleteFiles
+        : IReturn<DeleteFilesResponse>, IPost
+    {
+        public DeleteFiles()
+        {
+            Paths = new List<string>{};
+        }
+
+        public virtual List<string> Paths { get; set; }
+    }
+
+    public partial class DeleteFilesResponse
+    {
+        public DeleteFilesResponse()
         {
             Deleted = new List<string>{};
             Missing = new List<string>{};
@@ -580,18 +663,6 @@ namespace AiServer.ServiceModel
         public virtual List<string> Missing { get; set; }
         public virtual List<string> Failed { get; set; }
         public virtual ResponseStatus ResponseStatus { get; set; }
-    }
-
-    [Route("/artifacts")]
-    public partial class DeleteFiles
-        : IReturn<DeleteArtifactsResponse>, IDelete
-    {
-        public DeleteFiles()
-        {
-            Paths = new List<string>{};
-        }
-
-        public virtual List<string> Paths { get; set; }
     }
 
     public partial class DeleteGenerationApiProvider
@@ -612,6 +683,7 @@ namespace AiServer.ServiceModel
         public virtual Stream ImageInput { get; set; }
         public virtual Stream SpeechInput { get; set; }
         public virtual Stream MaskInput { get; set; }
+        public virtual Stream AudioInput { get; set; }
         public virtual ComfySampler? Sampler { get; set; }
         public virtual string Scheduler { get; set; }
         public virtual double? CfgScale { get; set; }
@@ -629,6 +701,9 @@ namespace AiServer.ServiceModel
         public virtual string Language { get; set; }
     }
 
+    ///<summary>
+    ///Response object for generation requests
+    ///</summary>
     public partial class GenerationResponse
     {
         public GenerationResponse()
@@ -640,30 +715,43 @@ namespace AiServer.ServiceModel
         ///<summary>
         ///Unique identifier of the background job
         ///</summary>
+        [ApiMember(Description="Unique identifier of the background job")]
         public virtual long JobId { get; set; }
+
         ///<summary>
         ///Client-provided identifier for the request
         ///</summary>
+        [ApiMember(Description="Client-provided identifier for the request")]
         public virtual string RefId { get; set; }
+
         ///<summary>
         ///Current state of the background job
         ///</summary>
+        [ApiMember(Description="Current state of the background job")]
         public virtual BackgroundJobState JobState { get; set; }
+
         ///<summary>
         ///Current status of the generation request
         ///</summary>
+        [ApiMember(Description="Current status of the generation request")]
         public virtual string Status { get; set; }
+
         ///<summary>
         ///List of generated outputs
         ///</summary>
+        [ApiMember(Description="List of generated outputs")]
         public virtual List<ArtifactOutput> Outputs { get; set; }
+
         ///<summary>
         ///List of generated text outputs
         ///</summary>
+        [ApiMember(Description="List of generated text outputs")]
         public virtual List<TextOutput> TextOutputs { get; set; }
+
         ///<summary>
         ///Detailed response status information
         ///</summary>
+        [ApiMember(Description="Detailed response status information")]
         public virtual ResponseStatus ResponseStatus { get; set; }
     }
 
@@ -760,16 +848,23 @@ namespace AiServer.ServiceModel
         public virtual List<AiProviderTextOutput> TextOutputs { get; set; }
     }
 
+    ///<summary>
+    ///Get job status
+    ///</summary>
+    [Api(Description="Get job status")]
     public partial class GetJobStatus
         : IReturn<GenerationResponse>
     {
         ///<summary>
         ///Unique identifier of the background job
         ///</summary>
+        [ApiMember(Description="Unique identifier of the background job", ParameterType="query")]
         public virtual long? JobId { get; set; }
+
         ///<summary>
         ///Client-provided identifier for the request
         ///</summary>
+        [ApiMember(Description="Client-provided identifier for the request", ParameterType="query")]
         public virtual string RefId { get; set; }
     }
 
@@ -869,6 +964,135 @@ namespace AiServer.ServiceModel
     public partial class HelloResponse
     {
         public virtual string Result { get; set; }
+    }
+
+    ///<summary>
+    ///Generate image from another image
+    ///</summary>
+    [Api(Description="Generate image from another image")]
+    public partial class ImageToImage
+        : QueueGenerationBase, IReturn<GenerationResponse>
+    {
+        ///<summary>
+        ///The image to use as input
+        ///</summary>
+        [ApiMember(Description="The image to use as input", ParameterType="body")]
+        [Required]
+        public virtual Stream Image { get; set; }
+
+        ///<summary>
+        ///Prompt describing the desired output
+        ///</summary>
+        [ApiMember(Description="Prompt describing the desired output", ParameterType="body")]
+        [Validate("NotEmpty")]
+        public virtual string PositivePrompt { get; set; }
+
+        ///<summary>
+        ///Negative prompt describing what should not be in the image
+        ///</summary>
+        [ApiMember(Description="Negative prompt describing what should not be in the image", ParameterType="body")]
+        public virtual string NegativePrompt { get; set; }
+
+        ///<summary>
+        ///Optional specific amount of denoise to apply
+        ///</summary>
+        [ApiMember(Description="Optional specific amount of denoise to apply", ParameterType="query")]
+        public virtual float? Denoise { get; set; }
+
+        ///<summary>
+        ///Number of images to generate in a single batch
+        ///</summary>
+        [ApiMember(Description="Number of images to generate in a single batch", ParameterType="query")]
+        public virtual int? BatchSize { get; set; }
+
+        ///<summary>
+        ///Optional seed for reproducible results in image generation
+        ///</summary>
+        [ApiMember(Description="Optional seed for reproducible results in image generation", ParameterType="query")]
+        public virtual int? Seed { get; set; }
+    }
+
+    ///<summary>
+    ///Convert image to text
+    ///</summary>
+    [Api(Description="Convert image to text")]
+    public partial class ImageToText
+        : QueueGenerationBase, IReturn<GenerationResponse>
+    {
+        ///<summary>
+        ///The image to convert to text
+        ///</summary>
+        [ApiMember(Description="The image to convert to text", ParameterType="body")]
+        [Required]
+        public virtual Stream Image { get; set; }
+    }
+
+    ///<summary>
+    ///Upscale an image
+    ///</summary>
+    [Api(Description="Upscale an image")]
+    public partial class ImageUpscale
+        : QueueGenerationBase, IReturn<GenerationResponse>
+    {
+        ///<summary>
+        ///The image to upscale
+        ///</summary>
+        [ApiMember(Description="The image to upscale", ParameterType="body")]
+        [Required]
+        public virtual Stream Image { get; set; }
+
+        ///<summary>
+        ///Optional seed for reproducible results in image generation
+        ///</summary>
+        [ApiMember(Description="Optional seed for reproducible results in image generation", ParameterType="query")]
+        public virtual int? Seed { get; set; }
+    }
+
+    ///<summary>
+    ///Generate image with masked area
+    ///</summary>
+    [Api(Description="Generate image with masked area")]
+    public partial class ImageWithMask
+        : QueueGenerationBase, IReturn<GenerationResponse>
+    {
+        ///<summary>
+        ///Prompt describing the desired output in the masked area
+        ///</summary>
+        [ApiMember(Description="Prompt describing the desired output in the masked area", ParameterType="body")]
+        [Validate("NotEmpty")]
+        public virtual string PositivePrompt { get; set; }
+
+        ///<summary>
+        ///Negative prompt describing what should not be in the masked area
+        ///</summary>
+        [ApiMember(Description="Negative prompt describing what should not be in the masked area", ParameterType="body")]
+        public virtual string NegativePrompt { get; set; }
+
+        ///<summary>
+        ///The image to use as input
+        ///</summary>
+        [ApiMember(Description="The image to use as input", ParameterType="body")]
+        [Required]
+        public virtual Stream Image { get; set; }
+
+        ///<summary>
+        ///The mask to use as input
+        ///</summary>
+        [ApiMember(Description="The mask to use as input", ParameterType="body")]
+        [Required]
+        public virtual Stream Mask { get; set; }
+
+        ///<summary>
+        ///Optional specific amount of denoise to apply
+        ///</summary>
+        [ApiMember(Description="Optional specific amount of denoise to apply", ParameterType="query")]
+        public virtual float? Denoise { get; set; }
+
+        ///<summary>
+        ///Optional seed for reproducible results in image generation
+        ///</summary>
+        [ApiMember(Description="Optional seed for reproducible results in image generation", ParameterType="query")]
+        public virtual int? Seed { get; set; }
     }
 
     public partial class MigrateArtifact
@@ -1225,27 +1449,6 @@ namespace AiServer.ServiceModel
     {
     }
 
-    public partial class QueryBackgroundJobs
-        : QueryDb<BackgroundJob>, IReturn<QueryResponse<BackgroundJob>>
-    {
-        public virtual int? Id { get; set; }
-        public virtual string RefId { get; set; }
-    }
-
-    public partial class QueryCompletedChatTasks
-        : QueryDb<CompletedJob>, IReturn<QueryResponse<CompletedJob>>
-    {
-        public virtual DateTime? Db { get; set; }
-        public virtual int? Id { get; set; }
-        public virtual string RefId { get; set; }
-    }
-
-    public partial class QueryFailedChatTasks
-        : QueryDb<FailedJob>, IReturn<QueryResponse<FailedJob>>
-    {
-        public virtual DateTime? Db { get; set; }
-    }
-
     public partial class QueryGenerationApiProviders
         : QueryDb<GenerationApiProvider>, IReturn<QueryResponse<GenerationApiProvider>>
     {
@@ -1259,30 +1462,33 @@ namespace AiServer.ServiceModel
         public virtual string Id { get; set; }
     }
 
-    public partial class QueryJobSummary
-        : QueryDb<JobSummary>, IReturn<QueryResponse<JobSummary>>
-    {
-        public virtual int? Id { get; set; }
-        public virtual string RefId { get; set; }
-    }
-
+    ///<summary>
+    ///Base class for queue generation requests
+    ///</summary>
     public partial class QueueGenerationBase
     {
         ///<summary>
         ///Optional client-provided identifier for the request
         ///</summary>
+        [ApiMember(Description="Optional client-provided identifier for the request", ParameterType="query")]
         public virtual string RefId { get; set; }
+
         ///<summary>
         ///Optional queue or topic to reply to
         ///</summary>
+        [ApiMember(Description="Optional queue or topic to reply to", ParameterType="query")]
         public virtual string ReplyTo { get; set; }
+
         ///<summary>
         ///If true, wait for the generation to complete before responding
         ///</summary>
+        [ApiMember(Description="If true, wait for the generation to complete before responding", ParameterType="query")]
         public virtual bool? Sync { get; set; }
+
         ///<summary>
         ///Optional state to associate with the request
         ///</summary>
+        [ApiMember(Description="Optional state to associate with the request", ParameterType="query")]
         public virtual string State { get; set; }
     }
 
@@ -1299,16 +1505,18 @@ namespace AiServer.ServiceModel
         JsonObject,
     }
 
+    ///<summary>
+    ///Convert speech to text
+    ///</summary>
+    [Api(Description="Convert speech to text")]
     public partial class SpeechToText
         : QueueGenerationBase, IReturn<GenerationResponse>
     {
         ///<summary>
-        ///The AI model to use for speech-to-text conversion
-        ///</summary>
-        public virtual string Model { get; set; }
-        ///<summary>
         ///The audio stream containing the speech to be transcribed
         ///</summary>
+        [ApiMember(Description="The audio stream containing the speech to be transcribed", ParameterType="body")]
+        [Required]
         public virtual Stream Speech { get; set; }
     }
 
@@ -1328,65 +1536,87 @@ namespace AiServer.ServiceModel
         Comfy = 2,
     }
 
+    ///<summary>
+    ///Output object for generated text
+    ///</summary>
     public partial class TextOutput
     {
         ///<summary>
         ///The generated text
         ///</summary>
+        [ApiMember(Description="The generated text")]
         public virtual string Text { get; set; }
     }
 
+    ///<summary>
+    ///Generate image from text description
+    ///</summary>
+    [Api(Description="Generate image from text description")]
     public partial class TextToImage
         : QueueGenerationBase, IReturn<GenerationResponse>
     {
         ///<summary>
         ///The main prompt describing the desired image
         ///</summary>
+        [ApiMember(Description="The main prompt describing the desired image", ParameterType="body")]
+        [Validate("NotEmpty")]
         public virtual string PositivePrompt { get; set; }
+
         ///<summary>
         ///Optional prompt specifying what should not be in the image
         ///</summary>
+        [ApiMember(Description="Optional prompt specifying what should not be in the image", ParameterType="body")]
         public virtual string NegativePrompt { get; set; }
-        ///<summary>
-        ///The AI model to use for image generation
-        ///</summary>
-        public virtual string Model { get; set; }
-        ///<summary>
-        ///Optional seed for reproducible results
-        ///</summary>
-        public virtual int? Seed { get; set; }
-        ///<summary>
-        ///Number of images to generate in a single batch
-        ///</summary>
-        public virtual int? BatchSize { get; set; }
+
         ///<summary>
         ///Desired width of the generated image
         ///</summary>
+        [ApiMember(Description="Desired width of the generated image", ParameterType="query")]
         public virtual int? Width { get; set; }
+
         ///<summary>
         ///Desired height of the generated image
         ///</summary>
+        [ApiMember(Description="Desired height of the generated image", ParameterType="query")]
         public virtual int? Height { get; set; }
+
+        ///<summary>
+        ///Number of images to generate in a single batch
+        ///</summary>
+        [ApiMember(Description="Number of images to generate in a single batch", ParameterType="query")]
+        public virtual int? BatchSize { get; set; }
+
+        ///<summary>
+        ///The AI model to use for image generation
+        ///</summary>
+        [ApiMember(Description="The AI model to use for image generation", ParameterType="query")]
+        public virtual string Model { get; set; }
+
+        ///<summary>
+        ///Optional seed for reproducible results
+        ///</summary>
+        [ApiMember(Description="Optional seed for reproducible results", ParameterType="query")]
+        public virtual int? Seed { get; set; }
     }
 
+    ///<summary>
+    ///Convert text to speech
+    ///</summary>
+    [Api(Description="Convert text to speech")]
     public partial class TextToSpeech
         : QueueGenerationBase, IReturn<GenerationResponse>
     {
         ///<summary>
         ///The text to be converted to speech
         ///</summary>
+        [ApiMember(Description="The text to be converted to speech", ParameterType="body")]
+        [Required]
         public virtual string Text { get; set; }
-        ///<summary>
-        ///The voice to use for speech synthesis
-        ///</summary>
-        public virtual string Voice { get; set; }
-        ///<summary>
-        ///The AI model to use for text-to-speech conversion
-        ///</summary>
-        public virtual string Model { get; set; }
+
         ///<summary>
         ///Optional seed for reproducible results in speech generation
         ///</summary>
+        [ApiMember(Description="Optional seed for reproducible results in speech generation", ParameterType="query")]
         public virtual int? Seed { get; set; }
     }
 
@@ -1637,6 +1867,9 @@ namespace AiServer.ServiceModel.Types
         TextToSpeech,
         TextToAudio,
         SpeechToText,
+        ImageToText,
+        ImageToImage,
+        ImageWithMask,
         VAE,
     }
 

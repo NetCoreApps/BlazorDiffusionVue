@@ -33,6 +33,7 @@ public class ConfigureBackgroundJobs : IHostingStartup
             jobs.RecurringCommand<SyncArtifactsCommand>(Schedule.EveryMinute);
             jobs.RecurringCommand<RecalculateScoresCommand>(Schedule.Interval(TimeSpan.FromMinutes(10)));
             jobs.RecurringCommand<SyncCreativesCommand>(Schedule.Daily);
+            jobs.RecurringCommand<DeletePoorQualityArtifactsCommand>(Schedule.Hourly);
         });
 }
 
