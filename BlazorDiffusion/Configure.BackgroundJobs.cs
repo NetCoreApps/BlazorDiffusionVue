@@ -48,7 +48,7 @@ public class LogCommand(ILogger<LogCommand> logger, IBackgroundJobs jobs) : Asyn
         for (var i = 0; i < 20; i++)
         {
             log.UpdateProgress(.1 + (i + 1 / (double)10) * .9); 
-            log.LogInformation("Waited {count} times", i+1);
+            log.LogDebug("Waited {count} times", i+1);
             await Task.Delay(1000, token);
         }
         log.UpdateStatus(1,"Fine", "it is done");
