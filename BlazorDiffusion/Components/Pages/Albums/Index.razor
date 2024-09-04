@@ -3,7 +3,7 @@
 @inject UserState UserState
 
 <div id="albums" class="mx-auto px-6 lg:px-8">
-    <div class="mb-8 mx-auto max-w-2xl text-center">
+    <div class="my-8 mx-auto max-w-2xl text-center">
         <h1 class="max-w-4xl font-display text-4xl font-semibold tracking-tight text-slate-50 sm:text-5xl lg:text-6xl">Albums</h1>
     </div>
 
@@ -15,12 +15,12 @@
             {
                 <div>
                     <NavLink data-enhance-nav="false" href="@($"/albums/{album.Slug}")" class="@CssUtils.ClassNames("overflow-hidden flex justify-center")">
-                        <div class="relative sm:p-2 flex flex-col cursor-pointer items-center w-32 h-32 sm:w-64 sm:h-64 xl:w-96 xl:h-96 2xl:w-[512px] 2xl:h-[512px]">
-                            <ArtifactImage Artifact=@artifact MinSize="@artifact.Width" Class="flex rounded sm:rounded-xl w-full h-full" ImageClass="object-cover" />
+                        <div class="relative flex flex-col cursor-pointer items-center w-32 h-32 sm:w-64 sm:h-64 xl:w-96 xl:h-96 2xl:w-[512px] 2xl:h-[512px]">
+                            <ArtifactImage Artifact=@artifact MinSize="@artifact.Width" Class="flex w-full h-full" ImageClass="object-cover" />
 
-                            <div class="absolute top-0 left-0 w-full h-full group select-none overflow-hidden sm:m-1 rounded sm:rounded-xl">
-                                <div class="w-full h-full absolute inset-0 z-10 block text-zinc-100 drop-shadow pointer-events-none line-clamp sm:px-2 sm:pb-2 text-sm opacity-0 group-hover:opacity-40 transition duration-300 ease-in-out bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-700 via-gray-900 to-black"></div>
-                                <div class="absolute w-full h-full flex z-10 text-zinc-100 justify-between drop-shadow opacity-0 group-hover:opacity-100 transition-opacity sm:mb-1 text-sm">
+                            <div class="absolute top-0 left-0 w-full h-full group select-none overflow-hidden">
+                                <div class="w-full h-full absolute inset-0 z-10 block text-zinc-100 drop-shadow pointer-events-none line-clamp text-sm opacity-0 group-hover:opacity-40 transition duration-300 ease-in-out bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-700 via-gray-900 to-black"></div>
+                                <div class="absolute w-full h-full flex z-10 text-zinc-100 justify-between drop-shadow opacity-0 group-hover:opacity-100 transition-opacity text-sm">
                                 </div>
                                 <div class="relative w-full h-full overflow-hidden flex flex-col justify-between overflow-hidden">
                                     <div></div>

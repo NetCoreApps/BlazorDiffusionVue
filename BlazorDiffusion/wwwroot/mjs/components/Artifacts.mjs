@@ -581,12 +581,12 @@ export const ArtifactGallery = {
         <div :class="['grid',store.css.gridClass(store.prefs.artifactGalleryColumns)]">
             <div v-for="artifact in results" :key="artifact.id" :class="[artifact.width > artifact.height ? 'col-span-2' : artifact.height > artifact.width ? 'row-span-2' : '']">
                 <div @click="navTo(artifact)" class="flex justify-center">
-                    <div class="relative sm:m-2 flex flex-col cursor-pointer items-center" :style="'max-width:' + artifact.width + 'px'"
+                    <div class="relative flex flex-col cursor-pointer items-center" :style="'max-width:' + artifact.width + 'px'"
                          @contextmenu.prevent="$emit('contextmenu',artifact)">
     
-                        <ArtifactImage :artifact="artifact" :class="['sm:rounded lg:rounded-xl border sm:border-2', resolveBorderColor(artifact, selected?.id)]" />
+                        <ArtifactImage :artifact="artifact" :class="['border sm:border-2', resolveBorderColor(artifact, selected?.id)]" />
     
-                        <div class="absolute top-0 left-0 w-full h-full group select-none overflow-hidden sm:rounded lg:rounded-xl border sm:border-2 border-transparent">
+                        <div class="absolute top-0 left-0 w-full h-full group select-none overflow-hidden border sm:border-2 border-transparent">
                             <div class="w-full h-full absolute inset-0 z-10 block text-zinc-100 drop-shadow pointer-events-none line-clamp sm:px-2 sm:pb-2 text-sm opacity-0 group-hover:opacity-40 transition duration-300 ease-in-out bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-700 via-gray-900 to-black"></div>
     
                             <div class="absolute w-full h-full flex z-10 text-zinc-100 justify-between drop-shadow opacity-0 group-hover:opacity-100 transition-opacity sm:mb-1 text-sm">

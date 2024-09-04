@@ -7,7 +7,6 @@ export default {
     template: `
     <div class="mx-auto px-6 lg:px-8">
         <div class="mb-10 mx-auto max-w-2xl text-center">
-            <h1 class="max-w-4xl font-display text-4xl font-semibold tracking-tight text-slate-50 sm:text-5xl lg:text-6xl">Stable Diffusion Search</h1>
             <form v-on:submit.prevent="update" class="mt-4 sm:mt-8 text-lg mx-auto max-w-lg flex justify-center">
                 <text-input id="query" type="search" v-model="request.query" class="bg-transparent h-8 w-96" label="" placeholder="Search existing images"></text-input>
             </form>
