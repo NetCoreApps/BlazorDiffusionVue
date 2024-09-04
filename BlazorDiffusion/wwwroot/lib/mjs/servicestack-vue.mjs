@@ -2807,7 +2807,7 @@ const Jr = { key: 0 }, Xr = { class: "md:p-4" }, to = /* @__PURE__ */ ce({
       return ns(Hs(Ft.value || ((_ = we.value.AnyQuery) == null ? void 0 : _.dataModel.name)));
     }), Se = v(() => pe.value.take ?? ps), ge = v(() => N.value.response ? be(N.value.response, "results") : []), B = v(() => {
       var _;
-      return ((_ = N.value.response) == null ? void 0 : _.total) ?? ge.value.length ?? 0;
+      return (((_ = N.value.response) == null ? void 0 : _.total) || ge.value.length) ?? 0;
     }), q = v(() => L.value > 0), ne = v(() => L.value > 0), ye = v(() => ge.value.length >= Se.value), _e = v(() => ge.value.length >= Se.value), Me = I(), Re = I(), Te = {
       NoQuery: "No Query API was found"
     };
@@ -2824,7 +2824,12 @@ const Jr = { key: 0 }, Xr = { class: "md:p-4" }, to = /* @__PURE__ */ ce({
       setEdit: Os,
       edit: X,
       createForm: Me,
-      editForm: Re
+      editForm: Re,
+      apiPrefs: pe,
+      results: ge,
+      skip: L,
+      take: Se,
+      total: B
     }), Y.interceptors.has("AutoQueryGrid.new") && Y.interceptors.invoke("AutoQueryGrid.new", { props: u });
     function je(_) {
       if (_) {
