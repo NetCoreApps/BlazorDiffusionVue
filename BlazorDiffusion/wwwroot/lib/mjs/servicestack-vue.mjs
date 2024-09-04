@@ -6243,7 +6243,7 @@ const j0 = { key: 0 }, O0 = { class: "text-red-700" }, B0 = /* @__PURE__ */ l("b
       }, _v, 2)
     ]));
   }
-}), Cv = ["id", "aria-labelledby"], xv = /* @__PURE__ */ l("div", { class: "fixed inset-0" }, null, -1), Lv = { class: "fixed inset-0 overflow-hidden" }, Vv = { class: "flex h-full flex-col bg-white dark:bg-black shadow-xl" }, Sv = { class: "flex min-h-0 flex-1 flex-col overflow-auto" }, Mv = { class: "flex-1" }, Av = { class: "bg-gray-50 dark:bg-gray-900 px-4 py-6 sm:px-6" }, Tv = { class: "flex items-start justify-between space-x-3" }, Fv = { class: "space-y-1" }, Iv = { key: 0 }, Dv = ["id"], Pv = {
+}), Cv = ["id", "aria-labelledby"], xv = /* @__PURE__ */ l("div", { class: "fixed inset-0" }, null, -1), Lv = { class: "fixed inset-0 overflow-hidden" }, Vv = { class: "flex h-full flex-col bg-white dark:bg-black shadow-xl" }, Sv = { class: "flex min-h-0 flex-1 flex-col overflow-auto" }, Mv = { class: "flex-1" }, Av = { class: "relative bg-gray-50 dark:bg-gray-900 px-4 py-6 sm:px-6" }, Tv = { class: "flex items-start justify-between space-x-3" }, Fv = { class: "space-y-1" }, Iv = { key: 0 }, Dv = ["id"], Pv = {
   key: 2,
   class: "text-sm text-gray-500"
 }, jv = { class: "flex h-7 items-center" }, Ov = {
