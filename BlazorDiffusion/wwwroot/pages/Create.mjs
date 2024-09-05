@@ -312,7 +312,7 @@ export default {
     
                         <ArtifactImage :artifact="artifact" :class="['border sm:border-2', resolveBorderColor(artifact, artifact.id == c.primaryArtifactId)]" />
     
-                        <div class="absolute top-0 left-0 w-full h-full group select-none overflow-hidden sm:m-1">
+                        <div class="absolute top-0 left-0 w-full h-full group select-none overflow-hidden">
                             <div class="w-full h-full absolute inset-0 z-10 block text-zinc-100 drop-shadow pointer-events-none line-clamp sm:px-2 sm:pb-2 text-sm opacity-0 group-hover:opacity-40 transition duration-300 ease-in-out bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-gray-700 via-gray-900 to-black"></div>
     
                             <div class="absolute w-full h-full flex z-10 text-zinc-100 justify-between drop-shadow opacity-0 group-hover:opacity-100 transition-opacity sm:mb-1 text-sm">
