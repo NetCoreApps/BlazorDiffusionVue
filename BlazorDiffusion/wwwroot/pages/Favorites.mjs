@@ -115,7 +115,7 @@ export default {
     <div>
         <div v-if="user" class="flex mt-3">
             <div class="z-10 flex-shrink mr-1 sm:mr-2">
-                <div class="ml-2 flex flex-col sm:-mt-8 justify-center items-center">
+                <div class="ml-2 flex flex-col pt-0.5 -mt-8 sm:-mt-10 justify-center items-center">
                     <div class="mb-2">
                         <a v-on:click.prevent="navTo({ album: undefined })" href="/favorites">
                             <svg :class="['h-16 w-16 sm:h-24 sm:w-24', selectedAlbum == null ? 'text-red-600 hover:text-red-400' : 'text-cyan-600 hover:text-cyan-400 cursor-pointer']"
@@ -126,7 +126,7 @@ export default {
                     </div>
 
                     <a v-for="album in store.userAlbums" v-on:click.prevent="navTo({ album: album.id })" :href="'/favorites?album='+album.id">
-                        <div :class="['sm:mt-2 hover:opacity-80 cursor-pointer h-16 w-16 sm:h-24 sm:w-24 overflow-hidden rounded sm:rounded-lg border-2',
+                        <div :class="['sm:mt-2 hover:opacity-80 cursor-pointer h-16 w-16 sm:h-24 sm:w-24 overflow-hidden border',
                                         selectedAlbum?.id === album.id ? 'border-yellow-400' : 'border-transparent']">
                             <artifact-image :artifact="store.albumCover(album)" class="flex w-full h-full" image-class="object-cover"></artifact-image>
                         </div>

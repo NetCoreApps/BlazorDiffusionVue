@@ -5,7 +5,7 @@ import { SearchArtifacts, AnonData, QueryArtifacts } from "dtos.mjs"
 
 export default {
     template: `
-    <div class="mx-auto px-6 lg:px-8">
+    <div class="mx-auto px-2">
         <div class="mb-10 mx-auto max-w-2xl text-center">
             <form v-on:submit.prevent="update" class="mt-4 sm:mt-8 text-lg mx-auto max-w-lg flex justify-center">
                 <text-input id="query" type="search" v-model="request.query" class="bg-transparent h-8 w-96" label="" placeholder="Search existing images"></text-input>
@@ -15,10 +15,10 @@ export default {
         <div class="flex">
             <div class="flex flex-col flex-shrink">
                 <div class="z-10 flex-shrink sm:mr-2">
-                    <div v-if="topAlbums.length" :key="renderKey" class="flex flex-col -ml-6 sm:-ml-4 -mt-5 sm:-mt-8 pt-1 sm:pt-2 justify-center items-center">
+                    <div v-if="topAlbums.length" :key="renderKey" class="flex flex-col -mt-5 sm:-mt-10 pt-1 sm:pt-2 justify-center items-center">
                         <div class="-mt-1 sm:mt-0 text-xs sm:text-sm text-gray-500 whitespace-nowrap w-16 sm:w-24 text-center pb-1">top albums</div>
                         <a :key="album.slug" v-for="album in topAlbums" :href="'/albums/' + album.slug">
-                            <div :class="['sm:mt-2 hover:opacity-80 cursor-pointer h-16 w-16 sm:h-24 sm:w-24 overflow-hidden rounded sm:rounded-lg border-2',
+                            <div :class="['sm:mt-2 hover:opacity-80 cursor-pointer h-16 w-16 sm:h-24 sm:w-24 overflow-hidden',
                                           album === album.albumRef ? 'border-yellow-400' : 'border-transparent']">
                                 <artifact-image :artifact="store.albumCover(album)" class="flex w-full h-full" image-class="object-cover"></artifact-image>
                             </div>
@@ -28,7 +28,7 @@ export default {
                 </div>
             </div>
             <div v-cloak>
-                <h3 v-if="title" class="text-xl absolute -mt-8 ml-4">{{title}}</h3>
+                <h3 v-if="title" class="text-xl absolute -mt-9">{{title}}</h3>
                 <artifact-gallery ref="gallery" :results="results" v-on:contextmenu="artifactMenu=$event" v-on:open="openDialog">
                     <template #icons="artifact">
                         <div class="p-2 relative w-full h-full overflow-hidden flex flex-col justify-between overflow-hidden">
