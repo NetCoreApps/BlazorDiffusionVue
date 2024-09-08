@@ -167,7 +167,7 @@ public class SearchService(IAutoQueryDb autoQuery, IBackgroundJobs jobs) : Servi
                 var user = Request.GetClaimsPrincipal(); 
                 if (user == null || !(user.IsInRole(AppRoles.Admin) || user.IsInRole(AppRoles.Moderator)))
                 {
-                    q.Where<Artifact>(x => x.Nsfw != true && x.Quality == 0);
+                    q.Where<Artifact>(x => (x.Nsfw == false || x.Nsfw == null) && x.Quality >= 0);
                 }
             }
             else
