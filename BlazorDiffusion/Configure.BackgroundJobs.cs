@@ -26,7 +26,7 @@ public class ConfigureBackgroundJobs : IHostingStartup
             var jobs = services.GetRequiredService<IBackgroundJobs>();
             #if DEBUG
             jobs.RecurringCommand<LogCommand>("Every Minute", Schedule.EveryMinute, new() {
-                // RunCommand = true // don't persist job
+                RunCommand = true // don't persist job
             });
             #endif
             
