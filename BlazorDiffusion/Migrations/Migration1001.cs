@@ -555,7 +555,6 @@ public class Migration1001 : MigrationBase
         Db.DropTable<CreativeArtist>();
         Db.DropTable<CreativeModifier>();
         Db.DropTable<Creative>();
-        Db.DropTable<AppUser>();
         Db.DropTable<Modifier>();
         Db.DropTable<Artist>();
     }
