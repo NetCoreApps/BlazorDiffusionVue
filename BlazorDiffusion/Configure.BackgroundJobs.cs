@@ -30,7 +30,9 @@ public class ConfigureBackgroundJobs : IHostingStartup
             });
             #endif
             
-            jobs.RecurringCommand<SyncArtifactsCommand>(Schedule.EveryMinute);
+            jobs.RecurringCommand<SyncArtifactsCommand>(Schedule.EveryMinute, new() {
+                RunCommand = true // don't persist job
+            });
             jobs.RecurringCommand<RecalculateScoresCommand>(Schedule.Interval(TimeSpan.FromMinutes(10)));
             jobs.RecurringCommand<SyncCreativesCommand>(Schedule.Daily);
             jobs.RecurringCommand<DeletePoorQualityArtifactsCommand>(Schedule.Hourly);
