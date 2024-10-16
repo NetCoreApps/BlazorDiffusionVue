@@ -70,7 +70,7 @@ jobs:
           FIRST_RUN_FILE=".${{ env.repository_name }}"
           if ! kamal server exec --no-interactive -q "test -f $FIRST_RUN_FILE"; then
             kamal server exec --no-interactive -q "touch $FIRST_RUN_FILE" || true
-            kamal -q deploy > /dev/null 2>&1 || true
+            kamal deploy -q > /dev/null 2>&1 || true
           else
             echo "Not first run, skipping kamal app boot"
           fi
