@@ -38,6 +38,9 @@ jobs:
         with:
           dotnet-version: '8.0'
           
+      - name: Install x tool
+        run: dotnet tool install -g x
+        
         # Temp test
       - name: Apply Production AppSettings
         working-directory: ./BlazorDiffusion
