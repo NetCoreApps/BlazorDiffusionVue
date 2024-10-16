@@ -5,8 +5,9 @@ service: blazor-diffusion
 image: netcoreapps/blazordiffusionvue
 
 env:
-  VIRTUAL_HOST: blazordiffusion.com
-  DEPLOY_API: blazordiffusion.com
+  clear:
+    VIRTUAL_HOST: blazordiffusion.com
+    DEPLOY_API: blazordiffusion.com
   secret:
     - AI_SERVER_APIKEY
 
