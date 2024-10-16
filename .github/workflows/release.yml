@@ -71,9 +71,9 @@ jobs:
       - name: Check if first run and execute kamal app boot if necessary
         run: |
           FIRST_RUN_FILE="/opt/docker/${{ env.repository_name }}/.first_run"
-          if ! kamal server exec --no-interactive "test -f $FIRST_RUN_FILE"; then
-            kamal server exec --no-interactive "touch $FIRST_RUN_FILE"
-            kamal app boot > /dev/null 2>&1 || true
+          if ! kamal server exec --no-interactive -q "test -f $FIRST_RUN_FILE"; then
+            kamal server exec --no-interactive -q "touch $FIRST_RUN_FILE"
+            kamal app -q boot > /dev/null 2>&1 || true
           else
             echo "Not first run, skipping kamal app boot"
           fi
