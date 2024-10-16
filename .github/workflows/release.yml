@@ -67,9 +67,9 @@ jobs:
       # This ensures the web.env has been setup ready for deployments
       - name: Check if first run and execute kamal app boot if necessary
         run: |
-          FIRST_RUN_FILE="/opt/docker/${{ env.repository_name }}/.first_run"
+          FIRST_RUN_FILE=".${{ env.repository_name }}"
           if ! kamal server exec --no-interactive -q "test -f $FIRST_RUN_FILE"; then
-            kamal server exec --no-interactive -q "touch $FIRST_RUN_FILE"
+            kamal server exec --no-interactive -q "touch $FIRST_RUN_FILE" || true
             kamal app -q deploy > /dev/null 2>&1 || true
           else
             echo "Not first run, skipping kamal app boot"
