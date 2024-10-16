@@ -9,6 +9,7 @@ on:
       - completed
   workflow_dispatch:
 
+# Only update envs here if you need to change them for this workflow
 env:
   DOCKER_BUILDKIT: 1
   KAMAL_REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
@@ -16,6 +17,7 @@ env:
   R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
   R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
 
+# Standard steps for building and deploying a .NET app via Kamal
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
