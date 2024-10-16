@@ -12,7 +12,7 @@ servers:
 # Enable SSL auto certification via Let's Encrypt (and allow for multiple apps on one server).
 proxy:
   ssl: true
-  host: dev.blazordiffusion.com
+  host: blazordiffusion.com
   # kamal-proxy connects to your container over port 80, use `app_port` to specify a different port.
   app_port: 8080
 
