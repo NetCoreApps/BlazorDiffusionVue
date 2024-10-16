@@ -16,6 +16,7 @@ env:
   KAMAL_REGISTRY_USERNAME: ${{ github.actor }}
   R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
   R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+  AI_SERVER_APIKEY: ${{ secrets.AI_SERVER_APIKEY }}
 
 # Standard steps for building and deploying a .NET app via Kamal
 jobs:
