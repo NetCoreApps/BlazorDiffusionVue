@@ -30,8 +30,8 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          username: ${{ env.KAMAL_REGISTRY_USERNAME }}
+          password: ${{ env.KAMAL_REGISTRY_PASSWORD }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
@@ -66,6 +66,17 @@ jobs:
 
       - name: Ensure file permissions
         run: kamal server exec --no-interactive "mkdir -p /opt/docker/${{ env.repository_name }}/App_Data && chown -R 1654:1654 /opt/docker/${{ env.repository_name }}/App_Data"
+
+      # This ensures the web.env has been setup ready for deployments
+      - name: Check if first run and execute kamal app boot if necessary
+        run: |
+          FIRST_RUN_FILE="/opt/docker/${{ env.repository_name }}/.first_run"
+          if ! kamal server exec --no-interactive "test -f $FIRST_RUN_FILE"; then
+            kamal server exec --no-interactive "touch $FIRST_RUN_FILE"
+            kamal app boot > /dev/null 2>&1 || true
+          else
+            echo "Not first run, skipping kamal app boot"
+          fi
 
       - name: Migration
         run: kamal app exec --no-reuse --no-interactive --version=latest "--AppTasks=migrate"
