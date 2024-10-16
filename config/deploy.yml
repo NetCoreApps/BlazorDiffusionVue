@@ -4,6 +4,10 @@ service: blazor-diffusion
 # Name of the container image.
 image: netcoreapps/blazordiffusionvue
 
+env:
+  secret:
+    - AI_SERVER_APIKEY
+
 # Deploy to these servers.
 servers:
   web:
