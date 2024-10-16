@@ -95,4 +95,9 @@ public class MyServices(AiServerClient aiClient) : Service
             Avatar = request.Avatar ?? userInfo.Avatar,
         };
     }
+
+    public object Get(KamalUp request)
+    {
+        return new KamalUpResponse();
+    }
 }
