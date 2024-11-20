@@ -8,6 +8,7 @@ env:
   clear:
     VIRTUAL_HOST: blazordiffusion.com
     DEPLOY_API: blazordiffusion.com
+    ASPNETCORE_FORWARDEDHEADERS_ENABLED: true
   secret:
     - AI_SERVER_APIKEY
 
