@@ -106,5 +106,5 @@ public class AppHost() : AppHostBase("Blazor Diffusion"), IHostingStartup
     }
 
     public static void RegisterKey() =>
-        Licensing.RegisterLicense("OSS GPL-3.0 2024 https://github.com/NetCoreApps/BlazorDiffusionVue K0VsMikfSp8ZKaRhYB9deGsvqJW7L8liuUmg6wD6kDAWoXiVRN3nKZ+nWLzgBvsuxK1yJ2NlL2XEwo2Zmj+e/jPDbnzEBasPOJVAP4E3lIPye7KfqUVWICvwTn6kav5BNfcyLlG/MTX6HloKEqQijOV/Azrw5fACOeNh9mXUQ1o=");
+        Licensing.RegisterLicense("OSS GPL-3.0 2025 https://github.com/NetCoreApps/BlazorDiffusionVue S9/5m6q3i75VMk+ywFX765KlTIL9M7l0leKs47RRCVBq2n7A91SbByCstm/QTcDRn/NQm/sZHl1q9ihcQtZ+2uRbi9+DHFNrvoI+MgcOjjUntuM8p7cXxNQTXNgBtSDwIaPveuWwj7+zHA/Z2hwMY/PnXQ0vozv0DGzTXNdpFuY=");
 }
