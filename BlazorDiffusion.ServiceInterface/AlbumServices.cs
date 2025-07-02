@@ -48,7 +48,7 @@ public class AlbumServices(IBackgroundJobs jobs, ICrudEvents crudEvents) : Servi
                 album.Artifacts = albumArtifacts;
             }
 
-            var crudContext = CrudContext.Create<Album>(Request, Db, request, AutoCrudOperation.Create);
+            var crudContext = CrudContext.Create<Album>(Request, Db, request, AutoCrudOperation.Create, Locks.AppDb);
             crudEvents.Record(crudContext);
         }
 
@@ -116,7 +116,7 @@ public class AlbumServices(IBackgroundJobs jobs, ICrudEvents crudEvents) : Servi
 
             if (updateAlbum)
             {
-                var crudContext = CrudContext.Create<Album>(Request, Db, request, AutoCrudOperation.Patch);
+                var crudContext = CrudContext.Create<Album>(Request, Db, request, AutoCrudOperation.Patch, Locks.AppDb);
                 crudEvents.Record(crudContext);
             }
 

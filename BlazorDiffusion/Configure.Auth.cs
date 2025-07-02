@@ -10,7 +10,7 @@ public class ConfigureAuth : IHostingStartup
     public void Configure(IWebHostBuilder builder) => builder
         .ConfigureServices((context,services) =>
         {
-            services.AddPlugin(new AuthFeature(IdentityAuth.For<AppUser,int>(options => {
+            services.AddPlugin(new AuthFeature(IdentityAuth.For<AppUser,AppRole,int>(options => {
                 options.CredentialsAuth();
                 options.SessionFactory = () => new CustomUserSession();
                 options.AdminUsersFeature();
